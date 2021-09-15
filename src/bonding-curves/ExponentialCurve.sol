@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-contract LinearCurve {
+contract ExponentialCurve {
+  
+  uint256 public constant PRECISION = 10**6; 
 
   function increasePrice(uint256 spotPrice, uint256 delta) external returns (uint256) {
-    return spotPrice+delta;
+    // TODO
   }
 
   function decreasePrice(uint256 spotPrice, uint256 delta) external returns (uint256) {
-    if (spotPrice >= delta) {
-      return spotPrice - delta;
-    }
-    else {
-      return 0;
-    }
+    // TODO
   }
 }
