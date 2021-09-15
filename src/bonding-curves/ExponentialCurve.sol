@@ -2,14 +2,19 @@
 pragma solidity ^0.8.0;
 
 contract ExponentialCurve {
-  
-  uint256 public constant PRECISION = 10**6; 
+    uint256 public constant PRECISION = 10**6;
 
-  function increasePrice(uint256 spotPrice, uint256 delta) external returns (uint256) {
-    // TODO
-  }
+    function increasePrice(uint256 spotPrice, uint256 delta)
+        external
+        returns (uint256)
+    {
+        // TODO
+    }
 
-  function decreasePrice(uint256 spotPrice, uint256 delta) external returns (uint256) {
-    // TODO
-  }
+    function decreasePrice(uint256 spotPrice, uint256 delta)
+        external
+        returns (uint256)
+    {
+        // TODO
+    }
 }
