@@ -19,6 +19,10 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             uint256 inputValue
         )
     {
+        if (numItems == 0) {
+            return (Error.INVALID_NUMITEMS, 0, 0);
+        }
+
         newSpotPrice = spotPrice + delta * numItems;
         inputValue =
             numItems *
@@ -42,6 +46,10 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             uint256 outputValue
         )
     {
+        if (numItems == 0) {
+            return (Error.INVALID_NUMITEMS, 0, 0);
+        }
+
         uint256 totalPriceDecrease = delta * numItems;
         if (spotPrice < totalPriceDecrease) {
             newSpotPrice = 0;
