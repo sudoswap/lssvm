@@ -43,16 +43,23 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         )
     {
         uint256 totalPriceDecrease = delta * numItems;
-        if (spotPrice >= totalPriceDecrease) {
+        if (spotPrice < totalPriceDecrease) {
+            newSpotPrice = 0;
+            uint256 numItemsTillZeroPrice = spotPrice / delta;
+            outputValue =
+                numItemsTillZeroPrice *
+                spotPrice -
+                (numItemsTillZeroPrice * (numItemsTillZeroPrice - 1) * delta) /
+                2;
+        } else {
             newSpotPrice = spotPrice - totalPriceDecrease;
             outputValue =
                 numItems *
                 spotPrice -
                 (numItems * (numItems - 1) * delta) /
                 2;
-            error = Error.OK;
-        } else {
-            error = Error.PRICE_LOWER_BOUND_REACHED;
         }
+
+        error = Error.OK;
     }
 }
