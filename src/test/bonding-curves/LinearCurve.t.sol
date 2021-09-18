@@ -49,4 +49,51 @@ contract LinearCurveTest is DSTest {
             );
         }
     }
+
+    function test_getSellInfoWithoutFee(
+        uint128 spotPrice,
+        uint128 delta,
+        uint8 numItems
+    ) public {
+        (
+            LinearCurve.Error error,
+            uint256 newSpotPrice,
+            uint256 outputValue
+        ) = curve.getSellInfo(spotPrice, delta, numItems, 0);
+        if (numItems > 0) {
+            assertEq(
+                uint256(error),
+                uint256(CurveErrorCodes.Error.OK),
+                "Error code not OK"
+            );
+
+            uint256 totalPriceDecrease = uint256(delta) * numItems;
+            if (spotPrice < totalPriceDecrease) {
+                assertEq(
+                    newSpotPrice,
+                    0,
+                    "New spot price not 0 when decrease is greater than current spot price"
+                );
+            }
+            if (spotPrice > 0) {
+                assertTrue(
+                    (newSpotPrice < spotPrice && delta > 0) ||
+                        (newSpotPrice == spotPrice && delta == 0),
+                    "Price update incorrect"
+                );
+            }
+
+            assertLe(
+                outputValue,
+                numItems * uint256(spotPrice),
+                "Output value incorrect"
+            );
+        } else {
+            assertEq(
+                uint256(error),
+                uint256(CurveErrorCodes.Error.INVALID_NUMITEMS),
+                "Error code not INVALID_NUMITEMS"
+            );
+        }
+    }
 }

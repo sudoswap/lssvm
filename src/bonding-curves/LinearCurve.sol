@@ -65,7 +65,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         uint256 totalPriceDecrease = delta * numItems;
         if (spotPrice < totalPriceDecrease) {
             newSpotPrice = 0;
-            uint256 numItemsTillZeroPrice = spotPrice / delta;
+            uint256 numItemsTillZeroPrice = spotPrice / delta + 1;
             outputValue =
                 numItemsTillZeroPrice *
                 spotPrice -
