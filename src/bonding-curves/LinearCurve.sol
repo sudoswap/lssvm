@@ -3,12 +3,16 @@ pragma solidity ^0.8.0;
 
 import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
+import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 
 contract LinearCurve is ICurve, CurveErrorCodes {
+    using PRBMathUD60x18 for uint256;
+
     function getBuyInfo(
         uint256 spotPrice,
         uint256 delta,
-        uint256 numItems
+        uint256 numItems,
+        uint256 feeMultiplier
     )
         external
         pure
@@ -22,6 +26,9 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         if (numItems == 0) {
             return (Error.INVALID_NUMITEMS, 0, 0);
         }
+        if (feeMultiplier > PRBMathUD60x18.SCALE) {
+            return (Error.INVALID_FEE_MULTIPLIER, 0, 0);
+        }
 
         newSpotPrice = spotPrice + delta * numItems;
         inputValue =
@@ -29,13 +36,15 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             spotPrice +
             (numItems * (numItems - 1) * delta) /
             2;
+        inputValue += inputValue.mul(feeMultiplier);
         error = Error.OK;
     }
 
     function getSellInfo(
         uint256 spotPrice,
         uint256 delta,
-        uint256 numItems
+        uint256 numItems,
+        uint256 feeMultiplier
     )
         external
         pure
@@ -48,6 +57,9 @@ contract LinearCurve is ICurve, CurveErrorCodes {
     {
         if (numItems == 0) {
             return (Error.INVALID_NUMITEMS, 0, 0);
+        }
+        if (feeMultiplier > PRBMathUD60x18.SCALE) {
+            return (Error.INVALID_FEE_MULTIPLIER, 0, 0);
         }
 
         uint256 totalPriceDecrease = delta * numItems;
@@ -67,6 +79,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
                 (numItems * (numItems - 1) * delta) /
                 2;
         }
+        outputValue -= outputValue.mul(feeMultiplier);
 
         error = Error.OK;
     }

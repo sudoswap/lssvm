@@ -7,7 +7,8 @@ interface ICurve {
     function getBuyInfo(
         uint256 spotPrice,
         uint256 delta,
-        uint256 numItems
+        uint256 numItems,
+        uint256 feeMultiplier
     )
         external
         returns (
@@ -19,7 +20,8 @@ interface ICurve {
     function getSellInfo(
         uint256 spotPrice,
         uint256 delta,
-        uint256 numItems
+        uint256 numItems,
+        uint256 feeMultiplier
     )
         external
         returns (
