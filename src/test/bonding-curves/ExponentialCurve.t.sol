@@ -18,17 +18,40 @@ contract ExponentialCurveTest is DSTest {
         curve = new ExponentialCurve();
     }
 
+    function test_getBuyInfoExample() public {
+        uint256 spotPrice = 3 ether;
+        uint256 delta = 2 * PRBMathUD60x18.SCALE; // 2
+        uint256 numItems = 5;
+        uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
+        (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 inputValue
+        ) = curve.getBuyInfo(spotPrice, delta, numItems, feeMultiplier);
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Error code not OK"
+        );
+        assertEq(newSpotPrice, 96 ether, "Spot price incorrect");
+        assertEq(inputValue, 93.465 ether, "Input value incorrect");
+    }
+
     function test_getBuyInfoWithoutFee(
         uint128 spotPrice,
         uint64 delta,
         uint8 numItems
     ) public {
-        if (delta < PRBMathUD60x18.SCALE || numItems > 10) {
+        if (
+            delta < PRBMathUD60x18.SCALE ||
+            numItems > 10 ||
+            spotPrice < MIN_PRICE
+        ) {
             return;
         }
 
         (
-            ExponentialCurve.Error error,
+            CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 inputValue
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0);
@@ -54,17 +77,36 @@ contract ExponentialCurveTest is DSTest {
         );
     }
 
+    function test_getSellInfoExample() public {
+        uint256 spotPrice = 3 ether;
+        uint256 delta = 2 * PRBMathUD60x18.SCALE; // 2
+        uint256 numItems = 5;
+        uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
+        (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 outputValue
+        ) = curve.getSellInfo(spotPrice, delta, numItems, feeMultiplier);
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Error code not OK"
+        );
+        assertEq(newSpotPrice, 0.09375 ether, "Spot price incorrect");
+        assertEq(outputValue, 5.7834375 ether, "Output value incorrect");
+    }
+
     function test_getSellInfoWithoutFee(
         uint128 spotPrice,
         uint128 delta,
         uint8 numItems
     ) public {
-        if (delta < PRBMathUD60x18.SCALE) {
+        if (delta < PRBMathUD60x18.SCALE || spotPrice < MIN_PRICE) {
             return;
         }
 
         (
-            ExponentialCurve.Error error,
+            CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputValue
         ) = curve.getSellInfo(spotPrice, delta, numItems, 0);
