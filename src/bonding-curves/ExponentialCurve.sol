@@ -13,7 +13,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
     function getBuyInfo(
         uint256 spotPrice,
         uint256 delta,
-        uint256 numItems
+        uint256 numItems,
+        uint256 feeMultiplier
     )
         external
         pure
@@ -27,19 +28,24 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         if (delta <= PRBMathUD60x18.SCALE) {
             return (Error.INVALID_DELTA, 0, 0);
         }
+        if (feeMultiplier > PRBMathUD60x18.SCALE) {
+            return (Error.INVALID_FEE_MULTIPLIER, 0, 0);
+        }
 
         uint256 deltaPowN = delta.powu(numItems);
         newSpotPrice = spotPrice.mul(deltaPowN);
         inputValue = spotPrice.mul(
             (deltaPowN - PRBMathUD60x18.SCALE).div(delta - PRBMathUD60x18.SCALE)
         );
+        inputValue += inputValue.mul(feeMultiplier);
         error = Error.OK;
     }
 
     function getSellInfo(
         uint256 spotPrice,
         uint256 delta,
-        uint256 numItems
+        uint256 numItems,
+        uint256 feeMultiplier
     )
         external
         pure
@@ -53,6 +59,9 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         if (delta <= PRBMathUD60x18.SCALE) {
             return (Error.INVALID_DELTA, 0, 0);
         }
+        if (feeMultiplier > PRBMathUD60x18.SCALE) {
+            return (Error.INVALID_FEE_MULTIPLIER, 0, 0);
+        }
 
         uint256 invDelta = delta.inv();
         uint256 invDeltaPowN = invDelta.powu(numItems);
@@ -65,6 +74,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
                 PRBMathUD60x18.SCALE - invDelta
             )
         );
+        outputValue -= outputValue.mul(feeMultiplier);
         error = Error.OK;
     }
 }

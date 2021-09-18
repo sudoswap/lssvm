@@ -15,7 +15,7 @@ contract LinearCurveTest is DSTest {
         curve = new LinearCurve();
     }
 
-    function test_getBuyInfo(
+    function test_getBuyInfoWithoutFee(
         uint128 spotPrice,
         uint128 delta,
         uint8 numItems
@@ -24,7 +24,7 @@ contract LinearCurveTest is DSTest {
             LinearCurve.Error error,
             uint256 newSpotPrice,
             uint256 inputValue
-        ) = curve.getBuyInfo(spotPrice, delta, numItems);
+        ) = curve.getBuyInfo(spotPrice, delta, numItems, 0);
         if (numItems > 0) {
             assertEq(
                 uint256(error),

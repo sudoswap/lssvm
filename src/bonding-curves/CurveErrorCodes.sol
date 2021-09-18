@@ -5,6 +5,7 @@ contract CurveErrorCodes {
     enum Error {
         OK,
         INVALID_DELTA,
-        INVALID_NUMITEMS
+        INVALID_NUMITEMS,
+        INVALID_FEE_MULTIPLIER
     }
 }
