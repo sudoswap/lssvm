@@ -10,6 +10,15 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
 
     uint256 public constant MIN_PRICE = 1 gwei;
 
+    function validateDelta(uint256 delta)
+        external
+        pure
+        override
+        returns (bool valid)
+    {
+        return delta >= PRBMathUD60x18.SCALE;
+    }
+
     function getBuyInfo(
         uint256 spotPrice,
         uint256 delta,
@@ -25,13 +34,6 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 inputValue
         )
     {
-        if (delta <= PRBMathUD60x18.SCALE) {
-            return (Error.INVALID_DELTA, 0, 0);
-        }
-        if (feeMultiplier > PRBMathUD60x18.SCALE) {
-            return (Error.INVALID_FEE_MULTIPLIER, 0, 0);
-        }
-
         uint256 deltaPowN = delta.powu(numItems);
         newSpotPrice = spotPrice.mul(deltaPowN);
         inputValue = spotPrice.mul(
@@ -56,13 +58,6 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 outputValue
         )
     {
-        if (delta <= PRBMathUD60x18.SCALE) {
-            return (Error.INVALID_DELTA, 0, 0);
-        }
-        if (feeMultiplier > PRBMathUD60x18.SCALE) {
-            return (Error.INVALID_FEE_MULTIPLIER, 0, 0);
-        }
-
         uint256 invDelta = delta.inv();
         uint256 invDeltaPowN = invDelta.powu(numItems);
         newSpotPrice = spotPrice.mul(invDeltaPowN);

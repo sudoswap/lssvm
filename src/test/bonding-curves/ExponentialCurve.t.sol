@@ -2,30 +2,33 @@
 pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
+import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 
-import {LinearCurve} from "../../bonding-curves/LinearCurve.sol";
+import {ExponentialCurve} from "../../bonding-curves/ExponentialCurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
 
 import {Hevm} from "../utils/Hevm.sol";
 
-contract LinearCurveTest is DSTest {
-    LinearCurve curve;
+contract ExponentialCurveTest is DSTest {
+    uint256 constant MIN_PRICE = 1 gwei;
+
+    ExponentialCurve curve;
 
     function setUp() public {
-        curve = new LinearCurve();
+        curve = new ExponentialCurve();
     }
 
     function test_getBuyInfoWithoutFee(
         uint128 spotPrice,
-        uint128 delta,
+        uint64 delta,
         uint8 numItems
     ) public {
-        if (numItems == 0) {
+        if (delta < PRBMathUD60x18.SCALE || numItems > 10) {
             return;
         }
 
         (
-            LinearCurve.Error error,
+            ExponentialCurve.Error error,
             uint256 newSpotPrice,
             uint256 inputValue
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0);
@@ -35,11 +38,14 @@ contract LinearCurveTest is DSTest {
             "Error code not OK"
         );
 
-        assertTrue(
-            (newSpotPrice > spotPrice && delta > 0) ||
-                (newSpotPrice == spotPrice && delta == 0),
-            "Price update incorrect"
-        );
+        if (spotPrice > 0 && numItems > 0) {
+            assertTrue(
+                (newSpotPrice > spotPrice && delta > PRBMathUD60x18.SCALE) ||
+                    (newSpotPrice == spotPrice &&
+                        delta == PRBMathUD60x18.SCALE),
+                "Price update incorrect"
+            );
+        }
 
         assertGe(
             inputValue,
@@ -53,12 +59,12 @@ contract LinearCurveTest is DSTest {
         uint128 delta,
         uint8 numItems
     ) public {
-        if (numItems == 0) {
+        if (delta < PRBMathUD60x18.SCALE) {
             return;
         }
 
         (
-            LinearCurve.Error error,
+            ExponentialCurve.Error error,
             uint256 newSpotPrice,
             uint256 outputValue
         ) = curve.getSellInfo(spotPrice, delta, numItems, 0);
@@ -68,16 +74,7 @@ contract LinearCurveTest is DSTest {
             "Error code not OK"
         );
 
-        uint256 totalPriceDecrease = uint256(delta) * numItems;
-        if (spotPrice < totalPriceDecrease) {
-            assertEq(
-                newSpotPrice,
-                0,
-                "New spot price not 0 when decrease is greater than current spot price"
-            );
-        }
-
-        if (spotPrice > 0) {
+        if (spotPrice > MIN_PRICE && numItems > 0) {
             assertTrue(
                 (newSpotPrice < spotPrice && delta > 0) ||
                     (newSpotPrice == spotPrice && delta == 0),

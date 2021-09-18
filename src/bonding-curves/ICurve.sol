@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 
 interface ICurve {
+    function validateDelta(uint256 delta) external pure returns (bool valid);
+
     function getBuyInfo(
         uint256 spotPrice,
         uint256 delta,
@@ -11,6 +13,7 @@ interface ICurve {
         uint256 feeMultiplier
     )
         external
+        pure
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
@@ -24,6 +27,7 @@ interface ICurve {
         uint256 feeMultiplier
     )
         external
+        pure
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
