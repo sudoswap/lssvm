@@ -34,7 +34,7 @@ contract ExponentialCurveTest is DSTest {
             "Error code not OK"
         );
         assertEq(newSpotPrice, 96 ether, "Spot price incorrect");
-        assertEq(inputValue, 93.465 ether, "Input value incorrect");
+        assertEq(inputValue, 186.93 ether, "Input value incorrect");
     }
 
     function test_getBuyInfoWithoutFee(
