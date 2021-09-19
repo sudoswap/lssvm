@@ -34,9 +34,10 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         }
 
         newSpotPrice = spotPrice + delta * numItems;
+        uint256 buySpotPrice = spotPrice + delta;
         inputValue =
             numItems *
-            spotPrice +
+            buySpotPrice +
             (numItems * (numItems - 1) * delta) /
             2;
         inputValue += inputValue.mul(feeMultiplier);

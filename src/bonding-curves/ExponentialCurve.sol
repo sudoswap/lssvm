@@ -36,7 +36,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
     {
         uint256 deltaPowN = delta.powu(numItems);
         newSpotPrice = spotPrice.mul(deltaPowN);
-        inputValue = spotPrice.mul(
+        uint256 buySpotPrice = spotPrice.mul(delta);
+        inputValue = buySpotPrice.mul(
             (deltaPowN - PRBMathUD60x18.SCALE).div(delta - PRBMathUD60x18.SCALE)
         );
         inputValue += inputValue.mul(feeMultiplier);

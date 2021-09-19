@@ -7,12 +7,14 @@ import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
 // Is ERC721Holder
 contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
+    using Address for address payable;
 
     enum PoolType {
         Buy,
@@ -97,7 +99,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
         uint256 feeDifference = msg.value - inputAmount;
         if (feeDifference > 0) {
-            msg.sender.call{value: feeDifference}("");
+            payable(msg.sender).sendValue(feeDifference);
         }
     }
 
@@ -125,7 +127,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
         uint256 feeDifference = msg.value - inputAmount;
         if (feeDifference > 0) {
-            msg.sender.call{value: feeDifference}("");
+            payable(msg.sender).sendValue(feeDifference);
         }
     }
 
@@ -152,12 +154,12 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 idSet.add(nftIds[i]);
             }
         }
-        msg.sender.call{value: outputAmount}("");
+        payable(msg.sender).sendValue(outputAmount);
     }
 
     // Withdraw X ETH
     function withdrawETH(uint256 amount) public onlyOwner {
-        owner().call{value: amount}("");
+        payable(owner()).sendValue(amount);
     }
 
     // Withdraw all ETH

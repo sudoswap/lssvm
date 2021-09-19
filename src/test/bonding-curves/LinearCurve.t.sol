@@ -32,7 +32,7 @@ contract LinearCurveTest is DSTest {
             "Error code not OK"
         );
         assertEq(newSpotPrice, 3.5 ether, "Spot price incorrect");
-        assertEq(inputValue, 16.08 ether, "Input value incorrect");
+        assertEq(inputValue, 16.5825 ether, "Input value incorrect");
     }
 
     function test_getBuyInfoWithoutFee(
