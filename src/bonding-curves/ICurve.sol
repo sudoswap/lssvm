@@ -10,27 +10,31 @@ interface ICurve {
         uint256 spotPrice,
         uint256 delta,
         uint256 numItems,
-        uint256 feeMultiplier
+        uint256 feeMultiplier,
+        uint256 protocolFeeMultiplier
     )
         external
         pure
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
-            uint256 inputValue
+            uint256 inputValue,
+            uint256 protocolFee
         );
 
     function getSellInfo(
         uint256 spotPrice,
         uint256 delta,
         uint256 numItems,
-        uint256 feeMultiplier
+        uint256 feeMultiplier,
+        uint256 protocolFeeMultiplier
     )
         external
         pure
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
-            uint256 outputValue
+            uint256 outputValue,
+            uint256 protocolFee
         );
 }

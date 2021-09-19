@@ -5,6 +5,10 @@ import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 
+/*
+@author 0xmons and boredGenius
+@notice Bonding curve logic for an exponential curve, where each buy/sell changes spot price by multiplying/dividing delta
+*/
 contract ExponentialCurve is ICurve, CurveErrorCodes {
     using PRBMathUD60x18 for uint256;
 
@@ -23,7 +27,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         uint256 spotPrice,
         uint256 delta,
         uint256 numItems,
-        uint256 feeMultiplier
+        uint256 feeMultiplier,
+        uint256 protocolFeeMultiplier
     )
         external
         pure
@@ -31,7 +36,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         returns (
             Error error,
             uint256 newSpotPrice,
-            uint256 inputValue
+            uint256 inputValue,
+            uint256 protocolFee
         )
     {
         uint256 deltaPowN = delta.powu(numItems);
@@ -40,7 +46,9 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         inputValue = buySpotPrice.mul(
             (deltaPowN - PRBMathUD60x18.SCALE).div(delta - PRBMathUD60x18.SCALE)
         );
+        protocolFee = inputValue.mul(protocolFeeMultiplier);
         inputValue += inputValue.mul(feeMultiplier);
+        inputValue += protocolFee;
         error = Error.OK;
     }
 
@@ -48,7 +56,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         uint256 spotPrice,
         uint256 delta,
         uint256 numItems,
-        uint256 feeMultiplier
+        uint256 feeMultiplier,
+        uint256 protocolFeeMultiplier
     )
         external
         pure
@@ -56,7 +65,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         returns (
             Error error,
             uint256 newSpotPrice,
-            uint256 outputValue
+            uint256 outputValue,
+            uint256 protocolFee
         )
     {
         uint256 invDelta = delta.inv();
@@ -70,7 +80,9 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
                 PRBMathUD60x18.SCALE - invDelta
             )
         );
+        protocolFee = outputValue.mul(protocolFeeMultiplier);
         outputValue -= outputValue.mul(feeMultiplier);
+        outputValue -= protocolFee;
         error = Error.OK;
     }
 }

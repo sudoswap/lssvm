@@ -11,7 +11,6 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
-// Is ERC721Holder
 contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
     using Address for address payable;
@@ -82,8 +81,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
-            uint256 inputAmount
-        ) = bondingCurve.getBuyInfo(spotPrice, delta, numNFTs, fee);
+            uint256 inputAmount,
+            uint256 protocolFee
+        ) = bondingCurve.getBuyInfo(spotPrice, delta, numNFTs, fee, 0);
         require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(msg.value >= inputAmount, "Sent too little ETH");
         spotPrice = newSpotPrice;
@@ -120,8 +120,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
-            uint256 inputAmount
-        ) = bondingCurve.getBuyInfo(spotPrice, delta, nftIds.length, fee);
+            uint256 inputAmount,
+            uint256 protocolFee
+        ) = bondingCurve.getBuyInfo(spotPrice, delta, nftIds.length, fee, 0);
         require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(msg.value >= inputAmount, "Sent too little ETH");
         spotPrice = newSpotPrice;
@@ -143,8 +144,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
-            uint256 outputAmount
-        ) = bondingCurve.getSellInfo(spotPrice, delta, nftIds.length, fee);
+            uint256 outputAmount,
+            uint256 protocolFee
+        ) = bondingCurve.getSellInfo(spotPrice, delta, nftIds.length, fee, 0);
         require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(outputAmount >= minExpectedETHOutput, "Out too little ETH");
         spotPrice = newSpotPrice;
@@ -216,4 +218,6 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         require(newFee < MAX_FEE, "Trade fee must be less than 100%");
         fee = newFee;
     }
+
+    receive() external payable {}
 }
