@@ -23,7 +23,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     }
 
     uint256 private constant MAX_FEE = 1e18;
-    bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE = 0x780e9d63;
+    bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
+        type(IERC721Enumerable).interfaceId;
 
     // Note: we only call the enumerable functions when available
     IERC721Enumerable public nft;
@@ -73,8 +74,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     // Sell X ETH to Pool, get back at least Y NFTs
     function swapETHForAnyNFTs(uint256 numNFTs) external payable nonReentrant {
+        IERC721Enumerable _nft = nft;
         require(
-            (numNFTs > 0) && (numNFTs <= nft.balanceOf(address(this))),
+            (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
             "Must ask for > 0 and < balanceOf NFTs"
         );
         (
@@ -87,13 +89,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         spotPrice = newSpotPrice;
         if (!missingEnumerable) {
             for (uint256 i = 0; i < numNFTs; i++) {
-                uint256 nftId = nft.tokenOfOwnerByIndex(address(this), 0);
-                nft.safeTransferFrom(address(this), msg.sender, nftId);
+                uint256 nftId = _nft.tokenOfOwnerByIndex(address(this), 0);
+                _nft.safeTransferFrom(address(this), msg.sender, nftId);
             }
         } else {
             for (uint256 i = 0; i < numNFTs; i++) {
                 uint256 nftId = idSet.at(0);
-                nft.safeTransferFrom(address(this), msg.sender, nftId);
+                _nft.safeTransferFrom(address(this), msg.sender, nftId);
                 idSet.remove(nftId);
             }
         }
@@ -109,9 +111,10 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         payable
         nonReentrant
     {
+        IERC721Enumerable _nft = nft;
         require(
             (nftIds.length > 0) &&
-                (nftIds.length <= nft.balanceOf(address(this))),
+                (nftIds.length <= _nft.balanceOf(address(this))),
             "Must ask for > 0 and < balanceOf NFTs"
         );
         (
@@ -123,7 +126,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         require(msg.value >= inputAmount, "Sent too little ETH");
         spotPrice = newSpotPrice;
         for (uint256 i = 0; i < nftIds.length; i++) {
-            nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+            _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
         }
         uint256 feeDifference = msg.value - inputAmount;
         if (feeDifference > 0) {
@@ -136,6 +139,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         uint256[] calldata nftIds,
         uint256 minExpectedETHOutput
     ) external nonReentrant {
+        IERC721Enumerable _nft = nft;
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
@@ -146,11 +150,11 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         spotPrice = newSpotPrice;
         if (!missingEnumerable) {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+                _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
             }
         } else {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+                _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
                 idSet.add(nftIds[i]);
             }
         }
@@ -169,13 +173,14 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     // Withdraw Y NFTs
     function withdrawNFTs(uint256[] calldata nftIds) public onlyOwner {
+        IERC721Enumerable _nft = nft;
         if (!missingEnumerable) {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+                _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
             }
         } else {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+                _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
                 idSet.remove(nftIds[i]);
             }
         }
@@ -187,7 +192,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         uint256 id,
         bytes memory b
     ) public virtual override returns (bytes4) {
-        if (missingEnumerable && msg.sender == address(nft)) {
+        require(msg.sender == address(nft), "Invalid NFT received");
+        if (missingEnumerable) {
             idSet.add(id);
         }
         return super.onERC721Received(a1, a2, id, b);
