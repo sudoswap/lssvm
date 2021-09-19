@@ -25,7 +25,7 @@ contract LinearCurveTest is DSTest {
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 inputValue,
-            uint256 protocolFee
+
         ) = curve.getBuyInfo(spotPrice, delta, numItems, feeMultiplier, 0);
         assertEq(
             uint256(error),
@@ -49,7 +49,7 @@ contract LinearCurveTest is DSTest {
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 inputValue,
-            uint256 protocolFee
+
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
         assertEq(
             uint256(error),
@@ -79,7 +79,7 @@ contract LinearCurveTest is DSTest {
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputValue,
-            uint256 protocolFee
+
         ) = curve.getSellInfo(spotPrice, delta, numItems, feeMultiplier, 0);
         assertEq(
             uint256(error),
@@ -103,7 +103,7 @@ contract LinearCurveTest is DSTest {
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputValue,
-            uint256 protocolFee
+
         ) = curve.getSellInfo(spotPrice, delta, numItems, 0, 0);
         assertEq(
             uint256(error),

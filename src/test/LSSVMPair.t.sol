@@ -46,12 +46,8 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             uint256 startBalance;
             uint256 endBalance;
             {
-                (
-                    CurveErrorCodes.Error error,
-                    uint256 newSpotPrice,
-                    uint256 outputAmount,
-                    uint256 protocolFee
-                ) = linearCurve.getSellInfo(spotPrice, delta, numItems, 0, 0);
+                (, uint256 newSpotPrice, uint256 outputAmount, ) = linearCurve
+                    .getSellInfo(spotPrice, delta, numItems, 0, 0);
                 payable(address(pair)).transfer(outputAmount);
                 IERC721(address(test721)).setApprovalForAll(
                     address(pair),
@@ -62,12 +58,13 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
                 spotPrice = uint56(newSpotPrice);
             }
             {
-                (
-                    CurveErrorCodes.Error error,
-                    uint256 newSpotPrice,
-                    uint256 inputAmount,
-                    uint256 protocolFee
-                ) = linearCurve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
+                (, , uint256 inputAmount, ) = linearCurve.getBuyInfo(
+                    spotPrice,
+                    delta,
+                    numItems,
+                    0,
+                    0
+                );
                 pair.swapETHForAnyNFTs{value: inputAmount}(idList.length);
                 endBalance = address(this).balance;
             }
