@@ -10,6 +10,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
+import {LSSVMPairFactory} from "./LSSVMPairFactory.sol";
 
 contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -21,7 +22,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         Trade
     }
 
-    uint256 private constant MAX_FEE = 1e18;
+    uint256 private constant MAX_FEE = 9e17; // 90%, must <= 1 - MAX_PROTOCOL_FEE
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
 
@@ -31,6 +32,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     EnumerableSet.UintSet private idSet;
 
     ICurve public bondingCurve;
+    LSSVMPairFactory public factory;
     PoolType public poolType;
     uint256 public spotPrice;
     uint256 public delta;
@@ -39,6 +41,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     function initialize(
         address _nftAddress,
         address _curveAddress,
+        LSSVMPairFactory _factory,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -62,6 +65,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             ICurve(_curveAddress).validateDelta(_delta),
             "Invalid delta for curve"
         );
+        factory = _factory;
         nft = IERC721Enumerable(_nftAddress);
         bondingCurve = ICurve(_curveAddress);
         poolType = _poolType;
@@ -74,6 +78,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     // Sell X ETH to Pool, get back at least Y NFTs
     function swapETHForAnyNFTs(uint256 numNFTs) external payable nonReentrant {
         IERC721Enumerable _nft = nft;
+        LSSVMPairFactory _factory = factory;
         require(
             (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
             "Must ask for > 0 and < balanceOf NFTs"
@@ -83,7 +88,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             uint256 newSpotPrice,
             uint256 inputAmount,
             uint256 protocolFee
-        ) = bondingCurve.getBuyInfo(spotPrice, delta, numNFTs, fee, 0);
+        ) = bondingCurve.getBuyInfo(
+                spotPrice,
+                delta,
+                numNFTs,
+                fee,
+                _factory.protocolFeeMultiplier()
+            );
         require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(msg.value >= inputAmount, "Sent too little ETH");
         spotPrice = newSpotPrice;
@@ -103,6 +114,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         if (feeDifference > 0) {
             payable(msg.sender).sendValue(feeDifference);
         }
+        if (protocolFee > 0) {
+            _factory.protocolFeeRecipient().sendValue(protocolFee);
+        }
     }
 
     // Sell X ETH to Pool, get back at least Y specific NFTs
@@ -112,6 +126,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         nonReentrant
     {
         IERC721Enumerable _nft = nft;
+        LSSVMPairFactory _factory = factory;
         require(
             (nftIds.length > 0) &&
                 (nftIds.length <= _nft.balanceOf(address(this))),
@@ -122,7 +137,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             uint256 newSpotPrice,
             uint256 inputAmount,
             uint256 protocolFee
-        ) = bondingCurve.getBuyInfo(spotPrice, delta, nftIds.length, fee, 0);
+        ) = bondingCurve.getBuyInfo(
+                spotPrice,
+                delta,
+                nftIds.length,
+                fee,
+                _factory.protocolFeeMultiplier()
+            );
         require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(msg.value >= inputAmount, "Sent too little ETH");
         spotPrice = newSpotPrice;
@@ -133,6 +154,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         if (feeDifference > 0) {
             payable(msg.sender).sendValue(feeDifference);
         }
+        if (protocolFee > 0) {
+            _factory.protocolFeeRecipient().sendValue(protocolFee);
+        }
     }
 
     // Sell X specific NFTs to Pool, get back at least Y ETH
@@ -141,12 +165,19 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         uint256 minExpectedETHOutput
     ) external nonReentrant {
         IERC721Enumerable _nft = nft;
+        LSSVMPairFactory _factory = factory;
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputAmount,
             uint256 protocolFee
-        ) = bondingCurve.getSellInfo(spotPrice, delta, nftIds.length, fee, 0);
+        ) = bondingCurve.getSellInfo(
+                spotPrice,
+                delta,
+                nftIds.length,
+                fee,
+                _factory.protocolFeeMultiplier()
+            );
         require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(outputAmount >= minExpectedETHOutput, "Out too little ETH");
         spotPrice = newSpotPrice;
@@ -160,7 +191,12 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 idSet.add(nftIds[i]);
             }
         }
-        payable(msg.sender).sendValue(outputAmount);
+        if (outputAmount > 0) {
+            payable(msg.sender).sendValue(outputAmount);
+        }
+        if (protocolFee > 0) {
+            _factory.protocolFeeRecipient().sendValue(protocolFee);
+        }
     }
 
     // Withdraw X ETH
@@ -215,7 +251,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     function changeFee(uint256 newFee) external onlyOwner {
         require(poolType == PoolType.Trade, "Only for Trade pools");
-        require(newFee < MAX_FEE, "Trade fee must be less than 100%");
+        require(newFee < MAX_FEE, "Trade fee must be less than 90%");
         fee = newFee;
     }
 

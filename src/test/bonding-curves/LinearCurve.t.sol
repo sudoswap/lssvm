@@ -21,19 +21,27 @@ contract LinearCurveTest is DSTest {
         uint256 delta = 0.1 ether;
         uint256 numItems = 5;
         uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 inputValue,
-
-        ) = curve.getBuyInfo(spotPrice, delta, numItems, feeMultiplier, 0);
+            uint256 protocolFee
+        ) = curve.getBuyInfo(
+                spotPrice,
+                delta,
+                numItems,
+                feeMultiplier,
+                protocolFeeMultiplier
+            );
         assertEq(
             uint256(error),
             uint256(CurveErrorCodes.Error.OK),
             "Error code not OK"
         );
         assertEq(newSpotPrice, 3.5 ether, "Spot price incorrect");
-        assertEq(inputValue, 16.5825 ether, "Input value incorrect");
+        assertEq(inputValue, 16.632 ether, "Input value incorrect");
+        assertEq(protocolFee, 0.0495 ether, "Protocol fee incorrect");
     }
 
     function test_getBuyInfoWithoutFee(
@@ -75,19 +83,27 @@ contract LinearCurveTest is DSTest {
         uint256 delta = 0.1 ether;
         uint256 numItems = 5;
         uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputValue,
-
-        ) = curve.getSellInfo(spotPrice, delta, numItems, feeMultiplier, 0);
+            uint256 protocolFee
+        ) = curve.getSellInfo(
+                spotPrice,
+                delta,
+                numItems,
+                feeMultiplier,
+                protocolFeeMultiplier
+            );
         assertEq(
             uint256(error),
             uint256(CurveErrorCodes.Error.OK),
             "Error code not OK"
         );
         assertEq(newSpotPrice, 2.5 ether, "Spot price incorrect");
-        assertEq(outputValue, 13.93 ether, "Output value incorrect");
+        assertEq(outputValue, 13.888 ether, "Output value incorrect");
+        assertEq(protocolFee, 0.042 ether, "Protocol fee incorrect");
     }
 
     function test_getSellInfoWithoutFee(
