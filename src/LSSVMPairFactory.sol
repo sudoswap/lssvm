@@ -4,11 +4,13 @@ pragma solidity ^0.8.0;
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 
 contract LSSVMPairFactory is Ownable {
     using Clones for address;
+    using Address for address payable;
 
     uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
 
@@ -39,7 +41,7 @@ contract LSSVMPairFactory is Ownable {
         uint256 _fee,
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs
-    ) external returns (LSSVMPair pair) {
+    ) external payable returns (LSSVMPair pair) {
         // deploy pair
         pair = LSSVMPair(payable(address(template).clone()));
         pair.initialize(
@@ -52,6 +54,9 @@ contract LSSVMPairFactory is Ownable {
             _spotPrice
         );
         pair.transferOwnership(msg.sender);
+
+        // transfer initial value to pair
+        payable(address(pair)).sendValue(msg.value);
 
         // transfer initial NFTs from sender to pair
         for (uint256 i = 0; i < _initialNFTIDs.length; i++) {

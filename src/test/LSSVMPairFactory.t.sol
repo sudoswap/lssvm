@@ -42,7 +42,7 @@ contract LSSVMPairFactoryTest is DSTest {
         }
 
         test721.setApprovalForAll(address(factory), true);
-        LSSVMPair pair = factory.createPair(
+        LSSVMPair pair = factory.createPair{value: 0.1 ether}(
             test721,
             linearCurve,
             LSSVMPair.PoolType.Trade,
@@ -58,6 +58,7 @@ contract LSSVMPairFactoryTest is DSTest {
         assertEq(pair.fee(), fee);
         assertEq(pair.spotPrice(), spotPrice);
         assertEq(pair.owner(), address(this));
+        assertEq(address(pair).balance, 0.1 ether);
 
         // verify NFT ownership
         for (uint256 i = 1; i <= numInitialNFTs; i++) {
