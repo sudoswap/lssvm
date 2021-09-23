@@ -23,19 +23,27 @@ contract ExponentialCurveTest is DSTest {
         uint256 delta = 2 * PRBMathUD60x18.SCALE; // 2
         uint256 numItems = 5;
         uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 inputValue,
             uint256 protocolFee
-        ) = curve.getBuyInfo(spotPrice, delta, numItems, feeMultiplier, 0);
+        ) = curve.getBuyInfo(
+                spotPrice,
+                delta,
+                numItems,
+                feeMultiplier,
+                protocolFeeMultiplier
+            );
         assertEq(
             uint256(error),
             uint256(CurveErrorCodes.Error.OK),
             "Error code not OK"
         );
         assertEq(newSpotPrice, 96 ether, "Spot price incorrect");
-        assertEq(inputValue, 186.93 ether, "Input value incorrect");
+        assertEq(inputValue, 187.488 ether, "Input value incorrect");
+        assertEq(protocolFee, 0.558 ether, "Protocol fee incorrect");
     }
 
     function test_getBuyInfoWithoutFee(
@@ -55,7 +63,7 @@ contract ExponentialCurveTest is DSTest {
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 inputValue,
-            uint256 protocolFee
+
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
         assertEq(
             uint256(error),
@@ -84,19 +92,27 @@ contract ExponentialCurveTest is DSTest {
         uint256 delta = 2 * PRBMathUD60x18.SCALE; // 2
         uint256 numItems = 5;
         uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputValue,
             uint256 protocolFee
-        ) = curve.getSellInfo(spotPrice, delta, numItems, feeMultiplier, 0);
+        ) = curve.getSellInfo(
+                spotPrice,
+                delta,
+                numItems,
+                feeMultiplier,
+                protocolFeeMultiplier
+            );
         assertEq(
             uint256(error),
             uint256(CurveErrorCodes.Error.OK),
             "Error code not OK"
         );
         assertEq(newSpotPrice, 0.09375 ether, "Spot price incorrect");
-        assertEq(outputValue, 5.7834375 ether, "Output value incorrect");
+        assertEq(outputValue, 5.766 ether, "Output value incorrect");
+        assertEq(protocolFee, 0.0174375 ether, "Protocol fee incorrect");
     }
 
     function test_getSellInfoWithoutFee(
@@ -112,7 +128,7 @@ contract ExponentialCurveTest is DSTest {
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
             uint256 outputValue,
-            uint256 protocolFee
+
         ) = curve.getSellInfo(spotPrice, delta, numItems, 0, 0);
         assertEq(
             uint256(error),
