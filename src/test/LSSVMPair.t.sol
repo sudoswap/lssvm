@@ -27,15 +27,24 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         factory = new LSSVMPairFactory(feeRecipient, protocolFeeMultiplier);
     }
 
+    /**
+    @dev Ensures selling NFTs & buying them back results in no profit.
+     */
     function test_linearCurveSellBuyNoProfit(
         uint56 spotPrice,
         uint56 delta,
         uint8 numItems
     ) public payable {
+        // decrease the range of numItems to speed up testing
+        numItems = numItems % 12;
+
         if (numItems == 0) {
             return;
         }
+
         delete idList;
+
+        // initialize the pair
         LSSVMPair pair = new LSSVMPair();
         pair.initialize(
             address(test721),
@@ -46,13 +55,18 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             0,
             spotPrice
         );
+
+        // mint NFTs to sell to the pair
         for (uint256 i = 0; i < numItems; i++) {
             test721.mint(address(this), startingId);
             idList.push(startingId);
             startingId += 1;
         }
+
         uint256 startBalance;
         uint256 endBalance;
+
+        // sell all NFTs minted to the pair
         {
             (
                 ,
@@ -66,12 +80,18 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
                     0,
                     protocolFeeMultiplier
                 );
+
+            // give the pair contract enough ETH to pay for the NFTs
             payable(address(pair)).transfer(outputAmount + protocolFee);
+
+            // sell NFTs
             IERC721(address(test721)).setApprovalForAll(address(pair), true);
             startBalance = address(this).balance;
             pair.swapNFTsForETH(idList, 0);
             spotPrice = uint56(newSpotPrice);
         }
+
+        // buy back the NFTs just sold to the pair
         {
             (, , uint256 inputAmount, ) = linearCurve.getBuyInfo(
                 spotPrice,
@@ -83,7 +103,11 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             pair.swapETHForAnyNFTs{value: inputAmount}(idList.length);
             endBalance = address(this).balance;
         }
+
+        // ensure the caller didn't profit from the aggregate trade
         assertGeDecimal(startBalance, endBalance, 18);
+
+        // withdraw the ETH in the pair back
         pair.withdrawAllETH();
     }
 
