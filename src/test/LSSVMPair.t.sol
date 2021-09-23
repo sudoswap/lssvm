@@ -51,8 +51,8 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
 
         // initialize the pair
         LSSVMPair pair = factory.createPair(
-            address(test721),
-            address(linearCurve),
+            test721,
+            linearCurve,
             LSSVMPair.PoolType.Trade,
             delta,
             0,

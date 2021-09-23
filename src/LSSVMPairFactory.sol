@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 
 contract LSSVMPairFactory is Ownable {
@@ -30,8 +32,8 @@ contract LSSVMPairFactory is Ownable {
     }
 
     function createPair(
-        address _nftAddress,
-        address _curveAddress,
+        IERC721 _nft,
+        ICurve _bondingCurve,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -39,8 +41,8 @@ contract LSSVMPairFactory is Ownable {
     ) external returns (LSSVMPair pair) {
         pair = LSSVMPair(payable(address(template).clone()));
         pair.initialize(
-            _nftAddress,
-            _curveAddress,
+            _nft,
+            _bondingCurve,
             this,
             _poolType,
             _delta,
