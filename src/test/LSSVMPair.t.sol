@@ -24,7 +24,12 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
     function setUp() public {
         linearCurve = new LinearCurve();
         test721 = new Test721();
-        factory = new LSSVMPairFactory(feeRecipient, protocolFeeMultiplier);
+        LSSVMPair pairTemplate = new LSSVMPair();
+        factory = new LSSVMPairFactory(
+            pairTemplate,
+            feeRecipient,
+            protocolFeeMultiplier
+        );
     }
 
     /**
@@ -36,7 +41,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         uint8 numItems
     ) public payable {
         // decrease the range of numItems to speed up testing
-        numItems = numItems % 12;
+        numItems = numItems % 4;
 
         if (numItems == 0) {
             return;
@@ -45,11 +50,9 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         delete idList;
 
         // initialize the pair
-        LSSVMPair pair = new LSSVMPair();
-        pair.initialize(
+        LSSVMPair pair = factory.createPair(
             address(test721),
             address(linearCurve),
-            factory,
             LSSVMPair.PoolType.Trade,
             delta,
             0,
