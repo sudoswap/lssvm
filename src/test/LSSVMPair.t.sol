@@ -50,13 +50,15 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         delete idList;
 
         // initialize the pair
+        uint256[] memory empty;
         LSSVMPair pair = factory.createPair(
             test721,
             linearCurve,
             LSSVMPair.PoolType.Trade,
             delta,
             0,
-            spotPrice
+            spotPrice,
+            empty
         );
 
         // mint NFTs to sell to the pair

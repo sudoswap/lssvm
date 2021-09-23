@@ -37,8 +37,10 @@ contract LSSVMPairFactory is Ownable {
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
-        uint256 _spotPrice
+        uint256 _spotPrice,
+        uint256[] calldata _initialNFTIDs
     ) external returns (LSSVMPair pair) {
+        // deploy pair
         pair = LSSVMPair(payable(address(template).clone()));
         pair.initialize(
             _nft,
@@ -50,6 +52,11 @@ contract LSSVMPairFactory is Ownable {
             _spotPrice
         );
         pair.transferOwnership(msg.sender);
+
+        // transfer initial NFTs from sender to pair
+        for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
+            _nft.safeTransferFrom(msg.sender, address(pair), _initialNFTIDs[i]);
+        }
     }
 
     function changeTemplate(LSSVMPair _template) external onlyOwner {
