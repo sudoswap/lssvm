@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -26,8 +27,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
 
-    // Note: we only call the enumerable functions when available
-    IERC721Enumerable public nft;
+    // Note: we only call the IERC721Enumerable functions when available
+    IERC721 public nft;
     bool public missingEnumerable;
     EnumerableSet.UintSet private idSet;
 
@@ -39,8 +40,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     uint256 public fee;
 
     function initialize(
-        address _nftAddress,
-        address _curveAddress,
+        IERC721 _nft,
+        ICurve _bondingCurve,
         LSSVMPairFactory _factory,
         PoolType _poolType,
         uint256 _delta,
@@ -49,7 +50,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     ) external payable initializer {
         if (
             !ERC165Checker.supportsInterface(
-                _nftAddress,
+                address(_nft),
                 INTERFACE_ID_ERC721_ENUMERABLE
             )
         ) {
@@ -61,13 +62,10 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         if (_poolType == PoolType.Trade) {
             require(_fee < MAX_FEE, "Trade fee must be less than 100%");
         }
-        require(
-            ICurve(_curveAddress).validateDelta(_delta),
-            "Invalid delta for curve"
-        );
+        require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
         factory = _factory;
-        nft = IERC721Enumerable(_nftAddress);
-        bondingCurve = ICurve(_curveAddress);
+        nft = _nft;
+        bondingCurve = _bondingCurve;
         poolType = _poolType;
         delta = _delta;
         fee = _fee;
@@ -77,7 +75,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     // Sell X ETH to Pool, get back at least Y NFTs
     function swapETHForAnyNFTs(uint256 numNFTs) external payable nonReentrant {
-        IERC721Enumerable _nft = nft;
+        IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
         require(
             (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
@@ -100,7 +98,10 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         spotPrice = newSpotPrice;
         if (!missingEnumerable) {
             for (uint256 i = 0; i < numNFTs; i++) {
-                uint256 nftId = _nft.tokenOfOwnerByIndex(address(this), 0);
+                // we know nft implements IERC721Enumerable
+                // so we do a hard type conversion
+                uint256 nftId = IERC721Enumerable(address(_nft))
+                    .tokenOfOwnerByIndex(address(this), 0);
                 _nft.safeTransferFrom(address(this), msg.sender, nftId);
             }
         } else {
@@ -125,7 +126,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         payable
         nonReentrant
     {
-        IERC721Enumerable _nft = nft;
+        IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
         require(
             (nftIds.length > 0) &&
@@ -164,7 +165,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         uint256[] calldata nftIds,
         uint256 minExpectedETHOutput
     ) external nonReentrant {
-        IERC721Enumerable _nft = nft;
+        IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
         (
             CurveErrorCodes.Error error,
@@ -211,7 +212,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     // Withdraw Y NFTs
     function withdrawNFTs(uint256[] calldata nftIds) public onlyOwner {
-        IERC721Enumerable _nft = nft;
+        IERC721 _nft = nft;
         if (!missingEnumerable) {
             for (uint256 i = 0; i < nftIds.length; i++) {
                 _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);

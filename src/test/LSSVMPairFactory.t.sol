@@ -33,8 +33,8 @@ contract LSSVMPairFactoryTest is DSTest {
         uint256 spotPrice = 1 ether;
 
         LSSVMPair pair = factory.createPair(
-            address(test721),
-            address(linearCurve),
+            test721,
+            linearCurve,
             LSSVMPair.PoolType.Trade,
             delta,
             fee,
