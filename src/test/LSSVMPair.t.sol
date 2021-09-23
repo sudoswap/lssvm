@@ -41,7 +41,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         uint8 numItems
     ) public payable {
         // decrease the range of numItems to speed up testing
-        numItems = numItems % 12;
+        numItems = numItems % 4;
 
         if (numItems == 0) {
             return;
