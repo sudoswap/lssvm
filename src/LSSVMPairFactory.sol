@@ -42,26 +42,48 @@ contract LSSVMPairFactory is Ownable {
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPair pair) {
-        // deploy pair
         pair = LSSVMPair(payable(address(template).clone()));
-        pair.initialize(
+        _initializePair(
+            pair,
             _nft,
             _bondingCurve,
-            this,
             _poolType,
             _delta,
             _fee,
-            _spotPrice
+            _spotPrice,
+            _initialNFTIDs
         );
-        pair.transferOwnership(msg.sender);
+    }
 
-        // transfer initial value to pair
-        payable(address(pair)).sendValue(msg.value);
+    function createPairDeterministic(
+        IERC721 _nft,
+        ICurve _bondingCurve,
+        LSSVMPair.PoolType _poolType,
+        uint256 _delta,
+        uint256 _fee,
+        uint256 _spotPrice,
+        uint256[] calldata _initialNFTIDs,
+        bytes32 _salt
+    ) external payable returns (LSSVMPair pair) {
+        pair = LSSVMPair(payable(address(template).cloneDeterministic(_salt)));
+        _initializePair(
+            pair,
+            _nft,
+            _bondingCurve,
+            _poolType,
+            _delta,
+            _fee,
+            _spotPrice,
+            _initialNFTIDs
+        );
+    }
 
-        // transfer initial NFTs from sender to pair
-        for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
-            _nft.safeTransferFrom(msg.sender, address(pair), _initialNFTIDs[i]);
-        }
+    function predictPairAddress(bytes32 _salt)
+        external
+        view
+        returns (address pairAddress)
+    {
+        return address(template).predictDeterministicAddress(_salt);
     }
 
     function changeTemplate(LSSVMPair _template) external onlyOwner {
@@ -83,5 +105,40 @@ contract LSSVMPairFactory is Ownable {
     {
         require(_protocolFeeMultiplier <= MAX_PROTOCOL_FEE, "Fee too large");
         protocolFeeMultiplier = _protocolFeeMultiplier;
+    }
+
+    function _initializePair(
+        LSSVMPair _pair,
+        IERC721 _nft,
+        ICurve _bondingCurve,
+        LSSVMPair.PoolType _poolType,
+        uint256 _delta,
+        uint256 _fee,
+        uint256 _spotPrice,
+        uint256[] calldata _initialNFTIDs
+    ) internal {
+        // initialize pair
+        _pair.initialize(
+            _nft,
+            _bondingCurve,
+            this,
+            _poolType,
+            _delta,
+            _fee,
+            _spotPrice
+        );
+        _pair.transferOwnership(msg.sender);
+
+        // transfer initial value to pair
+        payable(address(_pair)).sendValue(msg.value);
+
+        // transfer initial NFTs from sender to pair
+        for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
+            _nft.safeTransferFrom(
+                msg.sender,
+                address(_pair),
+                _initialNFTIDs[i]
+            );
+        }
     }
 }
