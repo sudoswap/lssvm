@@ -30,6 +30,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             feeRecipient,
             protocolFeeMultiplier
         );
+        test721.setApprovalForAll(address(factory), true);
     }
 
     /**
@@ -41,7 +42,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         uint8 numItems
     ) public payable {
         // decrease the range of numItems to speed up testing
-        numItems = numItems % 4;
+        numItems = numItems % 3;
 
         if (numItems == 0) {
             return;
@@ -90,7 +91,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             payable(address(pair)).transfer(outputAmount + protocolFee);
 
             // sell NFTs
-            IERC721(address(test721)).setApprovalForAll(address(pair), true);
+            test721.setApprovalForAll(address(pair), true);
             startBalance = address(this).balance;
             pair.swapNFTsForETH(idList, 0);
             spotPrice = uint56(newSpotPrice);
@@ -116,12 +117,79 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         pair.withdrawAllETH();
     }
 
-    // function test_linearCurveBuySellNoProfit(
-    //   uint8 spotPrice,
-    //   uint64 delta,
-    //   uint8 numItems
-    // ) public payable {
-    // }
+    /**
+    @dev Ensures buying NFTs & selling them back results in no profit.
+     */
+    function test_linearCurveBuySellNoProfit(
+        uint56 spotPrice,
+        uint56 delta,
+        uint8 numItems
+    ) public payable {
+        // decrease the range of numItems to speed up testing
+        numItems = numItems % 3;
+
+        if (numItems == 0) {
+            return;
+        }
+
+        delete idList;
+
+        // initialize the pair
+        for (uint256 i = 0; i < numItems; i++) {
+            test721.mint(address(this), startingId);
+            idList.push(startingId);
+            startingId += 1;
+        }
+        LSSVMPair pair = factory.createPair(
+            test721,
+            linearCurve,
+            LSSVMPair.PoolType.Trade,
+            delta,
+            0,
+            spotPrice,
+            idList
+        );
+        test721.setApprovalForAll(address(pair), true);
+
+        uint256 startBalance;
+        uint256 endBalance;
+
+        // buy all NFTs
+        {
+            (, uint256 newSpotPrice, uint256 inputAmount, ) = linearCurve
+                .getBuyInfo(
+                    spotPrice,
+                    delta,
+                    numItems,
+                    0,
+                    protocolFeeMultiplier
+                );
+
+            // buy NFTs
+            startBalance = address(this).balance;
+            pair.swapETHForAnyNFTs{value: inputAmount}(numItems);
+            spotPrice = uint56(newSpotPrice);
+        }
+
+        // sell back the NFTs
+        {
+            linearCurve.getSellInfo(
+                spotPrice,
+                delta,
+                numItems,
+                0,
+                protocolFeeMultiplier
+            );
+            pair.swapNFTsForETH(idList, 0);
+            endBalance = address(this).balance;
+        }
+
+        // ensure the caller didn't profit from the aggregate trade
+        assertGeDecimal(startBalance, endBalance, 18);
+
+        // withdraw the ETH in the pair back
+        pair.withdrawAllETH();
+    }
 
     receive() external payable {}
 }
