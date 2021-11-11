@@ -18,6 +18,9 @@ contract LSSVMPairFactory is Ownable {
     address payable public protocolFeeRecipient;
     uint256 public protocolFeeMultiplier;
 
+    mapping(address => bool) public bondingCurveAllowed;
+    mapping(address => bool) public callAllowed;
+
     constructor(
         LSSVMPair _template,
         address payable _protocolFeeRecipient,
@@ -33,6 +36,10 @@ contract LSSVMPairFactory is Ownable {
         protocolFeeMultiplier = _protocolFeeMultiplier;
     }
 
+    /**
+     * External functions
+     */
+
     function createPair(
         IERC721 _nft,
         ICurve _bondingCurve,
@@ -42,6 +49,10 @@ contract LSSVMPairFactory is Ownable {
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPair pair) {
+        require(
+            bondingCurveAllowed[address(_bondingCurve)],
+            "Bonding curve not whitelisted"
+        );
         pair = LSSVMPair(payable(address(template).clone()));
         _initializePair(
             pair,
@@ -65,6 +76,10 @@ contract LSSVMPairFactory is Ownable {
         uint256[] calldata _initialNFTIDs,
         bytes32 _salt
     ) external payable returns (LSSVMPair pair) {
+        require(
+            bondingCurveAllowed[address(_bondingCurve)],
+            "Bonding curve not whitelisted"
+        );
         pair = LSSVMPair(payable(address(template).cloneDeterministic(_salt)));
         _initializePair(
             pair,
@@ -86,6 +101,10 @@ contract LSSVMPairFactory is Ownable {
         return address(template).predictDeterministicAddress(_salt);
     }
 
+    /**
+     * Admin functions
+     */
+
     function changeTemplate(LSSVMPair _template) external onlyOwner {
         require(address(_template) != address(0), "0 template address");
         template = _template;
@@ -106,6 +125,21 @@ contract LSSVMPairFactory is Ownable {
         require(_protocolFeeMultiplier <= MAX_PROTOCOL_FEE, "Fee too large");
         protocolFeeMultiplier = _protocolFeeMultiplier;
     }
+
+    function setBondingCurve(address bondingCurveAddress, bool flag)
+        external
+        onlyOwner
+    {
+        bondingCurveAllowed[bondingCurveAddress] = flag;
+    }
+
+    function setCall(address target, bool flag) external onlyOwner {
+        callAllowed[target] = flag;
+    }
+
+    /**
+     * Internal functions
+     */
 
     function _initializePair(
         LSSVMPair _pair,
