@@ -18,7 +18,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         external
         pure
         override
-        returns (bool valid)
+        returns (bool)
     {
         return delta >= PRBMathUD60x18.SCALE;
     }
@@ -40,9 +40,15 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
+        // TODO: should we use delta^(numItems-1) instead?
         uint256 deltaPowN = delta.powu(numItems);
         newSpotPrice = spotPrice.mul(deltaPowN);
         uint256 buySpotPrice = spotPrice.mul(delta);
+        // If we buy n items, then the total cost is equal to:
+        // buy spot price + (delta*buy spot price) + (delta^2*buy spot price) + ... (delta^(numItems-1)*buy spot price)
+        // This is equal to buy spot price*(1-delta^(n-1))/(1-delta))
+        // To avoid underflow errors, as delta is always > 1, we simply multiply both the num/denom by -1
+        // This gives us buy spot price*(delta^(n-1))/(delta-1)
         inputValue = buySpotPrice.mul(
             (deltaPowN - PRBMathUD60x18.SCALE).div(delta - PRBMathUD60x18.SCALE)
         );

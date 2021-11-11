@@ -25,6 +25,7 @@ contract LSSVMPairFactoryTest is DSTest {
             feeRecipient,
             protocolFeeMultiplier
         );
+        factory.setBondingCurveAllowed(address(linearCurve), true);
     }
 
     function test_createPair() public {

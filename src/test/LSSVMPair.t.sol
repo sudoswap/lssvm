@@ -31,6 +31,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             protocolFeeMultiplier
         );
         test721.setApprovalForAll(address(factory), true);
+        factory.setBondingCurveAllowed(address(linearCurve), true);
     }
 
     /**
