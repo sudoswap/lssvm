@@ -89,7 +89,11 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
      * External functions
      */
 
-    // Sell X ETH to Pool, get back at least Y NFTs
+    /**
+        @notice Sends ETH to the pair in exchange for any `numNFTs` NFTs
+        @dev To compute the amount of ETH to send, call bondingCurve.getBuyInfo
+        @param numNFTs The number of NFTs to purchase
+     */
     function swapETHForAnyNFTs(uint256 numNFTs) external payable nonReentrant {
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
@@ -141,7 +145,11 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
     }
 
-    // Sell X ETH to Pool, get back at least Y specific NFTs
+    /**
+        @notice Sends ETH to the pair in exchange for a specific set of NFTs
+        @dev To compute the amount of ETH to send, call bondingCurve.getBuyInfo
+        @param nftIds The list of IDs of the NFTs to purchase
+     */
     function swapETHForNFTs(uint256[] calldata nftIds)
         external
         payable
@@ -192,7 +200,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
     }
 
-    // Sell X specific NFTs to Pool, get back at least Y ETH
+    /**
+        @notice Sends a set of NFTs to the pair in exchange for ETH
+        @dev To compute the amount of ETH to that will be received, call bondingCurve.getSellInfo
+        @param nftIds The list of IDs of the NFTs to sell to the pair
+        @param minExpectedETHOutput The minimum acceptable ETH received by the sender. If the actual
+        amount is less than this value, the transaction will be reverted.
+     */
     function swapNFTsForETH(
         uint256[] calldata nftIds,
         uint256 minExpectedETHOutput
@@ -241,15 +255,29 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
      * Owner functions
      */
 
+    /**
+        @notice Withdraws all ETH owned by the pair to the owner address.
+        Only callable by the owner.
+     */
     function withdrawAllETH() external onlyOwner {
         withdrawETH(address(this).balance);
     }
 
+    /**
+        @notice Withdraws a specified amount of ETH owned by the pair to the owner address.
+        Only callable by the owner.
+        @param amount The amount of ETH to send to the owner. If the pair's balance is less than
+        this value, the transaction will be reverted.
+     */
     function withdrawETH(uint256 amount) public onlyOwner {
         payable(owner()).sendValue(amount);
     }
 
-    // Only withdraw NFTs from this pool's collection
+    /**
+        @notice Withdraws a specified set of NFTs owned by the pair to the owner address.
+        The NFTs must be part of the pair's collection. Only callable by the owner.
+        @param nftIds The list of IDs of the NFTs to send to the owner
+     */
     function withdrawNFTs(uint256[] calldata nftIds) external onlyOwner {
         IERC721 _nft = nft;
         if (!missingEnumerable) {
@@ -264,7 +292,12 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
     }
 
-    // Only withdraw NFTs not from this pool's collection
+    /**
+        @notice Rescues a specified set of NFTs owned by the pair to the owner address.
+        The NFTs cannot be part of the pair's collection. Only callable by the owner.
+        @param a The address of the NFT to transfer
+        @param nftIds The list of IDs of the NFTs to send to the owner
+     */
     function withdrawERC721(address a, uint256[] calldata nftIds)
         external
         onlyOwner
@@ -275,15 +308,27 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
     }
 
+    /**
+        @notice Rescues ERC20 tokens from the pair to the owner. Only callable by the owner.
+        @param a The address of the token to transfer
+        @param amount The amount of tokens to send to the owner
+     */
     function withdrawERC20(address a, uint256 amount) external onlyOwner {
         IERC20(a).transferFrom(address(this), msg.sender, amount);
     }
 
+    /**
+        @notice Rescues ERC1155 tokens from the pair to the owner. Only callable by the owner.
+        @param a The address of the token to transfer
+        @param ids The list of token IDs to send to the owner
+        @param amounts The list of amounts of tokens to send to the owner
+        @param data The raw data that the token might use in transfers
+     */
     function withdrawERC1155(
         address a,
         uint256[] calldata ids,
         uint256[] calldata amounts,
-        bytes memory data
+        bytes calldata data
     ) external onlyOwner {
         IERC1155(a).safeBatchTransferFrom(
             address(this),
@@ -294,10 +339,18 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         );
     }
 
+    /**
+        @notice Updates the selling spot price. Only callable by the owner.
+        @param newSpotPrice The new selling spot price value, in ETH
+     */
     function changeSpotPrice(uint256 newSpotPrice) external onlyOwner {
         spotPrice = newSpotPrice;
     }
 
+    /**
+        @notice Updates the delta parameter. Only callable by the owner.
+        @param newDelta The new delta parameter
+     */
     function changeDelta(uint256 newDelta) external onlyOwner {
         require(
             bondingCurve.validateDelta(newDelta),
@@ -306,13 +359,25 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         delta = newDelta;
     }
 
+    /**
+        @notice Updates the fee taken by the LP. Only callable by the owner.
+        Only callable if the pool is a Trade pool. Reverts if the fee is >=
+        MAX_FEE.
+        @param newFee The new LP fee percentage, 18 decimals
+     */
     function changeFee(uint256 newFee) external onlyOwner {
         require(poolType == PoolType.Trade, "Only for Trade pools");
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");
         fee = newFee;
     }
 
-    function call(address payable target, bytes memory data)
+    /**
+        @notice Allows the pair to make arbitrary external calls to contracts
+        whitelisted by the protocol. Only callable by the owner.
+        @param target The contract to call
+        @param data The calldata
+     */
+    function call(address payable target, bytes calldata data)
         external
         onlyOwner
     {
@@ -325,11 +390,16 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
      * Utility functions (not to be called directly, but also not internal)
      */
 
-    // Handle ETH sent directly
+    /**
+        @dev All ETH transfers into the pair are accepted. This is the main method
+        for the owner to top up the pair's ETH reserves.
+     */
     receive() external payable {}
 
-    // Callback when safeTransfering an ERC721 in, we add ID to the set
-    // if it's the same collection used by pool (and doesn't auto-track via enumerable)
+    /**
+        @dev Callback when safeTransfering an ERC721 in, we add ID to the idSet
+        if it's the same collection used by pool (and doesn't auto-track via enumerable)
+     */
     function onERC721Received(
         address a1,
         address a2,
