@@ -30,6 +30,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             feeRecipient,
             protocolFeeMultiplier
         );
+        factory.setBondingCurveAllowed(address(linearCurve), true);
     }
 
     /**
@@ -115,13 +116,6 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         // withdraw the ETH in the pair back
         pair.withdrawAllETH();
     }
-
-    // function test_linearCurveBuySellNoProfit(
-    //   uint8 spotPrice,
-    //   uint64 delta,
-    //   uint8 numItems
-    // ) public payable {
-    // }
 
     receive() external payable {}
 }

@@ -126,14 +126,14 @@ contract LSSVMPairFactory is Ownable {
         protocolFeeMultiplier = _protocolFeeMultiplier;
     }
 
-    function setBondingCurve(address bondingCurveAddress, bool flag)
+    function setBondingCurveAllowed(address bondingCurveAddress, bool flag)
         external
         onlyOwner
     {
         bondingCurveAllowed[bondingCurveAddress] = flag;
     }
 
-    function setCall(address target, bool flag) external onlyOwner {
+    function setCallAllowed(address target, bool flag) external onlyOwner {
         callAllowed[target] = flag;
     }
 

@@ -242,7 +242,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
      */
 
     function withdrawAllETH() external onlyOwner {
-        this.withdrawETH(address(this).balance);
+        withdrawETH(address(this).balance);
     }
 
     function withdrawETH(uint256 amount) public onlyOwner {
