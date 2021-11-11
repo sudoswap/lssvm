@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 contract CurveErrorCodes {
     enum Error {
-        OK,
-        INVALID_NUMITEMS
+        OK, // No error
+        INVALID_NUMITEMS // The numItem value is 0
     }
 }

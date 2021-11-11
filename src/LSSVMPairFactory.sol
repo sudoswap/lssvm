@@ -40,6 +40,17 @@ contract LSSVMPairFactory is Ownable {
      * External functions
      */
 
+    /**
+        @notice Creates a pair contract using EIP-1167.
+        @param _nft The NFT contract of the collection the pair trades
+        @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
+        @param _poolType Buy, Sell, or Trade
+        @param _delta The delta value used by the bonding curve. The meaning of delta depends
+        on the specific curve.
+        @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
+        @param _spotPrice The initial selling spot price, in ETH
+        @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
+     */
     function createPair(
         IERC721 _nft,
         ICurve _bondingCurve,
@@ -66,6 +77,18 @@ contract LSSVMPairFactory is Ownable {
         );
     }
 
+    /**
+        @notice Creates a pair contract using EIP-1167. Uses CREATE2 for deterministic address.
+        @param _nft The NFT contract of the collection the pair trades
+        @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
+        @param _poolType Buy, Sell, or Trade
+        @param _delta The delta value used by the bonding curve. The meaning of delta depends
+        on the specific curve.
+        @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
+        @param _spotPrice The initial selling spot price, in ETH
+        @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
+        @param _salt The salt value used by CREATE2
+     */
     function createPairDeterministic(
         IERC721 _nft,
         ICurve _bondingCurve,
@@ -93,6 +116,10 @@ contract LSSVMPairFactory is Ownable {
         );
     }
 
+    /**
+        @notice Predicts the address of a pair deployed using CREATE2, given the salt value.
+        @param _salt The salt value used by CREATE2
+     */
     function predictPairAddress(bytes32 _salt)
         external
         view
@@ -105,11 +132,19 @@ contract LSSVMPairFactory is Ownable {
      * Admin functions
      */
 
+    /**
+        @notice Changes the pair template address. Only callable by the owner.
+        @param _template The new pair template
+     */
     function changeTemplate(LSSVMPair _template) external onlyOwner {
         require(address(_template) != address(0), "0 template address");
         template = _template;
     }
 
+    /**
+        @notice Changes the protocol fee recipient address. Only callable by the owner.
+        @param _protocolFeeRecipient The new fee recipient
+     */
     function changeProtocolFeeRecipient(address payable _protocolFeeRecipient)
         external
         onlyOwner
@@ -118,6 +153,10 @@ contract LSSVMPairFactory is Ownable {
         protocolFeeRecipient = _protocolFeeRecipient;
     }
 
+    /**
+        @notice Changes the protocol fee multiplier. Only callable by the owner.
+        @param _protocolFeeMultiplier The new fee multiplier, 18 decimals
+     */
     function changeProtocolFeeMultiplier(uint256 _protocolFeeMultiplier)
         external
         onlyOwner
@@ -126,15 +165,26 @@ contract LSSVMPairFactory is Ownable {
         protocolFeeMultiplier = _protocolFeeMultiplier;
     }
 
-    function setBondingCurveAllowed(address bondingCurveAddress, bool flag)
+    /**
+        @notice Sets the whitelist status of a bonding curve contract. Only callable by the owner.
+        @param bondingCurveAddress The bonding curve address
+        @param flag True to whitelist, false to remove from whitelist
+     */
+    function setBondingCurveAllowed(address bondingCurveAddress, bool isAllowed)
         external
         onlyOwner
     {
-        bondingCurveAllowed[bondingCurveAddress] = flag;
+        bondingCurveAllowed[bondingCurveAddress] = isAllowed;
     }
 
-    function setCallAllowed(address target, bool flag) external onlyOwner {
-        callAllowed[target] = flag;
+    /**
+        @notice Sets the whitelist status of a contract to be called arbitrarily by a pair.
+        Only callable by the owner.
+        @param target The target contract
+        @param flag True to whitelist, false to remove from whitelist
+     */
+    function setCallAllowed(address target, bool isAllowed) external onlyOwner {
+        callAllowed[target] = isAllowed;
     }
 
     /**
