@@ -6,37 +6,25 @@ import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 
 /*
-@author 0xmons and boredGenius
-@notice Bonding curve logic for a linear curve, where each buy/sell changes spot price by adding/substracting delta
+    @author 0xmons and boredGenius
+    @notice Bonding curve logic for a linear curve, where each buy/sell changes spot price by adding/substracting delta
 */
 contract LinearCurve is ICurve, CurveErrorCodes {
     using PRBMathUD60x18 for uint256;
 
-    /*
-    @notice Checks if a given delta is valid for the linear bonding curve
-    @dev All deltas are valid
-    @param delta The delta value being checked
-    @return valid Whether or not the delta value is valid
-    */
+    /**
+        @dev See {ICurve-validateDelta}
+     */
     function validateDelta(
         uint256 /*delta*/
     ) external pure override returns (bool valid) {
+        // For a linear curve, all values of delta are valid
         return true;
     }
 
-    /*
-    @notice When swapping ETH for NFTs, calculates exactly how much ETH to send, the new spot price, and the fee to take
-    @dev See inline comments for calculation logic
-    @param spotPrice The current spot price for 1 NFT, if it were to be sold
-    @param delta The change in price for each successive NFT buy along the linear curve
-    @param numItems The number of NFTs to be bought
-    @param feeMultiplier The LP's fee multiplier (only for Trade pools)
-    @param protocolFeeMultiplier The protocol fee multiplier
-    @return error Any math calculation errors, only Error.OK means the returned values are valid
-    @return newSpotPrice The updated spot price for 1 NFT
-    @return inputValue The required amount of ETH to be sent
-    @return protocolFee The amount of ETH from inputValue that goes to the protocol
-    */
+    /**
+        @dev See {ICurve-getBuyInfo}
+     */
     function getBuyInfo(
         uint256 spotPrice,
         uint256 delta,
@@ -93,19 +81,9 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         error = Error.OK;
     }
 
-    /*
-    @notice When swapping NFTs for ETH, calculates exactly how much ETH to send, the new spot price, and the fee to take
-    @dev See inline comments for calculation logic
-    @param spotPrice The current spot price for 1 NFT, if it were to be sold
-    @param delta The change in price for each successive NFT sell along the linear curve
-    @param numItems The number of NFTs to be sold
-    @param feeMultiplier The LP's fee multiplier (only for Trade pools)
-    @param protocolFeeMultiplier The protocol fee multiplier
-    @return error Any math calculation errors, only Error.OK means the returned values are valid
-    @return newSpotPrice The updated spot price for 1 NFT
-    @return outputValue The required amount of ETH to be given to the seller
-    @return protocolFee The amount of ETH from that goes to the protocol
-    */
+    /**
+        @dev See {ICurve-getSellInfo}
+     */
     function getSellInfo(
         uint256 spotPrice,
         uint256 delta,
@@ -144,16 +122,17 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             // (spot price) + (spot price - 1*delta) + (spot price - 2*delta) + ... + (spot price - (numItemsTillZeroPrice-1)*delta)
             // This is equal to numItemsTillZeroPrice*spotPrice - (delta)*(numItemsTillZeroPrice*(numItemsTillZeroPrice-1))/2
             // To those worried about edge cases, notice that:
-            // If spot price is less than delta, then we will only sell 1 item, so we only charge spot price as (delta)*(numItemsTillZeroPrice*(numItemsTillZeroPrice-1))/2 = 0
+            // If spot price is less than delta, then we will only sell 1 item, so we charge spotPrice + (delta)*(numItemsTillZeroPrice*(numItemsTillZeroPrice-1))/2 = spotPrice
             // If spot price is greater than delta, then we will sell at least 2 items, so we charge spot price for each item. Then we subtract delta (cumulatively) for each item past the first.
             outputValue =
                 numItemsTillZeroPrice *
                 spotPrice -
                 (numItemsTillZeroPrice * (numItemsTillZeroPrice - 1) * delta) /
                 2;
+        } else {
             // Otherwise, the current spot price is greater than or equal to the total amount that the spot price changes
             // Thus we don't need to calculate the maximum number of items until we reach zero spot price
-        } else {
+
             // The new spot price is just the change between spot price and the total price change
             newSpotPrice = spotPrice - totalPriceDecrease;
 
