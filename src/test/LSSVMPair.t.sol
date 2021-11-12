@@ -56,7 +56,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         LSSVMPair pair = factory.createPair(
             test721,
             linearCurve,
-            LSSVMPair.PoolType.Trade,
+            LSSVMPair.PoolType.TRADE,
             delta,
             0,
             spotPrice,
@@ -144,7 +144,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         LSSVMPair pair = factory.createPair(
             test721,
             linearCurve,
-            LSSVMPair.PoolType.Trade,
+            LSSVMPair.PoolType.TRADE,
             delta,
             0,
             spotPrice,

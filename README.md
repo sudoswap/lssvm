@@ -1,4 +1,28 @@
-# <h1 align="center"> DappTools Template </h1>
+# sudoswap AMM
+
+An implementation of the AMM idea described [here](https://blog.0xmons.xyz/83017366310).
+
+Things left to do:
+
+- []: Write `Router` contract
+- []: More tests to ensure math invariants hold
+- []: More tests to ensure that role permissions work as intended
+- []: More tests to ensure that idSet always tracks NFT IDs in/out (if missing enumerable)
+
+Liquidity providers us `LSSVMPairFactory` to deploy a minimal proxy `LSSVMPair` for a specific NFT collection. From there, the deployed pool maintains its own ETH/NFT inventory. Users can then call the various `swap` functions on the pool to trade ETH/NFTs.
+
+A Router (TBD) can allow splitting swaps across multiple LSSVMPairs.
+
+An LSSVMPair can be ETH, NFT, or TRADE. The type refers to what the pool holds.
+The LSSVMPair `swap` functions are named from the perspective of the end user. EX: `swapETHForAnyNFTs` means the caller is sending ETH and receiving NFTs.
+
+In order to determine how many NFTs or ETH to give/receive, each LSSVMPair calls a bonding curve contract that conforms to the `ICurve` interface. Bonding curve contracts are pure; it is up to LSSVMPair to update its state and perform input/output validation.
+
+See inline comments for more on swap/bonding curve logic.
+
+If an LSSVMPair is created for an NFT collection that doesn't implement the ERC721Enumerable interface, we keep track of a set of IDs internally. This is to allow for swaps which are ID agnostic. This means we have to be careful when accounting for NFTs entering/exiting the pool--we need to update the id set at the same time.
+
+# Built with DappTools Template
 
 **Template repository for getting started quickly with DappTools**
 

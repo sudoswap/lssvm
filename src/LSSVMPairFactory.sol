@@ -21,6 +21,8 @@ contract LSSVMPairFactory is Ownable {
     mapping(address => bool) public bondingCurveAllowed;
     mapping(address => bool) public callAllowed;
 
+    event PairCreated(address poolAddress, address nft);
+
     constructor(
         LSSVMPair _template,
         address payable _protocolFeeRecipient,
@@ -75,6 +77,7 @@ contract LSSVMPairFactory is Ownable {
             _spotPrice,
             _initialNFTIDs
         );
+        emit PairCreated(address(pair), address(_nft));
     }
 
     /**
@@ -168,7 +171,7 @@ contract LSSVMPairFactory is Ownable {
     /**
         @notice Sets the whitelist status of a bonding curve contract. Only callable by the owner.
         @param bondingCurveAddress The bonding curve address
-        @param flag True to whitelist, false to remove from whitelist
+        @param isAllowed True to whitelist, false to remove from whitelist
      */
     function setBondingCurveAllowed(address bondingCurveAddress, bool isAllowed)
         external
@@ -181,7 +184,7 @@ contract LSSVMPairFactory is Ownable {
         @notice Sets the whitelist status of a contract to be called arbitrarily by a pair.
         Only callable by the owner.
         @param target The target contract
-        @param flag True to whitelist, false to remove from whitelist
+        @param isAllowed True to whitelist, false to remove from whitelist
      */
     function setCallAllowed(address target, bool isAllowed) external onlyOwner {
         callAllowed[target] = isAllowed;
@@ -213,7 +216,7 @@ contract LSSVMPairFactory is Ownable {
         );
         _pair.transferOwnership(msg.sender);
 
-        // transfer initial value to pair
+        // transfer initial ETH to pair
         payable(address(_pair)).sendValue(msg.value);
 
         // transfer initial NFTs from sender to pair

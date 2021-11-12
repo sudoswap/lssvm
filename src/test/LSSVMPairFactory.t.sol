@@ -46,7 +46,7 @@ contract LSSVMPairFactoryTest is DSTest {
         LSSVMPair pair = factory.createPair{value: 0.1 ether}(
             test721,
             linearCurve,
-            LSSVMPair.PoolType.Trade,
+            LSSVMPair.PoolType.TRADE,
             delta,
             fee,
             spotPrice,
