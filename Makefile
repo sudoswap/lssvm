@@ -23,6 +23,7 @@ clean  :; dapp clean
 lint   :; yarn run lint
 estimate :; ./scripts/estimate-gas.sh ${contract}
 size   :; ./scripts/contract-size.sh ${contract}
+snapshot :; dapp snapshot
 
 # Deployment helpers
 deploy :; @./scripts/deploy.sh
