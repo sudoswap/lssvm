@@ -16,26 +16,22 @@ contract LSSVMPairFactory is Ownable {
     uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
 
     LSSVMPair public template;
-    LSSVMRouter public router;
     address payable public protocolFeeRecipient;
     uint256 public protocolFeeMultiplier;
 
-    mapping(address => bool) public bondingCurveAllowed;
+    mapping(ICurve => bool) public bondingCurveAllowed;
     mapping(address => bool) public callAllowed;
+    mapping(LSSVMRouter => bool) public routerAllowed;
 
     event PairCreated(address poolAddress, address nft);
 
     constructor(
         LSSVMPair _template,
-        LSSVMRouter _router,
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
         require(address(_template) != address(0), "0 template address");
         template = _template;
-
-        require(address(_router) != address(0), "0 router address");
-        router = _router;
 
         require(_protocolFeeRecipient != address(0), "0 recipient address");
         protocolFeeRecipient = _protocolFeeRecipient;
@@ -69,7 +65,7 @@ contract LSSVMPairFactory is Ownable {
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPair pair) {
         require(
-            bondingCurveAllowed[address(_bondingCurve)],
+            bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
         pair = LSSVMPair(payable(address(template).clone()));
@@ -109,7 +105,7 @@ contract LSSVMPairFactory is Ownable {
         bytes32 _salt
     ) external payable returns (LSSVMPair pair) {
         require(
-            bondingCurveAllowed[address(_bondingCurve)],
+            bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
         pair = LSSVMPair(payable(address(template).cloneDeterministic(_salt)));
@@ -151,15 +147,6 @@ contract LSSVMPairFactory is Ownable {
     }
 
     /**
-        @notice Changes the router address. Only callable by the owner.
-        @param _router The new router
-     */
-    function changeRouter(LSSVMRouter _router) external onlyOwner {
-        require(address(_router) != address(0), "0 router address");
-        router = _router;
-    }
-
-    /**
         @notice Changes the protocol fee recipient address. Only callable by the owner.
         @param _protocolFeeRecipient The new fee recipient
      */
@@ -185,14 +172,14 @@ contract LSSVMPairFactory is Ownable {
 
     /**
         @notice Sets the whitelist status of a bonding curve contract. Only callable by the owner.
-        @param bondingCurveAddress The bonding curve address
+        @param bondingCurve The bonding curve contract
         @param isAllowed True to whitelist, false to remove from whitelist
      */
-    function setBondingCurveAllowed(address bondingCurveAddress, bool isAllowed)
+    function setBondingCurveAllowed(ICurve bondingCurve, bool isAllowed)
         external
         onlyOwner
     {
-        bondingCurveAllowed[bondingCurveAddress] = isAllowed;
+        bondingCurveAllowed[bondingCurve] = isAllowed;
     }
 
     /**
@@ -203,6 +190,19 @@ contract LSSVMPairFactory is Ownable {
      */
     function setCallAllowed(address target, bool isAllowed) external onlyOwner {
         callAllowed[target] = isAllowed;
+    }
+
+    /**
+        @notice Updates the router whitelist. Only callable by the owner.
+        @param _router The router
+        @param isAllowed True to whitelist, false to remove from whitelist
+     */
+    function setRouterAllowed(LSSVMRouter _router, bool isAllowed)
+        external
+        onlyOwner
+    {
+        require(address(_router) != address(0), "0 router address");
+        routerAllowed[_router] = isAllowed;
     }
 
     /**
@@ -224,7 +224,6 @@ contract LSSVMPairFactory is Ownable {
             _nft,
             _bondingCurve,
             this,
-            router,
             _poolType,
             _delta,
             _fee,

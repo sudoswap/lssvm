@@ -5,7 +5,6 @@ import {DSTest} from "ds-test/test.sol";
 
 import {LSSVMPair} from "../LSSVMPair.sol";
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
-import {LSSVMRouter} from "../LSSVMRouter.sol";
 import {LinearCurve} from "../bonding-curves/LinearCurve.sol";
 import {CurveErrorCodes} from "../bonding-curves/CurveErrorCodes.sol";
 import {Test721} from "../mocks/Test721.sol";
@@ -19,7 +18,6 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
     Test721 test721;
     LinearCurve linearCurve;
     LSSVMPairFactory factory;
-    LSSVMRouter router;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
 
@@ -27,15 +25,13 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         linearCurve = new LinearCurve();
         test721 = new Test721();
         LSSVMPair pairTemplate = new LSSVMPair();
-        router = new LSSVMRouter();
         factory = new LSSVMPairFactory(
             pairTemplate,
-            router,
             feeRecipient,
             protocolFeeMultiplier
         );
         test721.setApprovalForAll(address(factory), true);
-        factory.setBondingCurveAllowed(address(linearCurve), true);
+        factory.setBondingCurveAllowed(linearCurve, true);
     }
 
     /**

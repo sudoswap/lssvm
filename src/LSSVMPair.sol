@@ -33,9 +33,6 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     // Factory which stores several global values (e.g. protocol fee)
     LSSVMPairFactory public factory;
 
-    // Records all accepted LSSVMRouters
-    mapping(LSSVMRouter => bool) public isRouter;
-
     // Temporarily used during LSSVMRouter::_swapNFTsForETH to store NFT IDs transferred
     // directly to the pair. Should be empty outside of the execution of swapNFTsForETH.
     EnumerableSet.UintSet private nftToETHTradeIdSet;
@@ -87,7 +84,6 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactory _factory,
-        LSSVMRouter _router,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -109,7 +105,6 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
         factory = _factory;
-        isRouter[_router] = true;
         nft = _nft;
         bondingCurve = _bondingCurve;
         poolType = _poolType;
@@ -579,7 +574,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         bytes memory b
     ) public virtual override returns (bytes4) {
         if (msg.sender == address(nft)) {
-            if (isRouter[LSSVMRouter(payable(operator))]) {
+            if (factory.routerAllowed(LSSVMRouter(payable(operator)))) {
                 // Use NFT for trade
                 nftToETHTradeIdSet.add(id);
             } else if (missingEnumerable) {
