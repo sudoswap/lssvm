@@ -20,7 +20,7 @@
     "postpublish": "rimraf ./*.sol",
     "prepack": "yarn prepublishOnly",
     "postpack": "yarn postpublish",
-    "lint": "prettier --write src/**/*.sol",
+    "lint": "prettier --write 'src/**/*.sol'",
     "prepare": "husky install"
   },
   "lint-staged": {

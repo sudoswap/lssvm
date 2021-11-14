@@ -7,6 +7,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
+import {LSSVMRouter} from "./LSSVMRouter.sol";
 
 contract LSSVMPairFactory is Ownable {
     using Clones for address;
@@ -15,6 +16,7 @@ contract LSSVMPairFactory is Ownable {
     uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
 
     LSSVMPair public template;
+    LSSVMRouter public router;
     address payable public protocolFeeRecipient;
     uint256 public protocolFeeMultiplier;
 
@@ -25,11 +27,15 @@ contract LSSVMPairFactory is Ownable {
 
     constructor(
         LSSVMPair _template,
+        LSSVMRouter _router,
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
         require(address(_template) != address(0), "0 template address");
         template = _template;
+
+        require(address(_router) != address(0), "0 router address");
+        router = _router;
 
         require(_protocolFeeRecipient != address(0), "0 recipient address");
         protocolFeeRecipient = _protocolFeeRecipient;
@@ -145,6 +151,15 @@ contract LSSVMPairFactory is Ownable {
     }
 
     /**
+        @notice Changes the router address. Only callable by the owner.
+        @param _router The new router
+     */
+    function changeRouter(LSSVMRouter _router) external onlyOwner {
+        require(address(_router) != address(0), "0 router address");
+        router = _router;
+    }
+
+    /**
         @notice Changes the protocol fee recipient address. Only callable by the owner.
         @param _protocolFeeRecipient The new fee recipient
      */
@@ -209,6 +224,7 @@ contract LSSVMPairFactory is Ownable {
             _nft,
             _bondingCurve,
             this,
+            router,
             _poolType,
             _delta,
             _fee,

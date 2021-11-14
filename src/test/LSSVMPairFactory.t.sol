@@ -6,6 +6,7 @@ import {LinearCurve} from "../bonding-curves/LinearCurve.sol";
 
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../LSSVMPair.sol";
+import {LSSVMRouter} from "../LSSVMRouter.sol";
 import {Test721} from "../mocks/Test721.sol";
 import {Hevm} from "./utils/Hevm.sol";
 
@@ -14,14 +15,17 @@ contract LSSVMPairFactoryTest is DSTest {
     Test721 test721;
     LinearCurve linearCurve;
     LSSVMPairFactory factory;
+    LSSVMRouter router;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
 
     function setUp() public {
         linearCurve = new LinearCurve();
         LSSVMPair pairTemplate = new LSSVMPair();
+        router = new LSSVMRouter();
         factory = new LSSVMPairFactory(
             pairTemplate,
+            router,
             feeRecipient,
             protocolFeeMultiplier
         );

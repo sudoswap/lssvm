@@ -5,6 +5,7 @@ import {DSTest} from "ds-test/test.sol";
 
 import {LSSVMPair} from "../LSSVMPair.sol";
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
+import {LSSVMRouter} from "../LSSVMRouter.sol";
 import {LinearCurve} from "../bonding-curves/LinearCurve.sol";
 import {CurveErrorCodes} from "../bonding-curves/CurveErrorCodes.sol";
 import {Test721} from "../mocks/Test721.sol";
@@ -18,6 +19,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
     Test721 test721;
     LinearCurve linearCurve;
     LSSVMPairFactory factory;
+    LSSVMRouter router;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
 
@@ -25,8 +27,10 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         linearCurve = new LinearCurve();
         test721 = new Test721();
         LSSVMPair pairTemplate = new LSSVMPair();
+        router = new LSSVMRouter();
         factory = new LSSVMPairFactory(
             pairTemplate,
+            router,
             feeRecipient,
             protocolFeeMultiplier
         );
@@ -94,7 +98,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             // sell NFTs
             test721.setApprovalForAll(address(pair), true);
             startBalance = address(this).balance;
-            pair.swapNFTsForETH(idList, 0);
+            pair.swapNFTsForETH(idList, 0, payable(address(this)));
             spotPrice = uint56(newSpotPrice);
         }
 
@@ -107,7 +111,10 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
                 0,
                 protocolFeeMultiplier
             );
-            pair.swapETHForAnyNFTs{value: inputAmount}(idList.length);
+            pair.swapETHForAnyNFTs{value: inputAmount}(
+                idList.length,
+                address(this)
+            );
             endBalance = address(this).balance;
         }
 
@@ -168,7 +175,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
 
             // buy NFTs
             startBalance = address(this).balance;
-            pair.swapETHForAnyNFTs{value: inputAmount}(numItems);
+            pair.swapETHForAnyNFTs{value: inputAmount}(numItems, address(this));
             spotPrice = uint56(newSpotPrice);
         }
 
@@ -181,7 +188,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
                 0,
                 protocolFeeMultiplier
             );
-            pair.swapNFTsForETH(idList, 0);
+            pair.swapNFTsForETH(idList, 0, payable(address(this)));
             endBalance = address(this).balance;
         }
 

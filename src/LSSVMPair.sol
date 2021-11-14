@@ -14,6 +14,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 import {LSSVMPairFactory} from "./LSSVMPairFactory.sol";
+import {LSSVMRouter} from "./LSSVMRouter.sol";
 
 contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -31,6 +32,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     // Factory which stores several global values (e.g. protocol fee)
     LSSVMPairFactory public factory;
+
+    // Records all accepted LSSVMRouters
+    mapping(LSSVMRouter => bool) public isRouter;
+
+    // Temporarily used during LSSVMRouter::_swapNFTsForETH to store NFT IDs transferred
+    // directly to the pair. Should be empty outside of the execution of swapNFTsForETH.
+    EnumerableSet.UintSet private nftToETHTradeIdSet;
 
     // Collection address
     IERC721 public nft;
@@ -58,8 +66,16 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
 
     // Events
     event SpotPriceChanged(uint256 oldSpotPrice, uint256 newSpotPrice);
-    event SwapWithAnyNFTs(uint256 ethAmount, uint256 numNFTs, bool nftsIntoPool);
-    event SwapWithSpecificNFTs(uint256 ethAmount, uint256[] nftIds, bool nftsIntoPool);
+    event SwapWithAnyNFTs(
+        uint256 ethAmount,
+        uint256 numNFTs,
+        bool nftsIntoPool
+    );
+    event SwapWithSpecificNFTs(
+        uint256 ethAmount,
+        uint256[] nftIds,
+        bool nftsIntoPool
+    );
     event ETHDeposited(uint256 amount);
     event ETHWithdrawn(uint256 amount);
     event DeltaUpdated(uint256 oldDelta, uint256 newDelta);
@@ -71,6 +87,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactory _factory,
+        LSSVMRouter _router,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -92,6 +109,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
         factory = _factory;
+        isRouter[_router] = true;
         nft = _nft;
         bondingCurve = _bondingCurve;
         poolType = _poolType;
@@ -110,9 +128,15 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         @dev To compute the amount of ETH to send, call bondingCurve.getBuyInfo.
         This swap function is meant for users who are ID agnostic
         @param numNFTs The number of NFTs to purchase
+        @param nftRecipient The recipient of the NFTs
+        @return inputAmount The amount of ETH used for purchase
      */
-    function swapETHForAnyNFTs(uint256 numNFTs) external payable nonReentrant {
-        
+    function swapETHForAnyNFTs(uint256 numNFTs, address nftRecipient)
+        external
+        payable
+        nonReentrant
+        returns (uint256 inputAmount)
+    {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
@@ -129,12 +153,11 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         );
 
         // Call bonding curve for pricing information
-        (
-            CurveErrorCodes.Error error,
-            uint256 newSpotPrice,
-            uint256 inputAmount,
-            uint256 protocolFee
-        ) = bondingCurve.getBuyInfo(
+        CurveErrorCodes.Error error;
+        uint256 newSpotPrice;
+        uint256 protocolFee;
+        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
+            .getBuyInfo(
                 spotPrice,
                 delta,
                 numNFTs,
@@ -157,12 +180,12 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 // we know nft implements IERC721Enumerable
                 uint256 nftId = IERC721Enumerable(address(_nft))
                     .tokenOfOwnerByIndex(address(this), 0);
-                _nft.safeTransferFrom(address(this), msg.sender, nftId);
+                _nft.safeTransferFrom(address(this), nftRecipient, nftId);
             }
         } else {
             for (uint256 i = 0; i < numNFTs; i++) {
                 uint256 nftId = idSet.at(0);
-                _nft.safeTransferFrom(address(this), msg.sender, nftId);
+                _nft.safeTransferFrom(address(this), nftRecipient, nftId);
                 idSet.remove(nftId);
             }
         }
@@ -189,55 +212,61 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         This swap is meant for users who want specific IDs. Also higher chance of
         reverting if some of the specified IDs leave the pool before the swap goes through.
         @param nftIds The list of IDs of the NFTs to purchase
+        @param nftRecipient The recipient of the NFTs
+        @return inputAmount The amount of ETH used for purchase
      */
-    function swapETHForNFTs(uint256[] calldata nftIds)
-        external
-        payable
-        nonReentrant
-    {
+    function swapETHForSpecificNFTs(
+        uint256[] calldata nftIds,
+        address nftRecipient
+    ) external payable nonReentrant returns (uint256 inputAmount) {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
         bool _missingEnumerable = missingEnumerable;
-        PoolType _poolType = poolType;
 
-        // Input validation
-        require(
-            _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
-            "Wrong Pool type"
-        );
-        require(
-            (nftIds.length > 0) &&
-                (nftIds.length <= _nft.balanceOf(address(this))),
-            "Must ask for > 0 and < balanceOf NFTs"
-        );
+        {
+            // Input validation
+            PoolType _poolType = poolType;
+            require(
+                _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+            require(
+                (nftIds.length > 0) &&
+                    (nftIds.length <= _nft.balanceOf(address(this))),
+                "Must ask for > 0 and < balanceOf NFTs"
+            );
+        }
 
         // Call bonding curve for pricing information
-        (
-            CurveErrorCodes.Error error,
-            uint256 newSpotPrice,
-            uint256 inputAmount,
-            uint256 protocolFee
-        ) = bondingCurve.getBuyInfo(
-                spotPrice,
-                delta,
-                nftIds.length,
-                fee,
-                _factory.protocolFeeMultiplier()
-            );
+        uint256 newSpotPrice;
+        uint256 protocolFee;
+        {
+            uint256 oldSpotPrice = spotPrice;
+            CurveErrorCodes.Error error;
+            (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
+                .getBuyInfo(
+                    oldSpotPrice,
+                    delta,
+                    nftIds.length,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
+        }
 
         // Pricing-dependent validation
-        require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(msg.value >= inputAmount, "Sent too little ETH");
 
         // Update spot price
-        uint256 oldSpotPrice = spotPrice;
         spotPrice = newSpotPrice;
 
         // Send NFTs to caller
         // If missing enumerable, update pool's own ID set
         for (uint256 i = 0; i < nftIds.length; i++) {
-            _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+            _nft.safeTransferFrom(address(this), nftRecipient, nftIds[i]);
             // Remove from idSet if missingEnumerable
             if (_missingEnumerable) {
                 idSet.remove(nftIds[i]);
@@ -255,9 +284,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             _factory.protocolFeeRecipient().sendValue(protocolFee);
         }
 
-        // Emit events
         emit SwapWithSpecificNFTs(msg.value, nftIds, false);
-        emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
     }
 
     /**
@@ -266,61 +293,73 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         @param nftIds The list of IDs of the NFTs to sell to the pair
         @param minExpectedETHOutput The minimum acceptable ETH received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
+        @param ethRecipient The recipient of the ETH output
+        @return outputAmount The amount of ETH received
      */
     function swapNFTsForETH(
         uint256[] calldata nftIds,
-        uint256 minExpectedETHOutput
-    ) external nonReentrant {
-
+        uint256 minExpectedETHOutput,
+        address payable ethRecipient
+    ) external nonReentrant returns (uint256 outputAmount) {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
-        PoolType _poolType = poolType;
 
         // Input validation
-        require(
-            _poolType == PoolType.ETH || _poolType == PoolType.TRADE,
-            "Wrong Pool type"
-        );
+        {
+            PoolType _poolType = poolType;
+            require(
+                _poolType == PoolType.ETH || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+        }
 
         // Call bonding curve for pricing information
-        (
-            CurveErrorCodes.Error error,
-            uint256 newSpotPrice,
-            uint256 outputAmount,
-            uint256 protocolFee
-        ) = bondingCurve.getSellInfo(
-                spotPrice,
-                delta,
-                nftIds.length,
-                fee,
-                _factory.protocolFeeMultiplier()
-            );
+        uint256 newSpotPrice;
+        uint256 protocolFee;
+        {
+            uint256 oldSpotPrice = spotPrice;
+            CurveErrorCodes.Error error;
+            (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
+                .getSellInfo(
+                    oldSpotPrice,
+                    delta,
+                    nftIds.length,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
+        }
 
         // Pricing-dependent validation
-        require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(outputAmount >= minExpectedETHOutput, "Out too little ETH");
 
         // Update spot price
-        uint256 oldSpotPrice = spotPrice;
         spotPrice = newSpotPrice;
 
         // Take in NFTs frin caller
         // If missing enumerable, update pool's own ID set
         if (!missingEnumerable) {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+                if (!nftToETHTradeIdSet.contains(nftIds[i])) {
+                    _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+                }
             }
         } else {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+                if (!nftToETHTradeIdSet.contains(nftIds[i])) {
+                    _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+                }
                 idSet.add(nftIds[i]);
             }
         }
+        delete nftToETHTradeIdSet;
 
         // Send ETH to caller
         if (outputAmount > 0) {
-            payable(msg.sender).sendValue(outputAmount);
+            ethRecipient.sendValue(outputAmount);
         }
 
         // Take protocol fee
@@ -328,26 +367,26 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             _factory.protocolFeeRecipient().sendValue(protocolFee);
         }
 
-        // Emit events
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
-        emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
     }
 
     /**
        @notice Returns all NFT IDs held by the pool
      */
     function getAllHeldIds() external view returns (uint256[] memory) {
-      uint256 numNFTs = nft.balanceOf(address(this));
-      uint256[] memory ids = new uint256[](numNFTs);
-      for (uint256 i; i < numNFTs; i++) {
-          if (missingEnumerable) {
-              ids[i] = idSet.at(i);
-          }
-          else {
-              ids[i] = IERC721Enumerable(address(nft)).tokenOfOwnerByIndex(address(this), i);
-          }
-      }
-      return ids;
+        uint256 numNFTs = nft.balanceOf(address(this));
+        uint256[] memory ids = new uint256[](numNFTs);
+        for (uint256 i; i < numNFTs; i++) {
+            if (missingEnumerable) {
+                ids[i] = idSet.at(i);
+            } else {
+                ids[i] = IERC721Enumerable(address(nft)).tokenOfOwnerByIndex(
+                    address(this),
+                    i
+                );
+            }
+        }
+        return ids;
     }
 
     /**
@@ -378,7 +417,11 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         The NFTs must be part of the pair's collection. Only callable by the owner.
         @param nftIds The list of IDs of the NFTs to send to the owner
      */
-    function withdrawNFTs(uint256[] calldata nftIds) external onlyOwner onlyUnlocked {
+    function withdrawNFTs(uint256[] calldata nftIds)
+        external
+        onlyOwner
+        onlyUnlocked
+    {
         IERC721 _nft = nft;
         if (!missingEnumerable) {
             for (uint256 i = 0; i < nftIds.length; i++) {
@@ -400,7 +443,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
      */
     function withdrawERC721(address a, uint256[] calldata nftIds)
         external
-        onlyOwner onlyUnlocked
+        onlyOwner
+        onlyUnlocked
     {
         require(a != address(nft));
         for (uint256 i = 0; i < nftIds.length; i++) {
@@ -413,7 +457,11 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         @param a The address of the token to transfer
         @param amount The amount of tokens to send to the owner
      */
-    function withdrawERC20(address a, uint256 amount) external onlyOwner onlyUnlocked {
+    function withdrawERC20(address a, uint256 amount)
+        external
+        onlyOwner
+        onlyUnlocked
+    {
         IERC20(a).transferFrom(address(this), msg.sender, amount);
     }
 
@@ -443,8 +491,12 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         @notice Updates the selling spot price. Only callable by the owner.
         @param newSpotPrice The new selling spot price value, in ETH
      */
-    function changeSpotPrice(uint256 newSpotPrice) external onlyOwner onlyUnlocked {
-        uint256 oldSpotPrice = spotPrice; 
+    function changeSpotPrice(uint256 newSpotPrice)
+        external
+        onlyOwner
+        onlyUnlocked
+    {
+        uint256 oldSpotPrice = spotPrice;
         spotPrice = newSpotPrice;
         emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
     }
@@ -485,7 +537,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
      */
     function call(address payable target, bytes calldata data)
         external
-        onlyOwner onlyUnlocked
+        onlyOwner
+        onlyUnlocked
     {
         require(factory.callAllowed(target), "Target must be whitelisted");
         (bool result, ) = target.call{value: 0}(data);
@@ -520,14 +573,21 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         if it's the same collection used by pool (and doesn't auto-track via enumerable)
      */
     function onERC721Received(
-        address a1,
-        address a2,
+        address operator,
+        address from,
         uint256 id,
         bytes memory b
     ) public virtual override returns (bytes4) {
-        if (missingEnumerable && msg.sender == address(nft)) {
-            idSet.add(id);
+        if (msg.sender == address(nft)) {
+            if (isRouter[LSSVMRouter(payable(operator))]) {
+                // Use NFT for trade
+                nftToETHTradeIdSet.add(id);
+            } else if (missingEnumerable) {
+                // Include NFT in idSet
+                idSet.add(id);
+            }
         }
-        return super.onERC721Received(a1, a2, id, b);
+
+        return super.onERC721Received(operator, from, id, b);
     }
 }
