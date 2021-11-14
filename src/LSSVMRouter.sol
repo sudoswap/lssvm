@@ -39,6 +39,7 @@ contract LSSVMRouter {
         @param maxCost The maximum acceptable total ETH cost
         @param ethRecipient The address that will receive the unspent ETH input
         @param nftRecipient The address that will receive the NFT output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
         @return remainingValue The unspent ETH amount
      */
     function swapETHForAnyNFTs(
@@ -69,6 +70,7 @@ contract LSSVMRouter {
         @param maxCost The maximum acceptable total ETH cost
         @param ethRecipient The address that will receive the unspent ETH input
         @param nftRecipient The address that will receive the NFT output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
      */
     function swapETHForSpecificNFTs(
         PairSwapSpecific[] calldata swapList,
@@ -91,6 +93,7 @@ contract LSSVMRouter {
         @param swapList The list of pairs to trade with and the IDs of the NFTs to sell to each.
         @param minOutput The minimum acceptable total ETH received
         @param ethRecipient The address that will receive the ETH output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
         @return outputAmount The total ETH received
      */
     function swapNFTsForETH(
@@ -109,6 +112,7 @@ contract LSSVMRouter {
         @param minOutput The minimum acceptable total excess ETH received
         @param ethRecipient The address that will receive the ETH output
         @param nftRecipient The address that will receive the NFT output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
         @return outputAmount The total ETH received
      */
     function swapNFTsForAnyNFTs(
@@ -144,6 +148,7 @@ contract LSSVMRouter {
         @param minOutput The minimum acceptable total excess ETH received
         @param ethRecipient The address that will receive the ETH output
         @param nftRecipient The address that will receive the NFT output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
         @return outputAmount The total ETH received
      */
     function swapNFTsForSpecificNFTs(
