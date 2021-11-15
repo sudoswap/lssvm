@@ -376,6 +376,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
+        uint256 _nftBalanceAtTransferStart = nftBalanceAtTransferStart;
+        delete nftBalanceAtTransferStart;
 
         // Input validation
         {
@@ -385,14 +387,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 "Wrong Pool type"
             );
         }
-        require(nftBalanceAtTransferStart != 0, "Not in router swap context");
+        require(_nftBalanceAtTransferStart != 0, "Not in router swap context");
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
         uint256 numNFTs = _nft.balanceOf(address(this)) -
-            nftBalanceAtTransferStart +
+            _nftBalanceAtTransferStart +
             1;
-        delete nftBalanceAtTransferStart;
         {
             uint256 newSpotPrice;
             uint256 oldSpotPrice = spotPrice;
