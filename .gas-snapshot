@@ -1,4 +1,4 @@
-test_createPair() (gas: 2919133)
+test_createPair() (gas: 2919001)
 test_getSellInfoExample() (gas: 5016)
 test_getBuyInfoExample() (gas: 5191)
 test_getSellInfoExample() (gas: 3599)

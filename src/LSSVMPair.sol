@@ -38,12 +38,6 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForETH.
     uint256 private nftBalanceAtTransferStart;
 
-    // Temporarily used during LSSVMRouter::_swapNFTsForETH to track if the execution context is
-    // a router swap (LSSVMRouter::_swapNFTsForETH). Used to prevent a malicious router from calling
-    // routerSwapAnyNFTsForETH directly without transferring in NFTs and stealing the pair's ETH whenever
-    // nft.balanceOf(address(this)) > nftBalanceAtTransferStart (e.g. after the owner transfers in NFTs).
-    bool private isInRouterSwapContext;
-
     // Collection address
     IERC721 public nft;
 
@@ -391,13 +385,14 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 "Wrong Pool type"
             );
         }
-        require(isInRouterSwapContext, "Not in router swap context");
-        isInRouterSwapContext = false;
+        require(nftBalanceAtTransferStart != 0, "Not in router swap context");
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
         uint256 numNFTs = _nft.balanceOf(address(this)) -
-            nftBalanceAtTransferStart;
+            nftBalanceAtTransferStart +
+            1;
+        delete nftBalanceAtTransferStart;
         {
             uint256 newSpotPrice;
             uint256 oldSpotPrice = spotPrice;
@@ -649,10 +644,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                     factory.routerAllowed(LSSVMRouter(payable(operator))),
                     "Not router"
                 );
-                // subtract 1 from balance since onERC721Received is called after
-                // the first NFT of the trade is transferred to the pair
-                nftBalanceAtTransferStart = _nft.balanceOf(address(this)) - 1;
-                isInRouterSwapContext = true;
+                nftBalanceAtTransferStart = _nft.balanceOf(address(this));
             }
 
             if (missingEnumerable) {
