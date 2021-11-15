@@ -29,13 +29,20 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     uint256 private constant MAX_FEE = 9e17; // 90%, must <= 1 - MAX_PROTOCOL_FEE
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
+    bytes1 private constant NFT_TRANSFER_START = 0x11;
 
     // Factory which stores several global values (e.g. protocol fee)
     LSSVMPairFactory public factory;
 
-    // Temporarily used during LSSVMRouter::_swapNFTsForETH to store NFT IDs transferred
-    // directly to the pair. Should be empty outside of the execution of swapNFTsForETH.
-    EnumerableSet.UintSet private nftToETHTradeIdSet;
+    // Temporarily used during LSSVMRouter::_swapNFTsForETH to store the number of NFTs transferred
+    // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForETH.
+    uint256 private nftBalanceAtTransferStart;
+
+    // Temporarily used during LSSVMRouter::_swapNFTsForETH to track if the execution context is
+    // a router swap (LSSVMRouter::_swapNFTsForETH). Used to prevent a malicious router from calling
+    // routerSwapAnyNFTsForETH directly without transferring in NFTs and stealing the pair's ETH whenever
+    // nft.balanceOf(address(this)) > nftBalanceAtTransferStart (e.g. after the owner transfers in NFTs).
+    bool private isInRouterSwapContext;
 
     // Collection address
     IERC721 public nft;
@@ -338,19 +345,14 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         // If missing enumerable, update pool's own ID set
         if (!missingEnumerable) {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                if (!nftToETHTradeIdSet.contains(nftIds[i])) {
-                    _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
-                }
+                _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
             }
         } else {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                if (!nftToETHTradeIdSet.contains(nftIds[i])) {
-                    _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
-                }
+                _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
                 idSet.add(nftIds[i]);
             }
         }
-        delete nftToETHTradeIdSet;
 
         // Send ETH to caller
         if (outputAmount > 0) {
@@ -363,6 +365,72 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
 
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
+    }
+
+    /**
+        @notice Sells NFTs to the pair in exchange for ETH. Only callable by the LSSVMRouter.
+        @dev To compute the amount of ETH to that will be received, call bondingCurve.getSellInfo
+        @param minExpectedETHOutput The minimum acceptable ETH received by the sender. If the actual
+        amount is less than this value, the transaction will be reverted.
+        @param ethRecipient The recipient of the ETH output
+        @return outputAmount The amount of ETH received
+     */
+    function routerSwapNFTsForETH(
+        uint256 minExpectedETHOutput,
+        address payable ethRecipient
+    ) external nonReentrant returns (uint256 outputAmount) {
+        // Store storage variables locally for cheaper lookup
+        IERC721 _nft = nft;
+        LSSVMPairFactory _factory = factory;
+
+        // Input validation
+        {
+            PoolType _poolType = poolType;
+            require(
+                _poolType == PoolType.ETH || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+        }
+        require(isInRouterSwapContext, "Not in router swap context");
+        isInRouterSwapContext = false;
+
+        // Call bonding curve for pricing information
+        uint256 protocolFee;
+        uint256 numNFTs = _nft.balanceOf(address(this)) -
+            nftBalanceAtTransferStart;
+        {
+            uint256 newSpotPrice;
+            uint256 oldSpotPrice = spotPrice;
+            CurveErrorCodes.Error error;
+            (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
+                .getSellInfo(
+                    oldSpotPrice,
+                    delta,
+                    numNFTs,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Update spot price
+            spotPrice = newSpotPrice;
+            emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
+        }
+
+        // Pricing-dependent validation
+        require(outputAmount >= minExpectedETHOutput, "Out too little ETH");
+
+        // Send ETH to caller
+        if (outputAmount > 0) {
+            ethRecipient.sendValue(outputAmount);
+        }
+
+        // Take protocol fee
+        if (protocolFee > 0) {
+            _factory.protocolFeeRecipient().sendValue(protocolFee);
+        }
+
+        emit SwapWithAnyNFTs(outputAmount, numNFTs, true);
     }
 
     /**
@@ -573,11 +641,21 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         uint256 id,
         bytes memory b
     ) public virtual override returns (bytes4) {
-        if (msg.sender == address(nft)) {
-            if (factory.routerAllowed(LSSVMRouter(payable(operator)))) {
+        IERC721 _nft = nft;
+        if (msg.sender == address(_nft)) {
+            if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
                 // Use NFT for trade
-                nftToETHTradeIdSet.add(id);
-            } else if (missingEnumerable) {
+                require(
+                    factory.routerAllowed(LSSVMRouter(payable(operator))),
+                    "Not router"
+                );
+                // subtract 1 from balance since onERC721Received is called after
+                // the first NFT of the trade is transferred to the pair
+                nftBalanceAtTransferStart = _nft.balanceOf(address(this)) - 1;
+                isInRouterSwapContext = true;
+            }
+
+            if (missingEnumerable) {
                 // Include NFT in idSet
                 idSet.add(id);
             }

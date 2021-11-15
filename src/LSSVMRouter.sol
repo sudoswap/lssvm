@@ -8,6 +8,8 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 contract LSSVMRouter {
     using Address for address payable;
 
+    bytes1 private constant NFT_TRANSFER_START = 0x11;
+
     struct PairSwapAny {
         LSSVMPair pair;
         uint256 numItems;
@@ -255,16 +257,21 @@ contract LSSVMRouter {
             // Transfer NFTs directly from sender to pair
             IERC721 nft = swapList[i].pair.nft();
             for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
+                bytes memory signal = new bytes(1);
+                if (j == 0) {
+                    // Signal transfer start to pair
+                    signal[0] = NFT_TRANSFER_START;
+                }
                 nft.safeTransferFrom(
                     msg.sender,
                     address(swapList[i].pair),
-                    swapList[i].nftIds[j]
+                    swapList[i].nftIds[j],
+                    signal
                 );
             }
 
             // minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
-            outputAmount += swapList[i].pair.swapNFTsForETH(
-                swapList[i].nftIds,
+            outputAmount += swapList[i].pair.routerSwapNFTsForETH(
                 0,
                 ethRecipient
             );
