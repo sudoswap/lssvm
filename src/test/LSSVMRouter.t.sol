@@ -199,5 +199,26 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         require((endBalance - startBalance) == 5, "Too few NFTs acquired");
     }
 
+    function test_swap5NFTsForETH() public {
+        uint256 numInitialNFTs = 10;
+        uint256[] memory nftIds = new uint256[](5);
+        for (uint256 i = 0; i < 5; i++) {
+          nftIds[i] = numInitialNFTs + i + 1;
+        }
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](1);
+        swapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: nftIds
+        });
+
+        router.swapNFTsForETH(
+            swapList,
+            0.9 ether,
+            payable(address(this)),
+            block.timestamp
+        );
+    }
+
     receive() external payable {}
 }
