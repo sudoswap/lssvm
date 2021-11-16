@@ -123,7 +123,7 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         outputAmount = _swapNFTsForETH(
@@ -131,6 +131,9 @@ contract LSSVMRouter {
             0,
             payable(address(this))
         );
+
+        // Add extra value to buy NFTs
+        outputAmount += msg.value;
 
         // Swap ETH for any NFTs
         // cost <= maxCost = outputAmount - minOutput, so outputAmount' = outputAmount - cost >= minOutput
@@ -159,7 +162,7 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         outputAmount = _swapNFTsForETH(
@@ -167,6 +170,9 @@ contract LSSVMRouter {
             0,
             payable(address(this))
         );
+
+        // Add extra value to buy NFTs
+        outputAmount += msg.value;
 
         // Swap ETH for specific NFTs
         // cost <= maxCost = outputAmount - minOutput, so outputAmount' = outputAmount - cost >= minOutput

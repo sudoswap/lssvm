@@ -114,5 +114,73 @@ contract LSSVMPairFactoryTest is DSTest, ERC721Holder {
         );
     }
 
+    function test_swapSingleNFTForAnyNFT() public {
+        uint256 numInitialNFTs = 10;
+
+        // construct NFT to ETH swap list
+        uint256[] memory sellNFTIds = new uint256[](1);
+        sellNFTIds[0] = numInitialNFTs + 1;
+        LSSVMRouter.PairSwapSpecific[]
+            memory nftToETHSwapList = new LSSVMRouter.PairSwapSpecific[](1);
+        nftToETHSwapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: sellNFTIds
+        });
+
+        // construct ETH to NFT swap list
+        LSSVMRouter.PairSwapAny[]
+            memory ethToNFTSwapList = new LSSVMRouter.PairSwapAny[](1);
+        ethToNFTSwapList[0] = LSSVMRouter.PairSwapAny({
+            pair: pair,
+            numItems: 1
+        });
+
+        router.swapNFTsForAnyNFTs{value: 1 ether}(
+            LSSVMRouter.NFTsForAnyNFTsTrade({
+                nftToETHTrades: nftToETHSwapList,
+                ethToNFTTrades: ethToNFTSwapList
+            }),
+            0,
+            payable(address(this)),
+            address(this),
+            block.timestamp
+        );
+    }
+
+    function test_swapSingleNFTForSpecificNFT() public {
+        uint256 numInitialNFTs = 10;
+
+        // construct NFT to ETH swap list
+        uint256[] memory sellNFTIds = new uint256[](1);
+        sellNFTIds[0] = numInitialNFTs + 1;
+        LSSVMRouter.PairSwapSpecific[]
+            memory nftToETHSwapList = new LSSVMRouter.PairSwapSpecific[](1);
+        nftToETHSwapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: sellNFTIds
+        });
+
+        // construct ETH to NFT swap list
+        uint256[] memory buyNFTIds = new uint256[](1);
+        buyNFTIds[0] = 1;
+        LSSVMRouter.PairSwapSpecific[]
+            memory ethToNFTSwapList = new LSSVMRouter.PairSwapSpecific[](1);
+        ethToNFTSwapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: buyNFTIds
+        });
+
+        router.swapNFTsForSpecificNFTs{value: 1 ether}(
+            LSSVMRouter.NFTsForSpecificNFTsTrade({
+                nftToETHTrades: nftToETHSwapList,
+                ethToNFTTrades: ethToNFTSwapList
+            }),
+            0,
+            payable(address(this)),
+            address(this),
+            block.timestamp
+        );
+    }
+
     receive() external payable {}
 }
