@@ -262,25 +262,28 @@ contract LSSVMRouter {
         for (uint256 i = 0; i < swapList.length; i++) {
             // Transfer NFTs directly from sender to pair
             IERC721 nft = swapList[i].pair.nft();
-            for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
-                bytes memory signal = new bytes(1);
-                if (j == 0) {
-                    // Signal transfer start to pair
-                    signal[0] = NFT_TRANSFER_START;
-                }
+
+            // Signal transfer start to pair
+            bytes memory signal = new bytes(1);
+            signal[0] = NFT_TRANSFER_START;
+            nft.safeTransferFrom(
+                msg.sender,
+                address(swapList[i].pair),
+                swapList[i].nftIds[0],
+                signal
+            );
+
+            // Transfer the remaining NFTs
+            for (uint256 j = 1; j < swapList[i].nftIds.length; j++) {
                 nft.safeTransferFrom(
                     msg.sender,
                     address(swapList[i].pair),
-                    swapList[i].nftIds[j],
-                    signal
+                    swapList[i].nftIds[j]
                 );
             }
 
             // minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
-            outputAmount += swapList[i].pair.routerSwapNFTsForETH(
-                0,
-                ethRecipient
-            );
+            outputAmount += swapList[i].pair.routerSwapNFTsForETH(ethRecipient);
         }
 
         // Slippage check

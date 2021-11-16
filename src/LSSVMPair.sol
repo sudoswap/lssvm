@@ -149,25 +149,28 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         );
 
         // Call bonding curve for pricing information
-        CurveErrorCodes.Error error;
-        uint256 newSpotPrice;
         uint256 protocolFee;
-        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
-            .getBuyInfo(
-                spotPrice,
-                delta,
-                numNFTs,
-                fee,
-                _factory.protocolFeeMultiplier()
-            );
+        {
+            CurveErrorCodes.Error error;
+            uint256 oldSpotPrice = spotPrice;
+            uint256 newSpotPrice;
+            (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
+                .getBuyInfo(
+                    oldSpotPrice,
+                    delta,
+                    numNFTs,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Update spot price
+            spotPrice = newSpotPrice;
+            emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
+        }
 
         // Pricing-dependent validation
-        require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
         require(msg.value >= inputAmount, "Sent too little ETH");
-
-        // Update spot price
-        uint256 oldSpotPrice = spotPrice;
-        spotPrice = newSpotPrice;
 
         // Send NFTs to caller
         // If missing enumerable, update pool's own ID set
@@ -187,9 +190,8 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
 
         // Give excess ETH back to caller
-        uint256 feeDifference = msg.value - inputAmount;
-        if (feeDifference > 0) {
-            payable(msg.sender).sendValue(feeDifference);
+        if (msg.value > inputAmount) {
+            payable(msg.sender).sendValue(msg.value - inputAmount);
         }
 
         // Take protoocol fee
@@ -197,9 +199,7 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             _factory.protocolFeeRecipient().sendValue(protocolFee);
         }
 
-        // Emit events
         emit SwapWithAnyNFTs(msg.value, numNFTs, false);
-        emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
     }
 
     /**
@@ -235,9 +235,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
 
         // Call bonding curve for pricing information
-        uint256 newSpotPrice;
         uint256 protocolFee;
         {
+            uint256 newSpotPrice;
             uint256 oldSpotPrice = spotPrice;
             CurveErrorCodes.Error error;
             (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
@@ -250,14 +250,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 );
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
+            // Update spot price
+            spotPrice = newSpotPrice;
             emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
         }
 
         // Pricing-dependent validation
         require(msg.value >= inputAmount, "Sent too little ETH");
-
-        // Update spot price
-        spotPrice = newSpotPrice;
 
         // Send NFTs to caller
         // If missing enumerable, update pool's own ID set
@@ -269,10 +268,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             }
         }
 
-        // Give excess back to caller
-        uint256 feeDifference = msg.value - inputAmount;
-        if (feeDifference > 0) {
-            payable(msg.sender).sendValue(feeDifference);
+        // Give excess ETH back to caller
+        if (msg.value > inputAmount) {
+            payable(msg.sender).sendValue(msg.value - inputAmount);
         }
 
         // Take protocol fee
@@ -311,9 +309,9 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
         }
 
         // Call bonding curve for pricing information
-        uint256 newSpotPrice;
         uint256 protocolFee;
         {
+            uint256 newSpotPrice;
             uint256 oldSpotPrice = spotPrice;
             CurveErrorCodes.Error error;
             (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
@@ -326,14 +324,13 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
                 );
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
+            // Update spot price
+            spotPrice = newSpotPrice;
             emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
         }
 
         // Pricing-dependent validation
         require(outputAmount >= minExpectedETHOutput, "Out too little ETH");
-
-        // Update spot price
-        spotPrice = newSpotPrice;
 
         // Take in NFTs frin caller
         // If missing enumerable, update pool's own ID set
@@ -364,15 +361,14 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
     /**
         @notice Sells NFTs to the pair in exchange for ETH. Only callable by the LSSVMRouter.
         @dev To compute the amount of ETH to that will be received, call bondingCurve.getSellInfo
-        @param minExpectedETHOutput The minimum acceptable ETH received by the sender. If the actual
-        amount is less than this value, the transaction will be reverted.
         @param ethRecipient The recipient of the ETH output
         @return outputAmount The amount of ETH received
      */
-    function routerSwapNFTsForETH(
-        uint256 minExpectedETHOutput,
-        address payable ethRecipient
-    ) external nonReentrant returns (uint256 outputAmount) {
+    function routerSwapNFTsForETH(address payable ethRecipient)
+        external
+        nonReentrant
+        returns (uint256 outputAmount)
+    {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
@@ -412,9 +408,6 @@ contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
             spotPrice = newSpotPrice;
             emit SpotPriceChanged(oldSpotPrice, newSpotPrice);
         }
-
-        // Pricing-dependent validation
-        require(outputAmount >= minExpectedETHOutput, "Out too little ETH");
 
         // Send ETH to caller
         if (outputAmount > 0) {
