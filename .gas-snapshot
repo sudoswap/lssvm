@@ -1,4 +1,7 @@
 test_createPair() (gas: 2919001)
+test_swapETHForSingleAnyNFT() (gas: 109018)
+test_swapETHForSingleSpecificNFT() (gas: 110346)
+test_swapSingleNFTForETH() (gas: 162374)
 test_getSellInfoExample() (gas: 5016)
 test_getBuyInfoExample() (gas: 5191)
 test_getSellInfoExample() (gas: 3599)

@@ -186,7 +186,7 @@ contract LSSVMRouter {
      */
 
     function _checkDeadline(uint256 deadline) internal view {
-        require(block.timestamp < deadline, "Deadline passed");
+        require(block.timestamp <= deadline, "Deadline passed");
     }
 
     function _swapETHForAnyNFTs(
