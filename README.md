@@ -4,10 +4,9 @@ An implementation of the AMM idea described [here](https://blog.0xmons.xyz/83017
 
 Things left to do:
 
-- []: Write `Router` contract
-- []: More tests to ensure math invariants hold
-- []: More tests to ensure that role permissions work as intended
-- []: More tests to ensure that idSet always tracks NFT IDs in/out (if missing enumerable)
+- More tests to ensure math invariants hold
+- More tests to ensure that role permissions work as intended
+- More tests to ensure that idSet always tracks NFT IDs in/out (if missing enumerable)
 
 Liquidity providers us `LSSVMPairFactory` to deploy a minimal proxy `LSSVMPair` for a specific NFT collection. From there, the deployed pool maintains its own ETH/NFT inventory. Users can then call the various `swap` functions on the pool to trade ETH/NFTs.
 

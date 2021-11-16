@@ -12,8 +12,9 @@ import {Test721} from "../mocks/Test721.sol";
 import {Test721Enumerable} from "../mocks/Test721Enumerable.sol";
 import {Hevm} from "./utils/Hevm.sol";
 
-contract LSSVMRouterTest is DSTest, ERC721Holder {
-    Test721 test721;
+// Tests for best-case assuming 0% fee, 0 delta linearCurve, and 0% protocol fee
+contract LSSVMRouterEnumerableTest is DSTest, ERC721Holder {
+    Test721Enumerable test721;
     LinearCurve linearCurve;
     LSSVMPairFactory factory;
     LSSVMRouter router;
@@ -21,12 +22,13 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
 
+  
     function setUp() public {
         // create contracts
         linearCurve = new LinearCurve();
         LSSVMPair pairTemplate = new LSSVMPair();
         router = new LSSVMRouter();
-        test721 = new Test721();
+        test721 = new Test721Enumerable();
         factory = new LSSVMPairFactory(
             pairTemplate,
             feeRecipient,
@@ -49,7 +51,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             test721.mint(address(this), i);
             idList[i - 1] = i;
         }
-        pair = factory.createPair{value: 10 ether}(
+        pair = factory.createPair{value: 120 ether}(
             test721,
             linearCurve,
             LSSVMPair.PoolType.TRADE,
@@ -60,7 +62,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         );
 
         // mint extra NFTs to this contract
-        for (uint256 i = numInitialNFTs + 1; i <= 2 * numInitialNFTs; i++) {
+        for (uint256 i = numInitialNFTs + 1; i <= 3 * numInitialNFTs; i++) {
             test721.mint(address(this), i);
         }
     }
