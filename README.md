@@ -4,7 +4,6 @@ An implementation of the AMM idea described [here](https://blog.0xmons.xyz/83017
 
 Things left to do:
 
-- Write `Router` contract (see `router` branch)
 - More tests to ensure math invariants hold
 - More tests to ensure that role permissions work as intended
 - More tests to ensure that idSet always tracks NFT IDs in/out (if missing enumerable)

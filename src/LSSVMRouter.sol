@@ -8,6 +8,8 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 contract LSSVMRouter {
     using Address for address payable;
 
+    bytes1 private constant NFT_TRANSFER_START = 0x11;
+
     struct PairSwapAny {
         LSSVMPair pair;
         uint256 numItems;
@@ -26,6 +28,12 @@ contract LSSVMRouter {
     struct NFTsForSpecificNFTsTrade {
         PairSwapSpecific[] nftToETHTrades;
         PairSwapSpecific[] ethToNFTTrades;
+    }
+
+    // Used for arbitrage across several pools
+    struct ETHtoETHTrade {
+        PairSwapSpecific[] ethToNFTTrades;
+        PairSwapSpecific[] nftToETHTrades;
     }
 
     modifier checkDeadline(uint256 deadline) {
@@ -121,7 +129,7 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         outputAmount = _swapNFTsForETH(
@@ -129,6 +137,9 @@ contract LSSVMRouter {
             0,
             payable(address(this))
         );
+
+        // Add extra value to buy NFTs
+        outputAmount += msg.value;
 
         // Swap ETH for any NFTs
         // cost <= maxCost = outputAmount - minOutput, so outputAmount' = outputAmount - cost >= minOutput
@@ -157,7 +168,7 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         outputAmount = _swapNFTsForETH(
@@ -165,6 +176,9 @@ contract LSSVMRouter {
             0,
             payable(address(this))
         );
+
+        // Add extra value to buy NFTs
+        outputAmount += msg.value;
 
         // Swap ETH for specific NFTs
         // cost <= maxCost = outputAmount - minOutput, so outputAmount' = outputAmount - cost >= minOutput
@@ -177,14 +191,57 @@ contract LSSVMRouter {
         );
     }
 
+    /**
+        @notice Swaps ETH to NFTs and then back to ETH again, with the goal of arbitraging between pools
+        @param trade The struct containing all ETH-to-NFT swaps and NFT-to-ETH swaps.
+        @param maxCost The maximum amount of ETH consumed in the ETH-to-NFT swap
+        @param minOutput The minimum acceptable total excess ETH received in the NFT-to-ETH swap
+        @param ethRecipient The address that will receive the ETH output
+        @param nftRecipient The address that will receive the NFT output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
+        @return profitAmount The total ETH profit received
+     */
+    function swapETHtoETH(
+        ETHtoETHTrade calldata trade,
+        uint256 maxCost,
+        uint256 minOutput,
+        address payable ethRecipient,
+        address nftRecipient,
+        uint256 deadline
+    ) external payable checkDeadline(deadline) returns (uint256 profitAmount) {
+        
+        // Assume we get everything we specified in trade.ethToNFTTrades.nftIds
+        uint256 remainingValue = _swapETHForSpecificNFTs(
+            trade.ethToNFTTrades,
+            msg.value,
+            maxCost,
+            ethRecipient,
+            nftRecipient
+        );
+
+        // Once we have all the NFTs, send them to the new pool for ETH
+        uint256 outputAmount = _swapNFTsForETH(
+            trade.nftToETHTrades,
+            minOutput,
+            ethRecipient 
+        );
+
+        // Ensure that outputAmount > maxCost-remainingValue in order for the swap to be profitable
+        // Will auto-revert if the below underflows
+        profitAmount = outputAmount - (maxCost-remainingValue);
+    }
+
     receive() external payable {}
+
+    // TODO: robust swaps for ETH<>NFT and NFT<>ETH (with specified slippage per swap)
+    // requires new internal functions?
 
     /**
         Internal functions
      */
 
     function _checkDeadline(uint256 deadline) internal view {
-        require(block.timestamp < deadline, "Deadline passed");
+        require(block.timestamp <= deadline, "Deadline passed");
     }
 
     function _swapETHForAnyNFTs(
@@ -254,7 +311,19 @@ contract LSSVMRouter {
         for (uint256 i = 0; i < swapList.length; i++) {
             // Transfer NFTs directly from sender to pair
             IERC721 nft = swapList[i].pair.nft();
-            for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
+
+            // Signal transfer start to pair
+            bytes memory signal = new bytes(1);
+            signal[0] = NFT_TRANSFER_START;
+            nft.safeTransferFrom(
+                msg.sender,
+                address(swapList[i].pair),
+                swapList[i].nftIds[0],
+                signal
+            );
+
+            // Transfer the remaining NFTs
+            for (uint256 j = 1; j < swapList[i].nftIds.length; j++) {
                 nft.safeTransferFrom(
                     msg.sender,
                     address(swapList[i].pair),
@@ -263,11 +332,7 @@ contract LSSVMRouter {
             }
 
             // minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
-            outputAmount += swapList[i].pair.swapNFTsForETH(
-                swapList[i].nftIds,
-                0,
-                ethRecipient
-            );
+            outputAmount += swapList[i].pair.routerSwapNFTsForETH(ethRecipient);
         }
 
         // Slippage check
