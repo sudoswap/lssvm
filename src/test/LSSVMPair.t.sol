@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {DSTest} from "ds-test/test.sol";
 
 import {LSSVMPair} from "../LSSVMPair.sol";
+import {LSSVMPairEnumerable} from "../LSSVMPairEnumerable.sol";
+import {LSSVMPairMissingEnumerable} from "../LSSVMPairMissingEnumerable.sol";
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
 import {LinearCurve} from "../bonding-curves/LinearCurve.sol";
 import {CurveErrorCodes} from "../bonding-curves/CurveErrorCodes.sol";
@@ -24,9 +26,11 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
     function setUp() public {
         linearCurve = new LinearCurve();
         test721 = new Test721();
-        LSSVMPair pairTemplate = new LSSVMPair();
+        LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
+        LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
         factory = new LSSVMPairFactory(
-            pairTemplate,
+            enumerableTemplate,
+            missingEnumerableTemplate,
             feeRecipient,
             protocolFeeMultiplier
         );

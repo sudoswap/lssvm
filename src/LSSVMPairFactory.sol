@@ -8,14 +8,19 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 contract LSSVMPairFactory is Ownable {
     using Clones for address;
     using Address for address payable;
 
+    bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE = type(IERC721Enumerable).interfaceId;
+
     uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
 
-    LSSVMPair public template;
+    LSSVMPair public enumerableTemplate;
+    LSSVMPair public missingEnumerableTemplate;
     address payable public protocolFeeRecipient;
     uint256 public protocolFeeMultiplier;
 
@@ -26,12 +31,16 @@ contract LSSVMPairFactory is Ownable {
     event PairCreated(address poolAddress, address nft);
 
     constructor(
-        LSSVMPair _template,
+        LSSVMPair _enumerableTemplate,
+        LSSVMPair _missingEnumerableTemplate,
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
-        require(address(_template) != address(0), "0 template address");
-        template = _template;
+        require(address(_enumerableTemplate) != address(0), "0 template address");
+        enumerableTemplate = _enumerableTemplate;
+
+        require(address(_missingEnumerableTemplate) != address(0), "0 template address");
+        missingEnumerableTemplate = _missingEnumerableTemplate;
 
         require(_protocolFeeRecipient != address(0), "0 recipient address");
         protocolFeeRecipient = _protocolFeeRecipient;
@@ -64,11 +73,24 @@ contract LSSVMPairFactory is Ownable {
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPair pair) {
+        
         require(
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
-        pair = LSSVMPair(payable(address(template).clone()));
+
+        if (
+            !ERC165Checker.supportsInterface(
+                address(_nft),
+                INTERFACE_ID_ERC721_ENUMERABLE
+            )
+        ) {
+            pair = LSSVMPair(payable(address(missingEnumerableTemplate).clone()));
+        }
+        else {
+            pair = LSSVMPair(payable(address(enumerableTemplate).clone()));
+        }
+
         _initializePair(
             pair,
             _nft,
@@ -108,7 +130,17 @@ contract LSSVMPairFactory is Ownable {
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
-        pair = LSSVMPair(payable(address(template).cloneDeterministic(_salt)));
+        if (
+            !ERC165Checker.supportsInterface(
+                address(_nft),
+                INTERFACE_ID_ERC721_ENUMERABLE
+            )
+        ) {
+            pair = LSSVMPair(payable(address(missingEnumerableTemplate).cloneDeterministic(_salt)));
+        }
+        else {
+            pair = LSSVMPair(payable(address(enumerableTemplate).cloneDeterministic(_salt)));
+        }
         _initializePair(
             pair,
             _nft,
@@ -122,29 +154,33 @@ contract LSSVMPairFactory is Ownable {
     }
 
     /**
-        @notice Predicts the address of a pair deployed using CREATE2, given the salt value.
+        @notice Predicts the address of a pair for a 721 with Enumerable deployed using CREATE2, given the salt value.
         @param _salt The salt value used by CREATE2
      */
-    function predictPairAddress(bytes32 _salt)
+    function predictEnumerablePairAddress(bytes32 _salt)
         external
         view
         returns (address pairAddress)
     {
-        return address(template).predictDeterministicAddress(_salt);
+        return address(enumerableTemplate).predictDeterministicAddress(_salt);
+    }
+
+
+    /**
+        @notice Predicts the address of a pair for a 721 without Enumerable deployed using CREATE2, given the salt value.
+        @param _salt The salt value used by CREATE2
+     */
+    function predictMissingEnumerablePairAddress(bytes32 _salt)
+        external
+        view
+        returns (address pairAddress)
+    {
+        return address(missingEnumerableTemplate).predictDeterministicAddress(_salt);
     }
 
     /**
      * Admin functions
      */
-
-    /**
-        @notice Changes the pair template address. Only callable by the owner.
-        @param _template The new pair template
-     */
-    function changeTemplate(LSSVMPair _template) external onlyOwner {
-        require(address(_template) != address(0), "0 template address");
-        template = _template;
-    }
 
     /**
         @notice Changes the protocol fee recipient address. Only callable by the owner.

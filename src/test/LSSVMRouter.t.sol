@@ -7,6 +7,8 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../LSSVMPair.sol";
+import {LSSVMPairEnumerable} from "../LSSVMPairEnumerable.sol";
+import {LSSVMPairMissingEnumerable} from "../LSSVMPairMissingEnumerable.sol";
 import {LSSVMRouter} from "../LSSVMRouter.sol";
 import {Test721} from "../mocks/Test721.sol";
 import {Test721Enumerable} from "../mocks/Test721Enumerable.sol";
@@ -24,11 +26,13 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
     function setUp() public {
         // create contracts
         linearCurve = new LinearCurve();
-        LSSVMPair pairTemplate = new LSSVMPair();
+        LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
+        LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
         router = new LSSVMRouter();
         test721 = new Test721();
         factory = new LSSVMPairFactory(
-            pairTemplate,
+            enumerableTemplate,
+            missingEnumerableTemplate,
             feeRecipient,
             protocolFeeMultiplier
         );

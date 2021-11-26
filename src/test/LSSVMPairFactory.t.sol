@@ -3,9 +3,10 @@ pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
 import {LinearCurve} from "../bonding-curves/LinearCurve.sol";
-
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../LSSVMPair.sol";
+import {LSSVMPairEnumerable} from "../LSSVMPairEnumerable.sol";
+import {LSSVMPairMissingEnumerable} from "../LSSVMPairMissingEnumerable.sol";
 import {Test721} from "../mocks/Test721.sol";
 import {Hevm} from "./utils/Hevm.sol";
 
@@ -19,9 +20,11 @@ contract LSSVMPairFactoryTest is DSTest {
 
     function setUp() public {
         linearCurve = new LinearCurve();
-        LSSVMPair pairTemplate = new LSSVMPair();
+        LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
+        LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
         factory = new LSSVMPairFactory(
-            pairTemplate,
+            enumerableTemplate,
+            missingEnumerableTemplate,
             feeRecipient,
             protocolFeeMultiplier
         );

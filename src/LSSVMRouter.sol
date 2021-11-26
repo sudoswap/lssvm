@@ -30,6 +30,12 @@ contract LSSVMRouter {
         PairSwapSpecific[] ethToNFTTrades;
     }
 
+    // Used for arbitrage across several pools
+    struct ETHtoETHTrade {
+        PairSwapSpecific[] ethToNFTTrades;
+        PairSwapSpecific[] nftToETHTrades;
+    }
+
     modifier checkDeadline(uint256 deadline) {
         _checkDeadline(deadline);
         _;
@@ -185,7 +191,50 @@ contract LSSVMRouter {
         );
     }
 
+    /**
+        @notice Swaps ETH to NFTs and then back to ETH again, with the goal of arbitraging between pools
+        @param trade The struct containing all ETH-to-NFT swaps and NFT-to-ETH swaps.
+        @param maxCost The maximum amount of ETH consumed in the ETH-to-NFT swap
+        @param minOutput The minimum acceptable total excess ETH received in the NFT-to-ETH swap
+        @param ethRecipient The address that will receive the ETH output
+        @param nftRecipient The address that will receive the NFT output
+        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
+        @return profitAmount The total ETH profit received
+     */
+    function swapETHtoETH(
+        ETHtoETHTrade calldata trade,
+        uint256 maxCost,
+        uint256 minOutput,
+        address payable ethRecipient,
+        address nftRecipient,
+        uint256 deadline
+    ) external payable checkDeadline(deadline) returns (uint256 profitAmount) {
+        
+        // Assume we get everything we specified in trade.ethToNFTTrades.nftIds
+        uint256 remainingValue = _swapETHForSpecificNFTs(
+            trade.ethToNFTTrades,
+            msg.value,
+            maxCost,
+            ethRecipient,
+            nftRecipient
+        );
+
+        // Once we have all the NFTs, send them to the new pool for ETH
+        uint256 outputAmount = _swapNFTsForETH(
+            trade.nftToETHTrades,
+            minOutput,
+            ethRecipient 
+        );
+
+        // Ensure that outputAmount > maxCost-remainingValue in order for the swap to be profitable
+        // Will auto-revert if the below underflows
+        profitAmount = outputAmount - (maxCost-remainingValue);
+    }
+
     receive() external payable {}
+
+    // TODO: robust swaps for ETH<>NFT and NFT<>ETH (with specified slippage per swap)
+    // requires new internal functions?
 
     /**
         Internal functions
