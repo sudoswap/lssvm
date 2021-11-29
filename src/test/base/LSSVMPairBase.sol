@@ -47,6 +47,9 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         uint8 numItems
     ) public payable {
 
+        // modify spotPrice to be appropriate for the bonding curve
+        spotPrice = modifySpotPrice(spotPrice);
+
         // modify delta to be appropriate for the bonding curve
         delta = modifyDelta(delta);
 
@@ -139,6 +142,9 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         uint8 numItems
     ) public payable {
 
+        // modify spotPrice to be appropriate for the bonding curve
+        spotPrice = modifySpotPrice(spotPrice);
+
         // modify delta to be appropriate for the bonding curve
         delta = modifyDelta(delta);
 
@@ -212,7 +218,13 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
 
     function setup721() public virtual returns (IERC721Mintable);
 
-    function modifyDelta(uint64 delta) public virtual returns (uint64);
+    function modifyDelta(uint64 delta) public virtual returns (uint64) {
+        return delta;
+    }
+
+    function modifySpotPrice(uint56 spotPrice) public virtual returns (uint56) {
+        return spotPrice;
+    }
 
     receive() external payable {}
 }

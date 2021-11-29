@@ -229,6 +229,11 @@ contract LSSVMPairEnumerable is LSSVMPair {
 
         // Take protocol fee
         if (protocolFee > 0) {
+            // Round down to the actual ETH balance if there are numerical stability issues with the above calculations
+            uint256 pairETHBalance = address(this).balance;
+            if (protocolFee > pairETHBalance) {
+                protocolFee = pairETHBalance;
+            }
             _factory.protocolFeeRecipient().sendValue(protocolFee);
         }
 

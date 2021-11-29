@@ -18,8 +18,4 @@ contract LSSVMPairLinearEnumerableTest is DSTest, LSSVMPairBaseTest {
     function setup721() override public returns (IERC721Mintable){
         return IERC721Mintable(address(new Test721Enumerable()));
     }
-
-    function modifyDelta(uint64 delta) override public pure returns (uint64) {
-        return delta;
-    }
 }

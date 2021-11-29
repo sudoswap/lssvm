@@ -28,4 +28,13 @@ contract LSSVMPairExponentialEnumerableTest is DSTest, LSSVMPairBaseTest {
             return delta;
         }
     }
+
+    function modifySpotPrice(uint56 spotPrice) override public pure returns (uint56) {
+        if (spotPrice < 1 gwei) {
+            return 1 gwei;
+        }
+        else {
+            return spotPrice;
+        }
+    }
 }
