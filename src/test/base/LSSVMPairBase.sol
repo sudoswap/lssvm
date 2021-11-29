@@ -3,29 +3,29 @@ pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
 
-import {LSSVMPair} from "../LSSVMPair.sol";
-import {LSSVMPairEnumerable} from "../LSSVMPairEnumerable.sol";
-import {LSSVMPairMissingEnumerable} from "../LSSVMPairMissingEnumerable.sol";
-import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
-import {LinearCurve} from "../bonding-curves/LinearCurve.sol";
-import {CurveErrorCodes} from "../bonding-curves/CurveErrorCodes.sol";
-import {Test721} from "../mocks/Test721.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {LSSVMPair} from "../../LSSVMPair.sol";
+import {LSSVMPairEnumerable} from "../../LSSVMPairEnumerable.sol";
+import {LSSVMPairMissingEnumerable} from "../../LSSVMPairMissingEnumerable.sol";
+import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
+import {ICurve} from "../../bonding-curves/ICurve.sol";
+import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
+import {Test721} from "../../mocks/Test721.sol";
+import {IERC721Mintable} from "../../test/IERC721Mintable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import {Hevm} from "./utils/Hevm.sol";
+import {Hevm} from "../utils/Hevm.sol";
 
-contract LSSVMPairTest is DSTest, ERC721Holder {
+abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
     uint256[] idList;
     uint256 startingId;
-    Test721 test721;
-    LinearCurve linearCurve;
+    IERC721Mintable test721;
+    ICurve bondingCurve;
     LSSVMPairFactory factory;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
 
     function setUp() public {
-        linearCurve = new LinearCurve();
-        test721 = new Test721();
+        bondingCurve = setupCurve();
+        test721 = setup721();
         LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
         LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
         factory = new LSSVMPairFactory(
@@ -35,17 +35,21 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
             protocolFeeMultiplier
         );
         test721.setApprovalForAll(address(factory), true);
-        factory.setBondingCurveAllowed(linearCurve, true);
+        factory.setBondingCurveAllowed(bondingCurve, true);
     }
 
     /**
     @dev Ensures selling NFTs & buying them back results in no profit.
      */
-    function test_linearCurveSellBuyNoProfit(
+    function test_bondingCurveSellBuyNoProfit(
         uint56 spotPrice,
-        uint56 delta,
+        uint64 delta,
         uint8 numItems
     ) public payable {
+
+        // modify delta to be appropriate for the bonding curve
+        delta = modifyDelta(delta);
+
         // decrease the range of numItems to speed up testing
         numItems = numItems % 3;
 
@@ -59,7 +63,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         uint256[] memory empty;
         LSSVMPair pair = factory.createPair(
             test721,
-            linearCurve,
+            bondingCurve,
             LSSVMPair.PoolType.TRADE,
             delta,
             0,
@@ -84,7 +88,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
                 uint256 newSpotPrice,
                 uint256 outputAmount,
                 uint256 protocolFee
-            ) = linearCurve.getSellInfo(
+            ) = bondingCurve.getSellInfo(
                     spotPrice,
                     delta,
                     numItems,
@@ -104,7 +108,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
 
         // buy back the NFTs just sold to the pair
         {
-            (, , uint256 inputAmount, ) = linearCurve.getBuyInfo(
+            (, , uint256 inputAmount, ) = bondingCurve.getBuyInfo(
                 spotPrice,
                 delta,
                 numItems,
@@ -125,14 +129,19 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         pair.withdrawAllETH();
     }
 
+
     /**
     @dev Ensures buying NFTs & selling them back results in no profit.
      */
-    function test_linearCurveBuySellNoProfit(
+    function test_bondingCurveBuySellNoProfit(
         uint56 spotPrice,
-        uint56 delta,
+        uint64 delta,
         uint8 numItems
     ) public payable {
+
+        // modify delta to be appropriate for the bonding curve
+        delta = modifyDelta(delta);
+
         // decrease the range of numItems to speed up testing
         numItems = numItems % 3;
 
@@ -150,7 +159,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         }
         LSSVMPair pair = factory.createPair(
             test721,
-            linearCurve,
+            bondingCurve,
             LSSVMPair.PoolType.TRADE,
             delta,
             0,
@@ -164,7 +173,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
 
         // buy all NFTs
         {
-            (, uint256 newSpotPrice, uint256 inputAmount, ) = linearCurve
+            (, uint256 newSpotPrice, uint256 inputAmount, ) = bondingCurve
                 .getBuyInfo(
                     spotPrice,
                     delta,
@@ -181,7 +190,7 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
 
         // sell back the NFTs
         {
-            linearCurve.getSellInfo(
+            bondingCurve.getSellInfo(
                 spotPrice,
                 delta,
                 numItems,
@@ -198,6 +207,12 @@ contract LSSVMPairTest is DSTest, ERC721Holder {
         // withdraw the ETH in the pair back
         pair.withdrawAllETH();
     }
+
+    function setupCurve() public virtual returns (ICurve);
+
+    function setup721() public virtual returns (IERC721Mintable);
+
+    function modifyDelta(uint64 delta) public virtual returns (uint64);
 
     receive() external payable {}
 }

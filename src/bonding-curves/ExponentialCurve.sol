@@ -23,7 +23,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         override
         returns (bool)
     {
-        return delta >= PRBMathUD60x18.SCALE;
+        return delta > PRBMathUD60x18.SCALE;
     }
 
     /**
@@ -46,6 +46,10 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
+        if (spotPrice < MIN_PRICE) {
+            spotPrice = MIN_PRICE;
+        }
+        
         uint256 deltaPowN = delta.powu(numItems);
 
         // For an exponential curve, the spot price is multiplied by delta for each item bought
@@ -102,6 +106,10 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
+        if (spotPrice < MIN_PRICE) {
+            spotPrice = MIN_PRICE;
+        }
+
         uint256 invDelta = delta.inv();
         uint256 invDeltaPowN = invDelta.powu(numItems);
 
@@ -120,13 +128,13 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             )
         );
 
-        // Account for the protocol fee, a flat percentage of the buy amount
+        // Account for the protocol fee, a flat percentage of the sell amount
         protocolFee = outputValue.mul(protocolFeeMultiplier);
 
         // Account for the trade fee, only for Trade pools
         outputValue -= outputValue.mul(feeMultiplier);
 
-        // Add the protocol fee to the required input amount
+        // Remove the protocol fee from the output amount
         outputValue -= protocolFee;
 
         // If we got all the way here, no math error happened
