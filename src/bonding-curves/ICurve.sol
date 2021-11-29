@@ -6,12 +6,20 @@ import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 interface ICurve {
     /**
         @notice Validates if a delta value is valid for the curve. The criteria for
-        validity is likely different for each type of curve, for instance ExponentialCurve
+        validity is can be different for each type of curve, for instance ExponentialCurve
         requires delta to be at least 1.
         @param delta The delta value to be validated
         @return valid True if delta is valid, false otherwise
      */
     function validateDelta(uint256 delta) external pure returns (bool valid);
+
+
+    /**
+        @notice Validates if a new spot price is valid for the curve.
+        @param newSpotPrice The new spot price to be set
+        @return valid True if the new spot price is valid, false otherwise
+     */
+    function validateSpotPrice(uint256 newSpotPrice) external pure returns (bool valid);
 
     /**
         @notice Given the current state of the pair and the trade, computes how much the user

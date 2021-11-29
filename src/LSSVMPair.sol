@@ -90,6 +90,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
             require(_fee < MAX_FEE, "Trade fee must be less than 100%");
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
+        require(_bondingCurve.validateSpotPrice(_spotPrice), "Invalid new spot price for curve");
         factory = _factory;
         nft = _nft;
         bondingCurve = _bondingCurve;
@@ -290,6 +291,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
         onlyOwner
         onlyUnlocked
     {
+        require(bondingCurve.validateSpotPrice(newSpotPrice), "Invalid new spot price for curve");
         spotPrice = newSpotPrice;
         emit SpotPriceUpdated(newSpotPrice);
     }
