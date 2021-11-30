@@ -256,8 +256,8 @@ contract LSSVMPairEnumerable is LSSVMPair {
     }
 
     /**
-        @dev Callback when safeTransfering an ERC721 in, we add ID to the idSet
-        if it's the same collection used by pool (and doesn't auto-track via enumerable)
+        @dev Callback when safeTransfering an ERC721 in
+        If it's from the Router, we cache the current balance amount
      */
     function onERC721Received(
         address operator,

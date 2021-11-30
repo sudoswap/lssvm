@@ -373,10 +373,10 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
     function getBuyNFTQuote(uint256 numNFTs) external view returns (
         CurveErrorCodes.Error error,
         uint256 newSpotPrice,
-        uint256 outputAmount,
+        uint256 inputAmount,
         uint256 protocolFee
     ) {
-        (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
+        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
             .getBuyInfo(
                 spotPrice,
                 delta,

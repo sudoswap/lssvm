@@ -288,6 +288,9 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
         return super.onERC721Received(operator, from, id, b);
     }
 
+    /**
+      @dev This is only for withdrawing the pair's NFT collection
+     */
     function withdrawNFT(uint256[] calldata nftIds) external onlyOwner onlyUnlocked {
         IERC721 _nft = nft;
         for (uint256 i = 0; i < nftIds.length; i++) {

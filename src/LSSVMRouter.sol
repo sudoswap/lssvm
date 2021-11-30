@@ -192,6 +192,7 @@ contract LSSVMRouter {
     }
 
     /**
+        @dev This function reverts if no profit can be gained
         @notice Swaps ETH to NFTs and then back to ETH again, with the goal of arbitraging between pools
         @param trade The struct containing all ETH-to-NFT swaps and NFT-to-ETH swaps.
         @param maxCost The maximum amount of ETH consumed in the ETH-to-NFT swap
@@ -232,9 +233,6 @@ contract LSSVMRouter {
     }
 
     receive() external payable {}
-
-    // TODO: robust swaps for ETH<>NFT and NFT<>ETH (with specified slippage per swap)
-    // requires new internal functions?
 
     /**
         Internal functions
@@ -337,5 +335,44 @@ contract LSSVMRouter {
 
         // Slippage check
         require(outputAmount >= minOutput, "outputAmount too low");
+    }
+
+    // These are "robust" versions of the above swap functions which will never revert
+    // Instead, if the price changes more than the user specifies, no swap is attempted
+
+    /**
+        @dev We assume msg.value >= sum of values in maxCostPerPair
+     */
+    function _robustSwapETHForAnyNFTs(
+        PairSwapAny[] calldata swapList,
+        uint256[] memory maxCostPerPair,
+        address payable ethRecipient,
+        address nftRecipient
+    ) internal returns (uint256 remainingValue) {
+
+        remainingValue = msg.value;
+
+        // Try doing each swap
+        for (uint256 i = 0; i < swapList.length; i++) {
+
+            // Calculate actual cost per swap
+            uint256 pairCost;
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].numItems);
+
+            // If within our maxCost, proceed
+            if (maxCostPerPair[i] <= pairCost) {
+
+                // We know how much ETH to send because we already did the math above
+                // So we just send that much 
+                remainingValue -= swapList[i].pair.swapETHForAnyNFTs{
+                    value: pairCost
+                }(swapList[i].numItems, nftRecipient);
+            }
+        }
+
+        // Return remaining value to sender
+        if (remainingValue > 0) {
+            ethRecipient.sendValue(remainingValue);
+        }
     }
 }
