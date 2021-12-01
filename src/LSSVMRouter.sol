@@ -232,6 +232,124 @@ contract LSSVMRouter {
         profitAmount = outputAmount - (maxCost-remainingValue);
     }
 
+    // These are "robust" versions of the above swap functions which will never revert
+    // Instead, if the price changes more than the user specifies, no swap is attempted
+
+    /**
+        @dev We assume msg.value >= sum of values in maxCostPerPair
+     */
+    function robustSwapETHForAnyNFTs(
+        PairSwapAny[] calldata swapList,
+        uint256[] memory maxCostPerPairSwap,
+        address payable ethRecipient,
+        address nftRecipient,
+        uint256 deadline
+    ) external payable checkDeadline(deadline) returns (uint256 remainingValue) {
+
+        remainingValue = msg.value;
+
+        // Try doing each swap
+        for (uint256 i = 0; i < swapList.length; i++) {
+
+            // Calculate actual cost per swap
+            uint256 pairCost;
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].numItems);
+
+            // If within our maxCost, proceed
+            if (maxCostPerPairSwap[i] <= pairCost) {
+
+                // We know how much ETH to send because we already did the math above
+                // So we just send that much 
+                remainingValue -= swapList[i].pair.swapETHForAnyNFTs{
+                    value: pairCost
+                }(swapList[i].numItems, nftRecipient);
+            }
+        }
+
+        // Return remaining value to sender
+        if (remainingValue > 0) {
+            ethRecipient.sendValue(remainingValue);
+        }
+    }
+
+
+    /**
+        @dev We assume msg.value >= sum of values in maxCostPerPair
+     */
+    function robustSwapETHForSpecificNFTs(
+        PairSwapSpecific[] calldata swapList,  
+        uint256[] memory maxCostPerPairSwapPair,
+        address payable ethRecipient,
+        address nftRecipient
+    ) internal returns (uint256 remainingValue) {
+
+        remainingValue = msg.value;
+
+        // Try doing each swap
+        for (uint256 i = 0; i < swapList.length; i++) {
+            // Calculate actual cost per swap
+            uint256 pairCost;
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].nftIds.length);
+
+            // If within our maxCost, proceed
+            if (maxCostPerPairSwapPair[i] <= pairCost) {
+
+                // We know how much ETH to send because we already did the math above
+                // So we just send that much 
+                remainingValue -= swapList[i].pair.swapETHForSpecificNFTs{
+                    value: pairCost
+                }(swapList[i].nftIds, nftRecipient);
+            }
+        }
+
+        // Return remaining value to sender
+        if (remainingValue > 0) {
+            ethRecipient.sendValue(remainingValue);
+        }
+    }
+
+    function robustSwapNFTsForETH(
+        PairSwapSpecific[] calldata swapList,
+        uint256[] memory minOutputPerSwapPair,
+        address payable ethRecipient
+    ) internal returns (uint256 outputAmount) {
+
+        // Try doing each swap
+        for (uint256 i = 0; i < swapList.length; i++) {
+
+            uint256 pairOutput;
+            (, , pairOutput, ) = swapList[i].pair.getSellNFTQuote(swapList[i].nftIds.length);
+
+            // If at least equal to our minOutput, proceed
+            if (pairOutput >= minOutputPerSwapPair[i]) {
+                // Transfer NFTs directly from sender to pair
+                IERC721 nft = swapList[i].pair.nft();
+
+                // Signal transfer start to pair
+                bytes memory signal = new bytes(1);
+                signal[0] = NFT_TRANSFER_START;
+                nft.safeTransferFrom(
+                    msg.sender,
+                    address(swapList[i].pair),
+                    swapList[i].nftIds[0],
+                    signal
+                );
+
+                // Transfer the remaining NFTs
+                for (uint256 j = 1; j < swapList[i].nftIds.length; j++) {
+                    nft.safeTransferFrom(
+                        msg.sender,
+                        address(swapList[i].pair),
+                        swapList[i].nftIds[j]
+                    );
+                }
+
+                // Do the swap and update outputAmount with how much ETH we got
+                outputAmount += swapList[i].pair.routerSwapNFTsForETH(ethRecipient);
+            }
+        }
+    }
+
     receive() external payable {}
 
     /**
@@ -329,50 +447,12 @@ contract LSSVMRouter {
                 );
             }
 
-            // minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
+            // Do the swap for ETH and then update outputAmount
+            // Note: minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
             outputAmount += swapList[i].pair.routerSwapNFTsForETH(ethRecipient);
         }
 
         // Slippage check
         require(outputAmount >= minOutput, "outputAmount too low");
-    }
-
-    // These are "robust" versions of the above swap functions which will never revert
-    // Instead, if the price changes more than the user specifies, no swap is attempted
-
-    /**
-        @dev We assume msg.value >= sum of values in maxCostPerPair
-     */
-    function _robustSwapETHForAnyNFTs(
-        PairSwapAny[] calldata swapList,
-        uint256[] memory maxCostPerPair,
-        address payable ethRecipient,
-        address nftRecipient
-    ) internal returns (uint256 remainingValue) {
-
-        remainingValue = msg.value;
-
-        // Try doing each swap
-        for (uint256 i = 0; i < swapList.length; i++) {
-
-            // Calculate actual cost per swap
-            uint256 pairCost;
-            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].numItems);
-
-            // If within our maxCost, proceed
-            if (maxCostPerPair[i] <= pairCost) {
-
-                // We know how much ETH to send because we already did the math above
-                // So we just send that much 
-                remainingValue -= swapList[i].pair.swapETHForAnyNFTs{
-                    value: pairCost
-                }(swapList[i].numItems, nftRecipient);
-            }
-        }
-
-        // Return remaining value to sender
-        if (remainingValue > 0) {
-            ethRecipient.sendValue(remainingValue);
-        }
     }
 }
