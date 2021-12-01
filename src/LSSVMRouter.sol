@@ -8,6 +8,8 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 contract LSSVMRouter {
     using Address for address payable;
 
+    event Foo(uint256, uint256);
+
     bytes1 private constant NFT_TRANSFER_START = 0x11;
 
     struct PairSwapAny {
@@ -256,7 +258,7 @@ contract LSSVMRouter {
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].numItems);
 
             // If within our maxCost, proceed
-            if (maxCostPerPairSwap[i] <= pairCost) {
+            if (pairCost <= maxCostPerPairSwap[i]) {
 
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much 
@@ -280,8 +282,9 @@ contract LSSVMRouter {
         PairSwapSpecific[] calldata swapList,  
         uint256[] memory maxCostPerPairSwapPair,
         address payable ethRecipient,
-        address nftRecipient
-    ) internal returns (uint256 remainingValue) {
+        address nftRecipient,
+        uint256 deadline
+    ) external payable checkDeadline(deadline) returns (uint256 remainingValue) {
 
         remainingValue = msg.value;
 
@@ -292,7 +295,7 @@ contract LSSVMRouter {
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].nftIds.length);
 
             // If within our maxCost, proceed
-            if (maxCostPerPairSwapPair[i] <= pairCost) {
+            if (pairCost <= maxCostPerPairSwapPair[i]) {
 
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much 
@@ -311,8 +314,9 @@ contract LSSVMRouter {
     function robustSwapNFTsForETH(
         PairSwapSpecific[] calldata swapList,
         uint256[] memory minOutputPerSwapPair,
-        address payable ethRecipient
-    ) internal returns (uint256 outputAmount) {
+        address payable ethRecipient,
+        uint256 deadline
+    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
 
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {

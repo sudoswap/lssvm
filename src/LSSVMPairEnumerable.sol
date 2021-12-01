@@ -93,7 +93,7 @@ contract LSSVMPairEnumerable is LSSVMPair {
             _factory.protocolFeeRecipient().sendValue(protocolFee);
         }
 
-        emit SwapWithAnyNFTs(msg.value, numNFTs, false);
+        emit SwapWithAnyNFTs(inputAmount, numNFTs, false);
     }
 
     /**
@@ -164,7 +164,7 @@ contract LSSVMPairEnumerable is LSSVMPair {
             _factory.protocolFeeRecipient().sendValue(protocolFee);
         }
 
-        emit SwapWithSpecificNFTs(msg.value, nftIds, false);
+        emit SwapWithSpecificNFTs(inputAmount, nftIds, false);
     }
 
     /**
