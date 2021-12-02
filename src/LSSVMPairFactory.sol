@@ -19,8 +19,8 @@ contract LSSVMPairFactory is Ownable {
 
     uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
 
-    LSSVMPair public enumerableTemplate;
-    LSSVMPair public missingEnumerableTemplate;
+    LSSVMPair public immutable enumerableTemplate;
+    LSSVMPair public immutable missingEnumerableTemplate;
     address payable public protocolFeeRecipient;
     uint256 public protocolFeeMultiplier;
 

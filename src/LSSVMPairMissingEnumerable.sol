@@ -14,6 +14,8 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 
 contract LSSVMPairMissingEnumerable is LSSVMPair {
+
+    event Foo(uint256);
   
     using EnumerableSet for EnumerableSet.UintSet;
     using Address for address payable;
