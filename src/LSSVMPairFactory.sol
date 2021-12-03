@@ -15,7 +15,8 @@ contract LSSVMPairFactory is Ownable {
     using Clones for address;
     using Address for address payable;
 
-    bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE = type(IERC721Enumerable).interfaceId;
+    bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
+        type(IERC721Enumerable).interfaceId;
 
     uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
 
@@ -36,10 +37,16 @@ contract LSSVMPairFactory is Ownable {
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
-        require(address(_enumerableTemplate) != address(0), "0 template address");
+        require(
+            address(_enumerableTemplate) != address(0),
+            "0 template address"
+        );
         enumerableTemplate = _enumerableTemplate;
 
-        require(address(_missingEnumerableTemplate) != address(0), "0 template address");
+        require(
+            address(_missingEnumerableTemplate) != address(0),
+            "0 template address"
+        );
         missingEnumerableTemplate = _missingEnumerableTemplate;
 
         require(_protocolFeeRecipient != address(0), "0 recipient address");
@@ -73,7 +80,6 @@ contract LSSVMPairFactory is Ownable {
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPair pair) {
-        
         require(
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
@@ -85,9 +91,10 @@ contract LSSVMPairFactory is Ownable {
                 INTERFACE_ID_ERC721_ENUMERABLE
             )
         ) {
-            pair = LSSVMPair(payable(address(missingEnumerableTemplate).clone()));
-        }
-        else {
+            pair = LSSVMPair(
+                payable(address(missingEnumerableTemplate).clone())
+            );
+        } else {
             pair = LSSVMPair(payable(address(enumerableTemplate).clone()));
         }
 
@@ -136,10 +143,15 @@ contract LSSVMPairFactory is Ownable {
                 INTERFACE_ID_ERC721_ENUMERABLE
             )
         ) {
-            pair = LSSVMPair(payable(address(missingEnumerableTemplate).cloneDeterministic(_salt)));
-        }
-        else {
-            pair = LSSVMPair(payable(address(enumerableTemplate).cloneDeterministic(_salt)));
+            pair = LSSVMPair(
+                payable(
+                    address(missingEnumerableTemplate).cloneDeterministic(_salt)
+                )
+            );
+        } else {
+            pair = LSSVMPair(
+                payable(address(enumerableTemplate).cloneDeterministic(_salt))
+            );
         }
         _initializePair(
             pair,
@@ -165,7 +177,6 @@ contract LSSVMPairFactory is Ownable {
         return address(enumerableTemplate).predictDeterministicAddress(_salt);
     }
 
-
     /**
         @notice Predicts the address of a pair for a 721 without Enumerable deployed using CREATE2, given the salt value.
         @param _salt The salt value used by CREATE2
@@ -175,7 +186,10 @@ contract LSSVMPairFactory is Ownable {
         view
         returns (address pairAddress)
     {
-        return address(missingEnumerableTemplate).predictDeterministicAddress(_salt);
+        return
+            address(missingEnumerableTemplate).predictDeterministicAddress(
+                _salt
+            );
     }
 
     /**

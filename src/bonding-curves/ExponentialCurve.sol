@@ -29,7 +29,12 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
     /**
         @dev See {ICurve-validateSpotPrice}
      */
-    function validateSpotPrice(uint256 newSpotPrice) external pure override returns (bool) {
+    function validateSpotPrice(uint256 newSpotPrice)
+        external
+        pure
+        override
+        returns (bool)
+    {
         return newSpotPrice >= MIN_PRICE;
     }
 
@@ -53,7 +58,6 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
-
         uint256 deltaPowN = delta.powu(numItems);
 
         // For an exponential curve, the spot price is multiplied by delta for each item bought
@@ -110,7 +114,6 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
-
         uint256 invDelta = delta.inv();
         uint256 invDeltaPowN = invDelta.powu(numItems);
 

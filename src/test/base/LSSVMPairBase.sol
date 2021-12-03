@@ -46,7 +46,6 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         uint64 delta,
         uint8 numItems
     ) public payable {
-
         // modify spotPrice to be appropriate for the bonding curve
         spotPrice = modifySpotPrice(spotPrice);
 
@@ -132,7 +131,6 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         pair.withdrawAllETH();
     }
 
-
     /**
     @dev Ensures buying NFTs & selling them back results in no profit.
      */
@@ -141,7 +139,6 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         uint64 delta,
         uint8 numItems
     ) public payable {
-
         // modify spotPrice to be appropriate for the bonding curve
         spotPrice = modifySpotPrice(spotPrice);
 

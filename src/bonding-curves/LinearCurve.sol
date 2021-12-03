@@ -25,7 +25,9 @@ contract LinearCurve is ICurve, CurveErrorCodes {
     /**
         @dev See {ICurve-validateSpotPrice}
      */
-    function validateSpotPrice(uint256 /* newSpotPrice */) external pure override returns (bool) {
+    function validateSpotPrice(
+        uint256 /* newSpotPrice */
+    ) external pure override returns (bool) {
         // For a linear curve, all values of spot price are valid
         return true;
     }

@@ -10,30 +10,35 @@ import {ICurve} from "../bonding-curves/ICurve.sol";
 import {LSSVMPairBaseTest} from "./base/LSSVMPairBase.sol";
 import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 
-contract LSSVMPairExponentialMissingEnumerableTest is DSTest, LSSVMPairBaseTest {
-
-    function setupCurve() override public returns (ICurve){
+contract LSSVMPairExponentialMissingEnumerableTest is
+    DSTest,
+    LSSVMPairBaseTest
+{
+    function setupCurve() public override returns (ICurve) {
         return new ExponentialCurve();
     }
-    
-    function setup721() override public returns (IERC721Mintable){
+
+    function setup721() public override returns (IERC721Mintable) {
         return IERC721Mintable(address(new Test721()));
     }
 
-    function modifyDelta(uint64 delta) override public pure returns (uint64) {
+    function modifyDelta(uint64 delta) public pure override returns (uint64) {
         if (delta <= PRBMathUD60x18.SCALE) {
             return uint64(PRBMathUD60x18.SCALE + delta + 1);
-        }
-        else {
+        } else {
             return delta;
         }
     }
 
-    function modifySpotPrice(uint56 spotPrice) override public pure returns (uint56) {
+    function modifySpotPrice(uint56 spotPrice)
+        public
+        pure
+        override
+        returns (uint56)
+    {
         if (spotPrice < 1 gwei) {
             return 1 gwei;
-        }
-        else {
+        } else {
             return spotPrice;
         }
     }

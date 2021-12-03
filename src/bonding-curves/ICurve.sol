@@ -13,13 +13,15 @@ interface ICurve {
      */
     function validateDelta(uint256 delta) external pure returns (bool valid);
 
-
     /**
         @notice Validates if a new spot price is valid for the curve.
         @param newSpotPrice The new spot price to be set
         @return valid True if the new spot price is valid, false otherwise
      */
-    function validateSpotPrice(uint256 newSpotPrice) external pure returns (bool valid);
+    function validateSpotPrice(uint256 newSpotPrice)
+        external
+        pure
+        returns (bool valid);
 
     /**
         @notice Given the current state of the pair and the trade, computes how much the user

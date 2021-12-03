@@ -8,12 +8,11 @@ import {IERC721Mintable} from "./IERC721Mintable.sol";
 import {Test721} from "../mocks/Test721.sol";
 
 contract LSSVMRouterRobustMissingEnumerableTest is LSSVMRouterRobustBaseTest {
-
-    function setupCurve() override public returns (ICurve){
+    function setupCurve() public override returns (ICurve) {
         return new LinearCurve();
     }
-    
-    function setup721() override public returns (IERC721Mintable){
+
+    function setup721() public override returns (IERC721Mintable) {
         return IERC721Mintable(address(new Test721()));
     }
 }

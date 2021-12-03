@@ -10,12 +10,11 @@ import {ICurve} from "../bonding-curves/ICurve.sol";
 import {LSSVMPairBaseTest} from "./base/LSSVMPairBase.sol";
 
 contract LSSVMPairLinearMissingEnumerableTest is DSTest, LSSVMPairBaseTest {
-
-    function setupCurve() override public returns (ICurve){
+    function setupCurve() public override returns (ICurve) {
         return new LinearCurve();
     }
-    
-    function setup721() override public returns (IERC721Mintable){
+
+    function setup721() public override returns (IERC721Mintable) {
         return IERC721Mintable(address(new Test721()));
     }
 }

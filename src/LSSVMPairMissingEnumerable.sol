@@ -14,9 +14,8 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 
 contract LSSVMPairMissingEnumerable is LSSVMPair {
-
     event Foo(uint256);
-  
+
     using EnumerableSet for EnumerableSet.UintSet;
     using Address for address payable;
 
@@ -36,9 +35,9 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
         @return inputAmount The amount of ETH used for purchase
      */
     function swapETHForAnyNFTs(uint256 numNFTs, address nftRecipient)
-        override
         external
         payable
+        override
         nonReentrant
         returns (uint256 inputAmount)
     {
@@ -113,7 +112,7 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
     function swapETHForSpecificNFTs(
         uint256[] calldata nftIds,
         address nftRecipient
-    ) override external payable nonReentrant returns (uint256 inputAmount) {
+    ) external payable override nonReentrant returns (uint256 inputAmount) {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
@@ -189,7 +188,7 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
         uint256[] calldata nftIds,
         uint256 minExpectedETHOutput,
         address payable ethRecipient
-    ) override external nonReentrant returns (uint256 outputAmount) {
+    ) external override nonReentrant returns (uint256 outputAmount) {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactory _factory = factory;
@@ -254,7 +253,7 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
     /**
        @notice Returns all NFT IDs held by the pool
      */
-    function getAllHeldIds() override external view returns (uint256[] memory) {
+    function getAllHeldIds() external view override returns (uint256[] memory) {
         uint256 numNFTs = nft.balanceOf(address(this));
         uint256[] memory ids = new uint256[](numNFTs);
         for (uint256 i; i < numNFTs; i++) {
@@ -293,7 +292,11 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
     /**
       @dev This is only for withdrawing the pair's NFT collection
      */
-    function withdrawNFT(uint256[] calldata nftIds) external onlyOwner onlyUnlocked {
+    function withdrawNFT(uint256[] calldata nftIds)
+        external
+        onlyOwner
+        onlyUnlocked
+    {
         IERC721 _nft = nft;
         for (uint256 i = 0; i < nftIds.length; i++) {
             _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
@@ -302,8 +305,8 @@ contract LSSVMPairMissingEnumerable is LSSVMPair {
     }
 
     function withdrawERC721(address a, uint256[] calldata nftIds)
-        override
         external
+        override
         onlyOwner
         onlyUnlocked
     {

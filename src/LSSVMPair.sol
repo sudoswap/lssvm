@@ -15,8 +15,11 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 import {LSSVMPairFactory} from "./LSSVMPairFactory.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 
-abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard {
-
+abstract contract LSSVMPair is
+    OwnableUpgradeable,
+    ERC721Holder,
+    ReentrancyGuard
+{
     using Address for address payable;
 
     enum PoolType {
@@ -90,7 +93,10 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
             require(_fee < MAX_FEE, "Trade fee must be less than 100%");
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
-        require(_bondingCurve.validateSpotPrice(_spotPrice), "Invalid new spot price for curve");
+        require(
+            _bondingCurve.validateSpotPrice(_spotPrice),
+            "Invalid new spot price for curve"
+        );
         factory = _factory;
         nft = _nft;
         bondingCurve = _bondingCurve;
@@ -114,9 +120,9 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
         @return inputAmount The amount of ETH used for purchase
      */
     function swapETHForAnyNFTs(uint256 numNFTs, address nftRecipient)
-        virtual
         external
         payable
+        virtual
         returns (uint256 inputAmount);
 
     /**
@@ -131,7 +137,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
     function swapETHForSpecificNFTs(
         uint256[] calldata nftIds,
         address nftRecipient
-    ) virtual external payable returns (uint256 inputAmount);
+    ) external payable virtual returns (uint256 inputAmount);
 
     /**
         @notice Sends a set of NFTs to the pair in exchange for ETH
@@ -146,7 +152,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
         uint256[] calldata nftIds,
         uint256 minExpectedETHOutput,
         address payable ethRecipient
-    ) virtual external returns (uint256 outputAmount);
+    ) external virtual returns (uint256 outputAmount);
 
     /**
         @notice Sells NFTs to the pair in exchange for ETH. Only callable by the LSSVMRouter.
@@ -205,7 +211,6 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
 
         // Take protocol fee
         if (protocolFee > 0) {
-
             // Round down to the actual ETH balance if there are numerical stability issues with the above calculations
             uint256 pairETHBalance = address(this).balance;
             if (protocolFee > pairETHBalance) {
@@ -220,7 +225,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
     /**
        @notice Returns all NFT IDs held by the pool
      */
-    function getAllHeldIds() virtual external view returns (uint256[] memory);
+    function getAllHeldIds() external view virtual returns (uint256[] memory);
 
     /**
      * Owner functions
@@ -230,7 +235,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
         @notice Withdraws all ETH owned by the pair to the owner address.
         Only callable by the owner.
      */
-    function withdrawAllETH() external onlyOwner onlyUnlocked nonReentrant{
+    function withdrawAllETH() external onlyOwner onlyUnlocked nonReentrant {
         withdrawETH(address(this).balance);
     }
 
@@ -251,7 +256,9 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
         @param a The address of the NFT to transfer
         @param nftIds The list of IDs of the NFTs to send to the owner
      */
-    function withdrawERC721(address a, uint256[] calldata nftIds) virtual external;
+    function withdrawERC721(address a, uint256[] calldata nftIds)
+        external
+        virtual;
 
     /**
         @notice Rescues ERC20 tokens from the pair to the owner. Only callable by the owner.
@@ -297,7 +304,10 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
         onlyOwner
         onlyUnlocked
     {
-        require(bondingCurve.validateSpotPrice(newSpotPrice), "Invalid new spot price for curve");
+        require(
+            bondingCurve.validateSpotPrice(newSpotPrice),
+            "Invalid new spot price for curve"
+        );
         spotPrice = newSpotPrice;
         emit SpotPriceUpdated(newSpotPrice);
     }
@@ -370,12 +380,16 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
     /**
         @dev Used as read function to query the bonding curve for buy pricing info
      */
-    function getBuyNFTQuote(uint256 numNFTs) external view returns (
-        CurveErrorCodes.Error error,
-        uint256 newSpotPrice,
-        uint256 inputAmount,
-        uint256 protocolFee
-    ) {
+    function getBuyNFTQuote(uint256 numNFTs)
+        external
+        view
+        returns (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 inputAmount,
+            uint256 protocolFee
+        )
+    {
         (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
             .getBuyInfo(
                 spotPrice,
@@ -389,12 +403,16 @@ abstract contract LSSVMPair is OwnableUpgradeable, ERC721Holder, ReentrancyGuard
     /**
         @dev Used as read function to query the bonding curve for sell pricing info
      */
-    function getSellNFTQuote(uint256 numNFTs) external view returns (
-        CurveErrorCodes.Error error,
-        uint256 newSpotPrice,
-        uint256 outputAmount,
-        uint256 protocolFee
-    ) {
+    function getSellNFTQuote(uint256 numNFTs)
+        external
+        view
+        returns (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 outputAmount,
+            uint256 protocolFee
+        )
+    {
         (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
             .getSellInfo(
                 spotPrice,

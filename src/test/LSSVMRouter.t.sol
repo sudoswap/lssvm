@@ -207,7 +207,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         uint256 numInitialNFTs = 10;
         uint256[] memory nftIds = new uint256[](5);
         for (uint256 i = 0; i < 5; i++) {
-          nftIds[i] = numInitialNFTs + i + 1;
+            nftIds[i] = numInitialNFTs + i + 1;
         }
         LSSVMRouter.PairSwapSpecific[]
             memory swapList = new LSSVMRouter.PairSwapSpecific[](1);
