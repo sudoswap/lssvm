@@ -197,8 +197,7 @@ contract LSSVMRouter {
         @dev This function reverts if no profit can be gained
         @notice Swaps ETH to NFTs and then back to ETH again, with the goal of arbitraging between pools
         @param trade The struct containing all ETH-to-NFT swaps and NFT-to-ETH swaps.
-        @param maxCost The maximum amount of ETH consumed in the ETH-to-NFT swap
-        @param minOutput The minimum acceptable total excess ETH received in the NFT-to-ETH swap
+        @param minProfit The minimum accpetable amount of ETH profit
         @param ethRecipient The address that will receive the ETH output
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
@@ -206,32 +205,31 @@ contract LSSVMRouter {
      */
     function swapETHtoETH(
         ETHtoETHTrade calldata trade,
-        uint256 maxCost,
-        uint256 minOutput,
+        uint256 minProfit,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
     ) external payable checkDeadline(deadline) returns (uint256 profitAmount) {
-        
         // Assume we get everything we specified in trade.ethToNFTTrades.nftIds
+        // maxCost is set to infinity since we're doing slippage check later
         uint256 remainingValue = _swapETHForSpecificNFTs(
             trade.ethToNFTTrades,
             msg.value,
-            maxCost,
+            type(uint256).max,
             ethRecipient,
             nftRecipient
         );
 
         // Once we have all the NFTs, send them to the new pool for ETH
+        // profitAmount = outputAmount + remainingValue - msg.value >= minProfit
+        // thus outputAmount >= minOutput = msg.value - remainingValue + minProfit enforces slippage check
         uint256 outputAmount = _swapNFTsForETH(
             trade.nftToETHTrades,
-            minOutput,
-            ethRecipient 
+            msg.value - remainingValue + minProfit,
+            ethRecipient
         );
 
-        // Ensure that outputAmount > maxCost-remainingValue in order for the swap to be profitable
-        // Will auto-revert if the below underflows
-        profitAmount = outputAmount - (maxCost-remainingValue);
+        profitAmount = outputAmount - msg.value + remainingValue;
     }
 
     // These are "robust" versions of the above swap functions which will never revert
@@ -246,22 +244,26 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external payable checkDeadline(deadline) returns (uint256 remainingValue) {
-
+    )
+        external
+        payable
+        checkDeadline(deadline)
+        returns (uint256 remainingValue)
+    {
         remainingValue = msg.value;
 
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
-
             // Calculate actual cost per swap
             uint256 pairCost;
-            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].numItems);
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+                swapList[i].numItems
+            );
 
             // If within our maxCost, proceed
             if (pairCost <= maxCostPerPairSwap[i]) {
-
                 // We know how much ETH to send because we already did the math above
-                // So we just send that much 
+                // So we just send that much
                 remainingValue -= swapList[i].pair.swapETHForAnyNFTs{
                     value: pairCost
                 }(swapList[i].numItems, nftRecipient);
@@ -274,31 +276,35 @@ contract LSSVMRouter {
         }
     }
 
-
     /**
         @dev We assume msg.value >= sum of values in maxCostPerPair
      */
     function robustSwapETHForSpecificNFTs(
-        PairSwapSpecific[] calldata swapList,  
+        PairSwapSpecific[] calldata swapList,
         uint256[] memory maxCostPerPairSwapPair,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external payable checkDeadline(deadline) returns (uint256 remainingValue) {
-
+    )
+        external
+        payable
+        checkDeadline(deadline)
+        returns (uint256 remainingValue)
+    {
         remainingValue = msg.value;
 
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
             uint256 pairCost;
-            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(swapList[i].nftIds.length);
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+                swapList[i].nftIds.length
+            );
 
             // If within our maxCost, proceed
             if (pairCost <= maxCostPerPairSwapPair[i]) {
-
                 // We know how much ETH to send because we already did the math above
-                // So we just send that much 
+                // So we just send that much
                 remainingValue -= swapList[i].pair.swapETHForSpecificNFTs{
                     value: pairCost
                 }(swapList[i].nftIds, nftRecipient);
@@ -317,12 +323,12 @@ contract LSSVMRouter {
         address payable ethRecipient,
         uint256 deadline
     ) external checkDeadline(deadline) returns (uint256 outputAmount) {
-
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
-
             uint256 pairOutput;
-            (, , pairOutput, ) = swapList[i].pair.getSellNFTQuote(swapList[i].nftIds.length);
+            (, , pairOutput, ) = swapList[i].pair.getSellNFTQuote(
+                swapList[i].nftIds.length
+            );
 
             // If at least equal to our minOutput, proceed
             if (pairOutput >= minOutputPerSwapPair[i]) {
@@ -349,7 +355,9 @@ contract LSSVMRouter {
                 }
 
                 // Do the swap and update outputAmount with how much ETH we got
-                outputAmount += swapList[i].pair.routerSwapNFTsForETH(ethRecipient);
+                outputAmount += swapList[i].pair.routerSwapNFTsForETH(
+                    ethRecipient
+                );
             }
         }
     }
