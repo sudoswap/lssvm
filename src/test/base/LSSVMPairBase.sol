@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 import {DSTest} from "ds-test/test.sol";
 
 import {LSSVMPair} from "../../LSSVMPair.sol";
-import {LSSVMPairEnumerable} from "../../LSSVMPairEnumerable.sol";
-import {LSSVMPairMissingEnumerable} from "../../LSSVMPairMissingEnumerable.sol";
+import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
+import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
+import {LSSVMPairEnumerableETH} from "../../LSSVMPairEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableETH} from "../../LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "../../LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableERC20.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
@@ -26,11 +30,15 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
     function setUp() public {
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
-        LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
+        LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        LSSVMPairERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        LSSVMPairERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
         factory = new LSSVMPairFactory(
-            enumerableTemplate,
-            missingEnumerableTemplate,
+            enumerableETHTemplate,
+            missingEnumerableETHTemplate,
+            enumerableERC20Template,
+            missingEnumerableERC20Template,
             feeRecipient,
             protocolFeeMultiplier
         );
@@ -63,7 +71,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
 
         // initialize the pair
         uint256[] memory empty;
-        LSSVMPair pair = factory.createPair(
+        LSSVMPairETH pair = factory.createPairETH(
             test721,
             bondingCurve,
             LSSVMPair.PoolType.TRADE,
@@ -104,7 +112,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
             // sell NFTs
             test721.setApprovalForAll(address(pair), true);
             startBalance = address(this).balance;
-            pair.swapNFTsForETH(idList, 0, payable(address(this)));
+            pair.swapNFTsForToken(idList, 0, payable(address(this)));
             spotPrice = uint56(newSpotPrice);
         }
 
@@ -117,7 +125,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
                 0,
                 protocolFeeMultiplier
             );
-            pair.swapETHForAnyNFTs{value: inputAmount}(
+            pair.swapTokenForAnyNFTs{value: inputAmount}(
                 idList.length,
                 address(this)
             );
@@ -160,7 +168,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
             idList.push(startingId);
             startingId += 1;
         }
-        LSSVMPair pair = factory.createPair(
+        LSSVMPairETH pair = factory.createPairETH(
             test721,
             bondingCurve,
             LSSVMPair.PoolType.TRADE,
@@ -187,7 +195,10 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
 
             // buy NFTs
             startBalance = address(this).balance;
-            pair.swapETHForAnyNFTs{value: inputAmount}(numItems, address(this));
+            pair.swapTokenForAnyNFTs{value: inputAmount}(
+                numItems,
+                address(this)
+            );
             spotPrice = uint56(newSpotPrice);
         }
 
@@ -200,7 +211,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
                 0,
                 protocolFeeMultiplier
             );
-            pair.swapNFTsForETH(idList, 0, payable(address(this)));
+            pair.swapNFTsForToken(idList, 0, payable(address(this)));
             endBalance = address(this).balance;
         }
 

@@ -3,17 +3,13 @@ pragma solidity ^0.8.0;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
-import {LSSVMPairFactory} from "./LSSVMPairFactory.sol";
-import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 abstract contract LSSVMPair is
     OwnableUpgradeable,
@@ -23,7 +19,7 @@ abstract contract LSSVMPair is
     using Address for address payable;
 
     enum PoolType {
-        ETH,
+        TOKEN,
         NFT,
         TRADE
     }
@@ -32,10 +28,10 @@ abstract contract LSSVMPair is
     bytes1 internal constant NFT_TRANSFER_START = 0x11;
 
     // Factory which stores several global values (e.g. protocol fee)
-    LSSVMPairFactory public factory;
+    LSSVMPairFactoryLike public factory;
 
-    // Temporarily used during LSSVMRouter::_swapNFTsForETH to store the number of NFTs transferred
-    // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForETH.
+    // Temporarily used during LSSVMRouter::_swapNFTsForToken to store the number of NFTs transferred
+    // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForToken.
     uint256 internal nftBalanceAtTransferStart;
 
     // Collection address
@@ -60,33 +56,33 @@ abstract contract LSSVMPair is
 
     // Events
     event SwapWithAnyNFTs(
-        uint256 ethAmount,
+        uint256 tokenAmount,
         uint256 numNFTs,
         bool nftsIntoPool
     );
     event SwapWithSpecificNFTs(
-        uint256 ethAmount,
+        uint256 tokenAmount,
         uint256[] nftIds,
         bool nftsIntoPool
     );
     event SpotPriceUpdated(uint256 newSpotPrice);
-    event ETHDeposited(uint256 amount);
-    event ETHWithdrawn(uint256 amount);
+    event TokenDeposited(uint256 amount);
+    event TokenWithdrawn(uint256 amount);
     event DeltaUpdated(uint256 newDelta);
     event FeeUpdated(uint256 newFee);
     event PoolLocked(uint256 unlockTime);
 
-    // Only called once by factory to initialize
-    function initialize(
+    function __LSSVMPair_init(
         IERC721 _nft,
         ICurve _bondingCurve,
-        LSSVMPairFactory _factory,
+        LSSVMPairFactoryLike _factory,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
-    ) external payable initializer {
-        if ((_poolType == PoolType.ETH) || (_poolType == PoolType.NFT)) {
+    ) internal initializer {
+        __Ownable_init();
+        if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
             require(_fee == 0, "Only Trade Pools can have nonzero fee");
         }
         if (_poolType == PoolType.TRADE) {
@@ -104,70 +100,210 @@ abstract contract LSSVMPair is
         delta = _delta;
         fee = _fee;
         spotPrice = _spotPrice;
-        __Ownable_init();
     }
 
     /**
-     * External functions
+     * External state-changing functions
      */
 
     /**
-        @notice Sends ETH to the pair in exchange for any `numNFTs` NFTs
-        @dev To compute the amount of ETH to send, call bondingCurve.getBuyInfo.
+        @notice Sends token to the pair in exchange for any `numNFTs` NFTs
+        @dev To compute the amount of token to send, call bondingCurve.getBuyInfo.
         This swap function is meant for users who are ID agnostic
         @param numNFTs The number of NFTs to purchase
         @param nftRecipient The recipient of the NFTs
-        @return inputAmount The amount of ETH used for purchase
+        @return inputAmount The amount of token used for purchase
      */
-    function swapETHForAnyNFTs(uint256 numNFTs, address nftRecipient)
+    function swapTokenForAnyNFTs(uint256 numNFTs, address nftRecipient)
         external
         payable
         virtual
-        returns (uint256 inputAmount);
+        returns (uint256 inputAmount)
+    {
+        // Store storage variables locally for cheaper lookup
+        IERC721 _nft = nft;
+        LSSVMPairFactoryLike _factory = factory;
+        PoolType _poolType = poolType;
+
+        // Input validation
+        require(
+            _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+            "Wrong Pool type"
+        );
+        require(
+            (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
+            "Ask for > 0 and <= balanceOf NFTs"
+        );
+
+        // Call bonding curve for pricing information
+        uint256 protocolFee;
+        {
+            CurveErrorCodes.Error error;
+            uint256 newSpotPrice;
+            (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
+                .getBuyInfo(
+                    spotPrice,
+                    delta,
+                    numNFTs,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Update spot price
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
+        }
+
+        _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
+
+        _validateTokenInput(inputAmount);
+
+        _refundTokenToSender(inputAmount);
+
+        _payProtocolFee(_factory, protocolFee);
+
+        emit SwapWithAnyNFTs(inputAmount, numNFTs, false);
+    }
 
     /**
-        @notice Sends ETH to the pair in exchange for a specific set of NFTs
-        @dev To compute the amount of ETH to send, call bondingCurve.getBuyInfo
+        @notice Sends token to the pair in exchange for a specific set of NFTs
+        @dev To compute the amount of token to send, call bondingCurve.getBuyInfo
         This swap is meant for users who want specific IDs. Also higher chance of
         reverting if some of the specified IDs leave the pool before the swap goes through.
         @param nftIds The list of IDs of the NFTs to purchase
         @param nftRecipient The recipient of the NFTs
-        @return inputAmount The amount of ETH used for purchase
+        @return inputAmount The amount of token used for purchase
      */
-    function swapETHForSpecificNFTs(
+    function swapTokenForSpecificNFTs(
         uint256[] calldata nftIds,
         address nftRecipient
-    ) external payable virtual returns (uint256 inputAmount);
+    ) external payable virtual returns (uint256 inputAmount) {
+        // Store storage variables locally for cheaper lookup
+        IERC721 _nft = nft;
+        LSSVMPairFactoryLike _factory = factory;
+        {
+            // Input validation
+            PoolType _poolType = poolType;
+            require(
+                _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+            require(
+                (nftIds.length > 0) &&
+                    (nftIds.length <= _nft.balanceOf(address(this))),
+                "Must ask for > 0 and < balanceOf NFTs"
+            );
+        }
+
+        // Call bonding curve for pricing information
+        uint256 protocolFee;
+        {
+            uint256 newSpotPrice;
+            CurveErrorCodes.Error error;
+            (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
+                .getBuyInfo(
+                    spotPrice,
+                    delta,
+                    nftIds.length,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Update spot price
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
+        }
+
+        _sendSpecificNFTsToRecipient(_nft, nftRecipient, nftIds);
+
+        _validateTokenInput(inputAmount);
+
+        _refundTokenToSender(inputAmount);
+
+        _payProtocolFee(_factory, protocolFee);
+
+        emit SwapWithSpecificNFTs(inputAmount, nftIds, false);
+    }
 
     /**
-        @notice Sends a set of NFTs to the pair in exchange for ETH
-        @dev To compute the amount of ETH to that will be received, call bondingCurve.getSellInfo
+        @notice Sends a set of NFTs to the pair in exchange for token
+        @dev To compute the amount of token to that will be received, call bondingCurve.getSellInfo
         @param nftIds The list of IDs of the NFTs to sell to the pair
-        @param minExpectedETHOutput The minimum acceptable ETH received by the sender. If the actual
+        @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
-        @param ethRecipient The recipient of the ETH output
-        @return outputAmount The amount of ETH received
+        @param tokenRecipient The recipient of the token output
+        @return outputAmount The amount of token received
      */
-    function swapNFTsForETH(
+    function swapNFTsForToken(
         uint256[] calldata nftIds,
-        uint256 minExpectedETHOutput,
-        address payable ethRecipient
-    ) external virtual returns (uint256 outputAmount);
+        uint256 minExpectedTokenOutput,
+        address payable tokenRecipient
+    ) external virtual returns (uint256 outputAmount) {
+        // Store storage variables locally for cheaper lookup
+        IERC721 _nft = nft;
+        LSSVMPairFactoryLike _factory = factory;
+
+        // Input validation
+        {
+            PoolType _poolType = poolType;
+            require(
+                _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+        }
+
+        // Call bonding curve for pricing information
+        uint256 protocolFee;
+        {
+            uint256 newSpotPrice;
+            CurveErrorCodes.Error error;
+            (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
+                .getSellInfo(
+                    spotPrice,
+                    delta,
+                    nftIds.length,
+                    fee,
+                    _factory.protocolFeeMultiplier()
+                );
+            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+
+            // Update spot price
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
+        }
+
+        // Pricing-dependent validation
+        require(
+            outputAmount >= minExpectedTokenOutput,
+            "Out too little tokens"
+        );
+
+        _takeNFTsFromSender(_nft, nftIds);
+
+        _sendTokenOutput(tokenRecipient, outputAmount);
+
+        _payProtocolFee(_factory, protocolFee);
+
+        emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
+    }
 
     /**
-        @notice Sells NFTs to the pair in exchange for ETH. Only callable by the LSSVMRouter.
-        @dev To compute the amount of ETH to that will be received, call bondingCurve.getSellInfo
-        @param ethRecipient The recipient of the ETH output
-        @return outputAmount The amount of ETH received
+        @notice Sells NFTs to the pair in exchange for token. Only callable by the LSSVMRouter.
+        @dev To compute the amount of token to that will be received, call bondingCurve.getSellInfo
+        @param tokenRecipient The recipient of the token output
+        @return outputAmount The amount of token received
      */
-    function routerSwapNFTsForETH(address payable ethRecipient)
+    function routerSwapNFTsForToken(address payable tokenRecipient)
         external
+        virtual
         nonReentrant
         returns (uint256 outputAmount)
     {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
-        LSSVMPairFactory _factory = factory;
+        LSSVMPairFactoryLike _factory = factory;
         uint256 _nftBalanceAtTransferStart = nftBalanceAtTransferStart;
         delete nftBalanceAtTransferStart;
 
@@ -175,7 +311,7 @@ abstract contract LSSVMPair is
         {
             PoolType _poolType = poolType;
             require(
-                _poolType == PoolType.ETH || _poolType == PoolType.TRADE,
+                _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
         }
@@ -204,51 +340,109 @@ abstract contract LSSVMPair is
             emit SpotPriceUpdated(newSpotPrice);
         }
 
-        // Send ETH to caller
-        if (outputAmount > 0) {
-            ethRecipient.sendValue(outputAmount);
-        }
+        _sendTokenOutput(tokenRecipient, outputAmount);
 
-        // Take protocol fee
-        if (protocolFee > 0) {
-            // Round down to the actual ETH balance if there are numerical stability issues with the above calculations
-            uint256 pairETHBalance = address(this).balance;
-            if (protocolFee > pairETHBalance) {
-                protocolFee = pairETHBalance;
-            }
-            _factory.protocolFeeRecipient().sendValue(protocolFee);
-        }
+        _payProtocolFee(_factory, protocolFee);
 
         emit SwapWithAnyNFTs(outputAmount, numNFTs, true);
     }
 
     /**
-       @notice Returns all NFT IDs held by the pool
+     * View functions
+     */
+
+    /**
+        @dev Used as read function to query the bonding curve for buy pricing info
+     */
+    function getBuyNFTQuote(uint256 numNFTs)
+        external
+        view
+        returns (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 inputAmount,
+            uint256 protocolFee
+        )
+    {
+        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
+            .getBuyInfo(
+                spotPrice,
+                delta,
+                numNFTs,
+                fee,
+                factory.protocolFeeMultiplier()
+            );
+    }
+
+    /**
+        @dev Used as read function to query the bonding curve for sell pricing info
+     */
+    function getSellNFTQuote(uint256 numNFTs)
+        external
+        view
+        returns (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 outputAmount,
+            uint256 protocolFee
+        )
+    {
+        (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
+            .getSellInfo(
+                spotPrice,
+                delta,
+                numNFTs,
+                fee,
+                factory.protocolFeeMultiplier()
+            );
+    }
+
+    /**
+        @notice Returns all NFT IDs held by the pool
      */
     function getAllHeldIds() external view virtual returns (uint256[] memory);
 
     /**
+        @notice Returns true if the pair uses ETH as the pair token, false otherwise
+     */
+    function isETHPair() external pure virtual returns (bool);
+
+    /**
+     * Internal functions
+     */
+
+    function _validateTokenInput(uint256 inputAmount) internal virtual;
+
+    function _refundTokenToSender(uint256 inputAmount) internal virtual;
+
+    function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
+        internal
+        virtual;
+
+    function _sendTokenOutput(
+        address payable tokenRecipient,
+        uint256 outputAmount
+    ) internal virtual;
+
+    function _sendAnyNFTsToRecipient(
+        IERC721 _nft,
+        address nftRecipient,
+        uint256 numNFTs
+    ) internal virtual;
+
+    function _sendSpecificNFTsToRecipient(
+        IERC721 _nft,
+        address nftRecipient,
+        uint256[] calldata nftIds
+    ) internal virtual;
+
+    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
+        internal
+        virtual;
+
+    /**
      * Owner functions
      */
-
-    /**
-        @notice Withdraws all ETH owned by the pair to the owner address.
-        Only callable by the owner.
-     */
-    function withdrawAllETH() external onlyOwner onlyUnlocked nonReentrant {
-        withdrawETH(address(this).balance);
-    }
-
-    /**
-        @notice Withdraws a specified amount of ETH owned by the pair to the owner address.
-        Only callable by the owner.
-        @param amount The amount of ETH to send to the owner. If the pair's balance is less than
-        this value, the transaction will be reverted.
-     */
-    function withdrawETH(uint256 amount) public onlyOwner onlyUnlocked {
-        payable(owner()).sendValue(amount);
-        emit ETHWithdrawn(amount);
-    }
 
     /**
         @notice Rescues a specified set of NFTs owned by the pair to the owner address.
@@ -265,13 +459,7 @@ abstract contract LSSVMPair is
         @param a The address of the token to transfer
         @param amount The amount of tokens to send to the owner
      */
-    function withdrawERC20(address a, uint256 amount)
-        external
-        onlyOwner
-        onlyUnlocked
-    {
-        IERC20(a).transferFrom(address(this), msg.sender, amount);
-    }
+    function withdrawERC20(address a, uint256 amount) external virtual;
 
     /**
         @notice Rescues ERC1155 tokens from the pair to the owner. Only callable by the owner.
@@ -297,7 +485,7 @@ abstract contract LSSVMPair is
 
     /**
         @notice Updates the selling spot price. Only callable by the owner.
-        @param newSpotPrice The new selling spot price value, in ETH
+        @param newSpotPrice The new selling spot price value, in Token
      */
     function changeSpotPrice(uint256 newSpotPrice)
         external
@@ -357,69 +545,11 @@ abstract contract LSSVMPair is
     /**
         @notice Locks owner controls until a later point in time. 
         @dev Intended to be used similar to locking LP tokens so users know
-        the ETH/NFTs in the pool will remain at least until newUnlockTime
+        the Token/NFTs in the pool will remain at least until newUnlockTime
         @param newUnlockTime  The time when owner controls are reinstated
      */
     function lockPool(uint256 newUnlockTime) external onlyOwner onlyUnlocked {
         unlockTime = newUnlockTime;
         emit PoolLocked(newUnlockTime);
-    }
-
-    /**
-     * Utility functions (not to be called directly, but also not internal)
-     */
-
-    /**
-        @dev All ETH transfers into the pair are accepted. This is the main method
-        for the owner to top up the pair's ETH reserves.
-     */
-    receive() external payable {
-        emit ETHDeposited(msg.value);
-    }
-
-    /**
-        @dev Used as read function to query the bonding curve for buy pricing info
-     */
-    function getBuyNFTQuote(uint256 numNFTs)
-        external
-        view
-        returns (
-            CurveErrorCodes.Error error,
-            uint256 newSpotPrice,
-            uint256 inputAmount,
-            uint256 protocolFee
-        )
-    {
-        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve
-            .getBuyInfo(
-                spotPrice,
-                delta,
-                numNFTs,
-                fee,
-                factory.protocolFeeMultiplier()
-            );
-    }
-
-    /**
-        @dev Used as read function to query the bonding curve for sell pricing info
-     */
-    function getSellNFTQuote(uint256 numNFTs)
-        external
-        view
-        returns (
-            CurveErrorCodes.Error error,
-            uint256 newSpotPrice,
-            uint256 outputAmount,
-            uint256 protocolFee
-        )
-    {
-        (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve
-            .getSellInfo(
-                spotPrice,
-                delta,
-                numNFTs,
-                fee,
-                factory.protocolFeeMultiplier()
-            );
     }
 }

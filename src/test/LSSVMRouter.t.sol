@@ -7,8 +7,12 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 
 import {LSSVMPairFactory} from "../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../LSSVMPair.sol";
-import {LSSVMPairEnumerable} from "../LSSVMPairEnumerable.sol";
-import {LSSVMPairMissingEnumerable} from "../LSSVMPairMissingEnumerable.sol";
+import {LSSVMPairETH} from "../LSSVMPairETH.sol";
+import {LSSVMPairERC20} from "../LSSVMPairERC20.sol";
+import {LSSVMPairEnumerableETH} from "../LSSVMPairEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableETH} from "../LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "../LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableERC20} from "../LSSVMPairMissingEnumerableERC20.sol";
 import {LSSVMRouter} from "../LSSVMRouter.sol";
 import {Test721} from "../mocks/Test721.sol";
 import {Test721Enumerable} from "../mocks/Test721Enumerable.sol";
@@ -26,13 +30,17 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
     function setUp() public {
         // create contracts
         linearCurve = new LinearCurve();
-        LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
-        LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
         router = new LSSVMRouter();
         test721 = new Test721();
+        LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        LSSVMPairERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        LSSVMPairERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
         factory = new LSSVMPairFactory(
-            enumerableTemplate,
-            missingEnumerableTemplate,
+            enumerableETHTemplate,
+            missingEnumerableETHTemplate,
+            enumerableERC20Template,
+            missingEnumerableERC20Template,
             feeRecipient,
             protocolFeeMultiplier
         );
@@ -53,7 +61,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             test721.mint(address(this), i);
             idList[i - 1] = i;
         }
-        pair = factory.createPair{value: 10 ether}(
+        pair = factory.createPairETH{value: 10 ether}(
             test721,
             linearCurve,
             LSSVMPair.PoolType.TRADE,

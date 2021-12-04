@@ -7,8 +7,12 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
-import {LSSVMPairEnumerable} from "../../LSSVMPairEnumerable.sol";
-import {LSSVMPairMissingEnumerable} from "../../LSSVMPairMissingEnumerable.sol";
+import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
+import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
+import {LSSVMPairEnumerableETH} from "../../LSSVMPairEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableETH} from "../../LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "../../LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableERC20.sol";
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {IERC721Mintable} from "../../test/IERC721Mintable.sol";
 import {Hevm} from "../utils/Hevm.sol";
@@ -33,11 +37,15 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         // Create contracts
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPair enumerableTemplate = new LSSVMPairEnumerable();
-        LSSVMPair missingEnumerableTemplate = new LSSVMPairMissingEnumerable();
+        LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        LSSVMPairERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        LSSVMPairERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
         factory = new LSSVMPairFactory(
-            enumerableTemplate,
-            missingEnumerableTemplate,
+            enumerableETHTemplate,
+            missingEnumerableETHTemplate,
+            enumerableERC20Template,
+            missingEnumerableERC20Template,
             feeRecipient,
             protocolFeeMultiplier
         );
@@ -56,7 +64,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         // pair 1 has spot price of 0.1 ETH, then pair 2 has 0.2 ETH, and pair 3 has 0.3 ETH
         // Send 10 NFTs to each pair
         // (0-9), (10-19), (20-29)
-        pair1 = factory.createPair{value: 10 ether}(
+        pair1 = factory.createPairETH{value: 10 ether}(
             test721,
             bondingCurve,
             LSSVMPair.PoolType.TRADE,
@@ -71,7 +79,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
             nftIndex++;
         }
 
-        pair2 = factory.createPair{value: 10 ether}(
+        pair2 = factory.createPairETH{value: 10 ether}(
             test721,
             bondingCurve,
             LSSVMPair.PoolType.TRADE,
@@ -86,7 +94,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
             nftIndex++;
         }
 
-        pair3 = factory.createPair{value: 10 ether}(
+        pair3 = factory.createPairETH{value: 10 ether}(
             test721,
             bondingCurve,
             LSSVMPair.PoolType.TRADE,

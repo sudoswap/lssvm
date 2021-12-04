@@ -8,8 +8,6 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 contract LSSVMRouter {
     using Address for address payable;
 
-    event Foo(uint256, uint256);
-
     bytes1 private constant NFT_TRANSFER_START = 0x11;
 
     struct PairSwapAny {
@@ -203,7 +201,7 @@ contract LSSVMRouter {
         @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
         @return profitAmount The total ETH profit received
      */
-    function swapETHtoETH(
+    function swapETHForETH(
         ETHtoETHTrade calldata trade,
         uint256 minProfit,
         address payable ethRecipient,
@@ -264,7 +262,7 @@ contract LSSVMRouter {
             if (pairCost <= maxCostPerPairSwap[i]) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
-                remainingValue -= swapList[i].pair.swapETHForAnyNFTs{
+                remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
                     value: pairCost
                 }(swapList[i].numItems, nftRecipient);
             }
@@ -305,7 +303,7 @@ contract LSSVMRouter {
             if (pairCost <= maxCostPerPairSwapPair[i]) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
-                remainingValue -= swapList[i].pair.swapETHForSpecificNFTs{
+                remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
                     value: pairCost
                 }(swapList[i].nftIds, nftRecipient);
             }
@@ -355,7 +353,7 @@ contract LSSVMRouter {
                 }
 
                 // Do the swap and update outputAmount with how much ETH we got
-                outputAmount += swapList[i].pair.routerSwapNFTsForETH(
+                outputAmount += swapList[i].pair.routerSwapNFTsForToken(
                     ethRecipient
                 );
             }
@@ -390,7 +388,7 @@ contract LSSVMRouter {
             // If the actual total cost exceeds the initial remainingValue,
             // the transaction will automatically be reverted
             // due to math error
-            remainingValue -= swapList[i].pair.swapETHForAnyNFTs{
+            remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
                 value: remainingValue
             }(swapList[i].numItems, nftRecipient);
         }
@@ -419,7 +417,7 @@ contract LSSVMRouter {
             // If the actual total cost exceeds the initial remainingValue,
             // the transaction will automatically be reverted
             // due to math error
-            remainingValue -= swapList[i].pair.swapETHForSpecificNFTs{
+            remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
                 value: remainingValue
             }(swapList[i].nftIds, nftRecipient);
         }
@@ -461,7 +459,9 @@ contract LSSVMRouter {
 
             // Do the swap for ETH and then update outputAmount
             // Note: minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
-            outputAmount += swapList[i].pair.routerSwapNFTsForETH(ethRecipient);
+            outputAmount += swapList[i].pair.routerSwapNFTsForToken(
+                ethRecipient
+            );
         }
 
         // Slippage check
