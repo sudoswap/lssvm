@@ -437,9 +437,9 @@ contract LSSVMRouter {
         remainingValue = msg.value;
 
         // Try doing each swap
+        uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            uint256 pairCost;
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
@@ -480,9 +480,9 @@ contract LSSVMRouter {
         remainingValue = msg.value;
 
         // Try doing each swap
+        uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            uint256 pairCost;
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].nftIds.length
             );
@@ -515,9 +515,9 @@ contract LSSVMRouter {
         remainingValue = inputAmount;
 
         // Try doing each swap
+        uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            uint256 pairCost;
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
@@ -551,9 +551,9 @@ contract LSSVMRouter {
         remainingValue = inputAmount;
 
         // Try doing each swap
+        uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            uint256 pairCost;
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].nftIds.length
             );
@@ -693,24 +693,25 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient
     ) internal returns (uint256 remainingValue) {
-        // The total ETH cost should be at most the minimum of inputAmount and maxCost
-        remainingValue = inputAmount > maxCost ? maxCost : inputAmount;
+        remainingValue = inputAmount;
 
         // Do swaps
+        uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Verify pair is an ETH pair
             _verifyPairToken(swapList[i].pair, true);
 
-            // We transfer all of the remaining ETH to the pair to avoid
-            // computing the cost twice. The extra ETH will be returned
-            // to the router after the swap.
-            // If the actual total cost exceeds the initial remainingValue,
-            // the transaction will automatically be reverted
-            // due to math error
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+                swapList[i].numItems
+            );
+
             remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
-                value: remainingValue
+                value: pairCost
             }(swapList[i].numItems, nftRecipient, false, address(0));
         }
+
+        // Slippage check
+        require(inputAmount - remainingValue <= maxCost, "Slippage");
 
         // Return remaining value to sender
         if (remainingValue > 0) {
@@ -725,24 +726,25 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient
     ) internal returns (uint256 remainingValue) {
-        // The total ETH cost should be at most the minimum of inputAmount and maxCost
-        remainingValue = inputAmount > maxCost ? maxCost : inputAmount;
+        remainingValue = inputAmount;
 
         // Do swaps
+        uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Verify pair is an ETH pair
             _verifyPairToken(swapList[i].pair, true);
 
-            // We transfer all of the remaining ETH to the pair to avoid
-            // computing the cost twice. The extra ETH will be returned
-            // to the router after the swap.
-            // If the actual total cost exceeds the initial remainingValue,
-            // the transaction will automatically be reverted
-            // due to math error
+            (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+                swapList[i].nftIds.length
+            );
+
             remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
-                value: remainingValue
+                value: pairCost
             }(swapList[i].nftIds, nftRecipient, false, address(0));
         }
+
+        // Slippage check
+        require(inputAmount - remainingValue <= maxCost, "Slippage");
 
         // Return remaining value to sender
         if (remainingValue > 0) {
@@ -803,14 +805,15 @@ contract LSSVMRouter {
         uint256 minOutput,
         address payable tokenRecipient
     ) internal returns (uint256 outputAmount) {
+        bytes memory signal = new bytes(1);
+        signal[0] = NFT_TRANSFER_START;
+
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
             // Transfer NFTs directly from sender to pair
             IERC721 nft = swapList[i].pair.nft();
 
             // Signal transfer start to pair
-            bytes memory signal = new bytes(1);
-            signal[0] = NFT_TRANSFER_START;
             nft.safeTransferFrom(
                 msg.sender,
                 address(swapList[i].pair),
