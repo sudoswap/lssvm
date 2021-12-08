@@ -7,6 +7,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
@@ -39,13 +40,39 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         token = _token;
     }
 
-    function isETHPair() external pure override returns (bool) {
-        return false;
-    }
-
-    function _validateTokenInput(uint256 inputAmount) internal override {
+    function _validateTokenInput(
+        uint256 inputAmount,
+        bool isRouter,
+        address routerCaller,
+        LSSVMPairFactoryLike _factory
+    ) internal override {
         require(msg.value == 0, "ERC20 pair");
-        token.safeTransferFrom(msg.sender, address(this), inputAmount);
+
+        IERC20 _token = token;
+
+        if (isRouter) {
+            // verify if router is allowed
+            LSSVMRouter router = LSSVMRouter(payable(msg.sender));
+            require(_factory.routerAllowed(router), "Not router");
+
+            // call router to transfer tokens from user
+            uint256 beforeBalance = _token.balanceOf(address(this));
+            router.pairTransferERC20From(
+                _token,
+                routerCaller,
+                inputAmount,
+                pairVariant()
+            );
+
+            // verify token transfer (protect pair against malicious router)
+            require(
+                _token.balanceOf(address(this)) - beforeBalance == inputAmount,
+                "ERC20 not transferred in"
+            );
+        } else {
+            // transfer tokens directly
+            _token.safeTransferFrom(msg.sender, address(this), inputAmount);
+        }
     }
 
     function _refundTokenToSender(uint256 inputAmount) internal override {

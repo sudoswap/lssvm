@@ -127,7 +127,9 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
             );
             pair.swapTokenForAnyNFTs{value: inputAmount}(
                 idList.length,
-                address(this)
+                address(this),
+                false,
+                address(0)
             );
             endBalance = address(this).balance;
         }
@@ -197,7 +199,9 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
             startBalance = address(this).balance;
             pair.swapTokenForAnyNFTs{value: inputAmount}(
                 numItems,
-                address(this)
+                address(this),
+                false,
+                address(0)
             );
             spotPrice = uint56(newSpotPrice);
         }

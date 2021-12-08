@@ -30,7 +30,6 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
     function setUp() public {
         // create contracts
         linearCurve = new LinearCurve();
-        router = new LSSVMRouter();
         test721 = new Test721();
         LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
         LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
@@ -44,6 +43,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             feeRecipient,
             protocolFeeMultiplier
         );
+        router = new LSSVMRouter(factory);
         factory.setBondingCurveAllowed(linearCurve, true);
         factory.setRouterAllowed(router, true);
 
@@ -119,7 +119,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             nftIds: nftIds
         });
 
-        router.swapNFTsForETH(
+        router.swapNFTsForToken(
             swapList,
             0.9 ether,
             payable(address(this)),
@@ -148,10 +148,10 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             numItems: 1
         });
 
-        router.swapNFTsForAnyNFTs{value: 1 ether}(
+        router.swapNFTsForAnyNFTsThroughETH{value: 1 ether}(
             LSSVMRouter.NFTsForAnyNFTsTrade({
-                nftToETHTrades: nftToETHSwapList,
-                ethToNFTTrades: ethToNFTSwapList
+                nftToTokenTrades: nftToETHSwapList,
+                tokenToNFTTrades: ethToNFTSwapList
             }),
             0,
             payable(address(this)),
@@ -183,10 +183,10 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             nftIds: buyNFTIds
         });
 
-        router.swapNFTsForSpecificNFTs{value: 1 ether}(
+        router.swapNFTsForSpecificNFTsThroughETH{value: 1 ether}(
             LSSVMRouter.NFTsForSpecificNFTsTrade({
-                nftToETHTrades: nftToETHSwapList,
-                ethToNFTTrades: ethToNFTSwapList
+                nftToTokenTrades: nftToETHSwapList,
+                tokenToNFTTrades: ethToNFTSwapList
             }),
             0,
             payable(address(this)),
@@ -224,7 +224,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
             nftIds: nftIds
         });
 
-        router.swapNFTsForETH(
+        router.swapNFTsForToken(
             swapList,
             0.9 ether,
             payable(address(this)),

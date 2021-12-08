@@ -8,6 +8,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairETH} from "./LSSVMPairETH.sol";
@@ -18,6 +19,7 @@ import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     using Clones for address;
     using Address for address payable;
+    using SafeERC20 for IERC20;
 
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
@@ -90,6 +92,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
         @param _spotPrice The initial selling spot price, in ETH
         @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
+        @return pair The new pair
      */
     function createPairETH(
         IERC721 _nft,
@@ -144,6 +147,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _spotPrice The initial selling spot price, in ETH
         @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
         @param _salt The salt value used by CREATE2
+        @return pair The new pair
      */
     function createPairETHDeterministic(
         IERC721 _nft,
@@ -189,6 +193,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _spotPrice,
             _initialNFTIDs
         );
+        emit PairCreated(address(pair), address(_nft));
     }
 
     /**
@@ -201,6 +206,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
         @param _spotPrice The initial selling spot price, in ETH
         @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
+        @param _initialTokenBalance The initial token balance sent from the sender to the new pair
+        @return pair The new pair
      */
     function createPairERC20(
         IERC20 _token,
@@ -210,7 +217,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice,
-        uint256[] calldata _initialNFTIDs
+        uint256[] calldata _initialNFTIDs,
+        uint256 _initialTokenBalance
     ) external returns (LSSVMPairERC20 pair) {
         require(
             bondingCurveAllowed[_bondingCurve],
@@ -241,7 +249,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _delta,
             _fee,
             _spotPrice,
-            _initialNFTIDs
+            _initialNFTIDs,
+            _initialTokenBalance
         );
         emit PairCreated(address(pair), address(_nft));
     }
@@ -256,7 +265,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
         @param _spotPrice The initial selling spot price, in ETH
         @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
+        @param _initialTokenBalance The initial token balance sent from the sender to the new pair
         @param _salt The salt value used by CREATE2
+        @return pair The new pair
      */
     function createPairERC20Deterministic(
         IERC20 _token,
@@ -267,6 +278,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         uint256 _fee,
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs,
+        uint256 _initialTokenBalance,
         bytes32 _salt
     ) external returns (LSSVMPairERC20 pair) {
         require(
@@ -298,8 +310,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _delta,
             _fee,
             _spotPrice,
-            _initialNFTIDs
+            _initialNFTIDs,
+            _initialTokenBalance
         );
+        emit PairCreated(address(pair), address(_nft));
     }
 
     /**
@@ -359,6 +373,37 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
 
     /**
+        @notice Checks if an address is a LSSVMPair. Uses the fact that the pairs are EIP-1167 minimal proxies.
+        @param potentialPair The address to check
+        @param variant The pair variant (NFT is enumerable or not, pair uses ETH or ERC20)
+        @return True if the address is the specified pair variant, false otherwise
+     */
+    function isPair(address potentialPair, PairVariant variant)
+        external
+        view
+        override
+        returns (bool)
+    {
+        if (variant == PairVariant.ENUMERABLE_ETH) {
+            return _isClone(potentialPair, address(enumerableETHTemplate));
+        } else if (variant == PairVariant.MISSING_ENUMERABLE_ETH) {
+            return
+                _isClone(potentialPair, address(missingEnumerableETHTemplate));
+        } else if (variant == PairVariant.ENUMERABLE_ERC20) {
+            return _isClone(potentialPair, address(enumerableERC20Template));
+        } else if (variant == PairVariant.MISSING_ENUMERABLE_ERC20) {
+            return
+                _isClone(
+                    potentialPair,
+                    address(missingEnumerableERC20Template)
+                );
+        } else {
+            // invalid input
+            return false;
+        }
+    }
+
+    /**
      * Admin functions
      */
 
@@ -404,7 +449,15 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param target The target contract
         @param isAllowed True to whitelist, false to remove from whitelist
      */
-    function setCallAllowed(address target, bool isAllowed) external onlyOwner {
+    function setCallAllowed(address payable target, bool isAllowed)
+        external
+        onlyOwner
+    {
+        // ensure target is not a router
+        if (isAllowed) {
+            require(!routerAllowed[LSSVMRouter(target)], "Can't call router");
+        }
+
         callAllowed[target] = isAllowed;
     }
 
@@ -418,6 +471,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         onlyOwner
     {
         require(address(_router) != address(0), "0 router address");
+        // ensure target is not arbitrarily callable by pairs
+        if (isAllowed) {
+            require(!callAllowed[address(_router)], "Can't call router");
+        }
         routerAllowed[_router] = isAllowed;
     }
 
@@ -469,7 +526,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice,
-        uint256[] calldata _initialNFTIDs
+        uint256[] calldata _initialNFTIDs,
+        uint256 _initialTokenBalance
     ) internal {
         // initialize pair
         _pair.initialize(
@@ -485,7 +543,11 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         _pair.transferOwnership(msg.sender);
 
         // transfer initial tokens to pair
-        // TODO
+        _token.safeTransferFrom(
+            msg.sender,
+            address(_pair),
+            _initialTokenBalance
+        );
 
         // transfer initial NFTs from sender to pair
         for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
@@ -494,6 +556,37 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
                 address(_pair),
                 _initialNFTIDs[i]
             );
+        }
+    }
+
+    /**
+        @dev Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
+        MIT license, Copyright (c) 2018 Murray Software, LLC.
+     */
+    function _isClone(address target, address query)
+        internal
+        view
+        returns (bool result)
+    {
+        bytes20 targetBytes = bytes20(target);
+        assembly {
+            let clone := mload(0x40)
+            mstore(
+                clone,
+                0x363d3d373d3d3d363d7300000000000000000000000000000000000000000000
+            )
+            mstore(add(clone, 0xa), targetBytes)
+            mstore(
+                add(clone, 0x1e),
+                0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
+            )
+
+            let other := add(clone, 0x40)
+            extcodecopy(query, other, 0, 0x2d)
+            result := and(
+                eq(mload(clone), mload(other)),
+                eq(mload(add(clone, 0xd)), mload(add(other, 0xd)))
+            )
         }
     }
 }

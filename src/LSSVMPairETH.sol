@@ -32,11 +32,12 @@ abstract contract LSSVMPairETH is LSSVMPair {
         );
     }
 
-    function isETHPair() external pure override returns (bool) {
-        return true;
-    }
-
-    function _validateTokenInput(uint256 inputAmount) internal override {
+    function _validateTokenInput(
+        uint256 inputAmount,
+        bool, /*isRouter*/
+        address, /*routerCaller*/
+        LSSVMPairFactoryLike /*_factory*/
+    ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
     }
 

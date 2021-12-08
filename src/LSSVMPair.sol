@@ -112,14 +112,18 @@ abstract contract LSSVMPair is
         This swap function is meant for users who are ID agnostic
         @param numNFTs The number of NFTs to purchase
         @param nftRecipient The recipient of the NFTs
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
+        ETH pairs.
+        @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
+        ETH pairs.
         @return inputAmount The amount of token used for purchase
      */
-    function swapTokenForAnyNFTs(uint256 numNFTs, address nftRecipient)
-        external
-        payable
-        virtual
-        returns (uint256 inputAmount)
-    {
+    function swapTokenForAnyNFTs(
+        uint256 numNFTs,
+        address nftRecipient,
+        bool isRouter,
+        address routerCaller
+    ) external payable virtual returns (uint256 inputAmount) {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
         LSSVMPairFactoryLike _factory = factory;
@@ -155,9 +159,9 @@ abstract contract LSSVMPair is
             emit SpotPriceUpdated(newSpotPrice);
         }
 
-        _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
+        _validateTokenInput(inputAmount, isRouter, routerCaller, _factory);
 
-        _validateTokenInput(inputAmount);
+        _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
 
         _refundTokenToSender(inputAmount);
 
@@ -173,11 +177,17 @@ abstract contract LSSVMPair is
         reverting if some of the specified IDs leave the pool before the swap goes through.
         @param nftIds The list of IDs of the NFTs to purchase
         @param nftRecipient The recipient of the NFTs
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
+        ETH pairs.
+        @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
+        ETH pairs.
         @return inputAmount The amount of token used for purchase
      */
     function swapTokenForSpecificNFTs(
         uint256[] calldata nftIds,
-        address nftRecipient
+        address nftRecipient,
+        bool isRouter,
+        address routerCaller
     ) external payable virtual returns (uint256 inputAmount) {
         // Store storage variables locally for cheaper lookup
         IERC721 _nft = nft;
@@ -216,9 +226,9 @@ abstract contract LSSVMPair is
             emit SpotPriceUpdated(newSpotPrice);
         }
 
-        _sendSpecificNFTsToRecipient(_nft, nftRecipient, nftIds);
+        _validateTokenInput(inputAmount, isRouter, routerCaller, _factory);
 
-        _validateTokenInput(inputAmount);
+        _sendSpecificNFTsToRecipient(_nft, nftRecipient, nftIds);
 
         _refundTokenToSender(inputAmount);
 
@@ -298,7 +308,6 @@ abstract contract LSSVMPair is
     function routerSwapNFTsForToken(address payable tokenRecipient)
         external
         virtual
-        nonReentrant
         returns (uint256 outputAmount)
     {
         // Store storage variables locally for cheaper lookup
@@ -403,15 +412,24 @@ abstract contract LSSVMPair is
     function getAllHeldIds() external view virtual returns (uint256[] memory);
 
     /**
-        @notice Returns true if the pair uses ETH as the pair token, false otherwise
+        @notice Returns the pair's variant (NFT is enumerable or not, pair uses ETH or ERC20)
      */
-    function isETHPair() external pure virtual returns (bool);
+    function pairVariant()
+        public
+        pure
+        virtual
+        returns (LSSVMPairFactoryLike.PairVariant);
 
     /**
      * Internal functions
      */
 
-    function _validateTokenInput(uint256 inputAmount) internal virtual;
+    function _validateTokenInput(
+        uint256 inputAmount,
+        bool isRouter,
+        address routerCaller,
+        LSSVMPairFactoryLike _factory
+    ) internal virtual;
 
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
 

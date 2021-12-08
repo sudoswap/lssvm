@@ -14,8 +14,18 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 import {LSSVMPairFactory} from "./LSSVMPairFactory.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
+import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 contract LSSVMPairEnumerableERC20 is LSSVMPairERC20 {
+    function pairVariant()
+        public
+        pure
+        override
+        returns (LSSVMPairFactoryLike.PairVariant)
+    {
+        return LSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20;
+    }
+
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,

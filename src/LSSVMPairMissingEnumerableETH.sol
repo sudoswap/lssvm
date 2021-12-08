@@ -5,12 +5,22 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {LSSVMPairETH} from "./LSSVMPairETH.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 contract LSSVMPairMissingEnumerableETH is LSSVMPairETH {
     using EnumerableSet for EnumerableSet.UintSet;
 
     // ID tracking
     EnumerableSet.UintSet private idSet;
+
+    function pairVariant()
+        public
+        pure
+        override
+        returns (LSSVMPairFactoryLike.PairVariant)
+    {
+        return LSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ETH;
+    }
 
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,

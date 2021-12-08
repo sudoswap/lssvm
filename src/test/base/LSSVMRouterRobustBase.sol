@@ -49,7 +49,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
             feeRecipient,
             protocolFeeMultiplier
         );
-        router = new LSSVMRouter();
+        router = new LSSVMRouter(factory);
 
         // Set approvals
         test721.setApprovalForAll(address(factory), true);
