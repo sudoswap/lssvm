@@ -1,7 +1,7 @@
 # Make dependencies available
 export DAPP_REMAPPINGS=$(cat remappings.txt)
 
-export DAPP_SOLC_VERSION=0.8.10z
+export DAPP_SOLC_VERSION=0.8.10
 export DAPP_BUILD_OPTIMIZE=1
 export DAPP_BUILD_OPTIMIZE_RUNS=1000000
 export DAPP_LINK_TEST_LIBRARIES=0
@@ -14,7 +14,7 @@ export ETH_RPC_ACCOUNTS=true
 # only run test files that end in .t.sol
 export DAPP_TEST_MATCH=src/test/.*\.t\.sol
 
-if [ "$DEEP_FUZZ" == "true" ]
+if [ "$DEEP_FUZZ" = "true" ]
 then 
   export DAPP_TEST_FUZZ_RUNS=50000 # Fuzz for a long time if DEEP_FUZZ is set to true.
 else
