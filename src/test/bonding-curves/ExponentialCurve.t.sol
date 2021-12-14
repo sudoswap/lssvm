@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
-import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 import {ExponentialCurve} from "../../bonding-curves/ExponentialCurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
@@ -20,10 +20,10 @@ contract ExponentialCurveTest is DSTest {
 
     function test_getBuyInfoExample() public {
         uint256 spotPrice = 3 ether;
-        uint256 delta = 2 * PRBMathUD60x18.SCALE; // 2
+        uint256 delta = 2 * FixedPointMathLib.WAD; // 2
         uint256 numItems = 5;
-        uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
-        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
+        uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
@@ -52,7 +52,7 @@ contract ExponentialCurveTest is DSTest {
         uint8 numItems
     ) public {
         if (
-            delta < PRBMathUD60x18.SCALE ||
+            delta < FixedPointMathLib.WAD ||
             numItems > 10 ||
             spotPrice < MIN_PRICE
         ) {
@@ -73,9 +73,9 @@ contract ExponentialCurveTest is DSTest {
 
         if (spotPrice > 0 && numItems > 0) {
             assertTrue(
-                (newSpotPrice > spotPrice && delta > PRBMathUD60x18.SCALE) ||
+                (newSpotPrice > spotPrice && delta > FixedPointMathLib.WAD) ||
                     (newSpotPrice == spotPrice &&
-                        delta == PRBMathUD60x18.SCALE),
+                        delta == FixedPointMathLib.WAD),
                 "Price update incorrect"
             );
         }
@@ -89,10 +89,10 @@ contract ExponentialCurveTest is DSTest {
 
     function test_getSellInfoExample() public {
         uint256 spotPrice = 3 ether;
-        uint256 delta = 2 * PRBMathUD60x18.SCALE; // 2
+        uint256 delta = 2 * FixedPointMathLib.WAD; // 2
         uint256 numItems = 5;
-        uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
-        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
+        uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
@@ -120,7 +120,7 @@ contract ExponentialCurveTest is DSTest {
         uint128 delta,
         uint8 numItems
     ) public {
-        if (delta < PRBMathUD60x18.SCALE || spotPrice < MIN_PRICE) {
+        if (delta < FixedPointMathLib.WAD || spotPrice < MIN_PRICE) {
             return;
         }
 

@@ -8,7 +8,7 @@ import {Test721} from "../mocks/Test721.sol";
 import {IERC721Mintable} from "./IERC721Mintable.sol";
 import {ICurve} from "../bonding-curves/ICurve.sol";
 import {LSSVMPairBaseTest} from "./base/LSSVMPairBase.sol";
-import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 contract LSSVMPairExponentialMissingEnumerableTest is
     DSTest,
@@ -23,8 +23,8 @@ contract LSSVMPairExponentialMissingEnumerableTest is
     }
 
     function modifyDelta(uint64 delta) public pure override returns (uint64) {
-        if (delta <= PRBMathUD60x18.SCALE) {
-            return uint64(PRBMathUD60x18.SCALE + delta + 1);
+        if (delta <= FixedPointMathLib.WAD) {
+            return uint64(FixedPointMathLib.WAD + delta + 1);
         } else {
             return delta;
         }

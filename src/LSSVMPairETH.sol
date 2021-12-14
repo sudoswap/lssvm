@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 
 abstract contract LSSVMPairETH is LSSVMPair {
-    using Address for address payable;
+    using SafeTransferLib for address payable;
+    using SafeTransferLib for ERC20;
 
     // Only called once by factory to initialize
     function initialize(
@@ -44,7 +45,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Give excess ETH back to caller
         if (msg.value > inputAmount) {
-            payable(msg.sender).sendValue(msg.value - inputAmount);
+            payable(msg.sender).safeTransferETH(msg.value - inputAmount);
         }
     }
 
@@ -59,7 +60,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
             if (protocolFee > pairETHBalance) {
                 protocolFee = pairETHBalance;
             }
-            _factory.protocolFeeRecipient().sendValue(protocolFee);
+            _factory.protocolFeeRecipient().safeTransferETH(protocolFee);
         }
     }
 
@@ -69,7 +70,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     ) internal override {
         // Send ETH to caller
         if (outputAmount > 0) {
-            tokenRecipient.sendValue(outputAmount);
+            tokenRecipient.safeTransferETH(outputAmount);
         }
     }
 
@@ -88,7 +89,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         this value, the transaction will be reverted.
      */
     function withdrawETH(uint256 amount) public onlyOwner onlyUnlocked {
-        payable(owner()).sendValue(amount);
+        payable(owner()).safeTransferETH(amount);
 
         // emit event since ETH is the pair token
         emit TokenWithdrawn(amount);
@@ -105,7 +106,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         onlyOwner
         onlyUnlocked
     {
-        IERC20(a).transferFrom(address(this), msg.sender, amount);
+        ERC20(a).safeTransferFrom(address(this), msg.sender, amount);
     }
 
     /**

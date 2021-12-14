@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
@@ -12,14 +11,13 @@ import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
 abstract contract LSSVMPairERC20 is LSSVMPair {
-    using Address for address payable;
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for ERC20;
 
-    IERC20 public token;
+    ERC20 public token;
 
     // Only called once by factory to initialize
     function initialize(
-        IERC20 _token,
+        ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactoryLike _factory,
@@ -37,7 +35,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             _fee,
             _spotPrice
         );
-        token = _token;
+        token = ERC20(address(_token));
     }
 
     function _validateTokenInput(
@@ -48,7 +46,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
-        IERC20 _token = token;
+        ERC20 _token = token;
 
         if (isRouter) {
             // verify if router is allowed
@@ -85,7 +83,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     {
         // Take protocol fee
         if (protocolFee > 0) {
-            IERC20 _token = token;
+            ERC20 _token = token;
 
             // Round down to the actual token balance if there are numerical stability issues with the above calculations
             uint256 pairTokenBalance = _token.balanceOf(address(this));
@@ -117,7 +115,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         onlyOwner
         onlyUnlocked
     {
-        IERC20(a).transferFrom(address(this), msg.sender, amount);
+        ERC20(a).safeTransferFrom(address(this), msg.sender, amount);
 
         if (a == address(token)) {
             // emit event since it is the pair token

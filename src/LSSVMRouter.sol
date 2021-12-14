@@ -2,15 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 contract LSSVMRouter {
-    using Address for address payable;
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address payable;
+    using SafeTransferLib for ERC20;
 
     bytes1 private constant NFT_TRANSFER_START = 0x11;
 
@@ -458,7 +457,7 @@ contract LSSVMRouter {
 
         // Return remaining value to sender
         if (remainingValue > 0) {
-            ethRecipient.sendValue(remainingValue);
+            ethRecipient.safeTransferETH(remainingValue);
         }
     }
 
@@ -501,7 +500,7 @@ contract LSSVMRouter {
 
         // Return remaining value to sender
         if (remainingValue > 0) {
-            ethRecipient.sendValue(remainingValue);
+            ethRecipient.safeTransferETH(remainingValue);
         }
     }
 
@@ -632,7 +631,7 @@ contract LSSVMRouter {
         @param variant The pair variant of the pair contract
      */
     function pairTransferERC20From(
-        IERC20 token,
+        ERC20 token,
         address from,
         uint256 amount,
         LSSVMPairFactoryLike.PairVariant variant
@@ -715,7 +714,7 @@ contract LSSVMRouter {
 
         // Return remaining value to sender
         if (remainingValue > 0) {
-            ethRecipient.sendValue(remainingValue);
+            ethRecipient.safeTransferETH(remainingValue);
         }
     }
 
@@ -748,7 +747,7 @@ contract LSSVMRouter {
 
         // Return remaining value to sender
         if (remainingValue > 0) {
-            ethRecipient.sendValue(remainingValue);
+            ethRecipient.safeTransferETH(remainingValue);
         }
     }
 

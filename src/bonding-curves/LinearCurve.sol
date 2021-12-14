@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
-import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /*
     @author 0xmons and boredGenius
     @notice Bonding curve logic for a linear curve, where each buy/sell changes spot price by adding/substracting delta
 */
 contract LinearCurve is ICurve, CurveErrorCodes {
-    using PRBMathUD60x18 for uint256;
+    using FixedPointMathLib for uint256;
 
     /**
         @dev See {ICurve-validateDelta}
@@ -79,10 +79,13 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             2;
 
         // Account for the protocol fee, a flat percentage of the buy amount
-        protocolFee = inputValue.mul(protocolFeeMultiplier);
+        protocolFee = inputValue.fmul(
+            protocolFeeMultiplier,
+            FixedPointMathLib.WAD
+        );
 
         // Account for the trade fee, only for Trade pools
-        inputValue += inputValue.mul(feeMultiplier);
+        inputValue += inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
 
         // Add the protocol fee to the required input amount
         inputValue += protocolFee;
@@ -157,10 +160,13 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         }
 
         // Account for the protocol fee, a flat percentage of the sell amount
-        protocolFee = outputValue.mul(protocolFeeMultiplier);
+        protocolFee = outputValue.fmul(
+            protocolFeeMultiplier,
+            FixedPointMathLib.WAD
+        );
 
         // Account for the trade fee, only for Trade pools
-        outputValue -= outputValue.mul(feeMultiplier);
+        outputValue -= outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
 
         // Subtract the protocol fee from the output amount to the seller
         outputValue -= protocolFee;

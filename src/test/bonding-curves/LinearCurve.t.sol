@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
-import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 import {LinearCurve} from "../../bonding-curves/LinearCurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
@@ -20,8 +20,8 @@ contract LinearCurveTest is DSTest {
         uint256 spotPrice = 3 ether;
         uint256 delta = 0.1 ether;
         uint256 numItems = 5;
-        uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
-        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
+        uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
@@ -82,8 +82,8 @@ contract LinearCurveTest is DSTest {
         uint256 spotPrice = 3 ether;
         uint256 delta = 0.1 ether;
         uint256 numItems = 5;
-        uint256 feeMultiplier = (PRBMathUD60x18.SCALE * 5) / 1000; // 0.5%
-        uint256 protocolFeeMultiplier = (PRBMathUD60x18.SCALE * 3) / 1000; // 0.3%
+        uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
+        uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,

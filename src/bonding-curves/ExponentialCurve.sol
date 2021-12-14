@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
-import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /*
     @author 0xmons and boredGenius
     @notice Bonding curve logic for an exponential curve, where each buy/sell changes spot price by multiplying/dividing delta
 */
 contract ExponentialCurve is ICurve, CurveErrorCodes {
-    using PRBMathUD60x18 for uint256;
+    using FixedPointMathLib for uint256;
 
     uint256 public constant MIN_PRICE = 1 gwei;
 
@@ -23,7 +23,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         override
         returns (bool)
     {
-        return delta > PRBMathUD60x18.SCALE;
+        return delta > FixedPointMathLib.WAD;
     }
 
     /**
@@ -58,10 +58,10 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
-        uint256 deltaPowN = delta.powu(numItems);
+        uint256 deltaPowN = delta.fpow(numItems, FixedPointMathLib.WAD);
 
         // For an exponential curve, the spot price is multiplied by delta for each item bought
-        newSpotPrice = spotPrice.mul(deltaPowN);
+        newSpotPrice = spotPrice.fmul(deltaPowN, FixedPointMathLib.WAD);
 
         // Spot price is assumed to be the instant sell price. To avoid arbitraging LPs, we adjust the buy price upwards.
         // If spot price for buy and sell were the same, then someone could buy 1 NFT and then sell for immediate profit.
@@ -69,20 +69,27 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         // The same person could then sell for (S * delta) ETH, netting them delta ETH profit.
         // If spot price for buy and sell differ by delta, then buying costs (S * delta) ETH.
         // The new spot price would become (S * delta), so selling would also yield (S * delta) ETH.
-        uint256 buySpotPrice = spotPrice.mul(delta);
+        uint256 buySpotPrice = spotPrice.fmul(delta, FixedPointMathLib.WAD);
 
         // If the user buys n items, then the total cost is equal to:
         // buySpotPrice + (delta * buySpotPrice) + (delta^2 * buySpotPrice) + ... (delta^(numItems - 1) * buySpotPrice)
         // This is equal to buySpotPrice * (delta^n - 1) / (delta - 1)
-        inputValue = buySpotPrice.mul(
-            (deltaPowN - PRBMathUD60x18.SCALE).div(delta - PRBMathUD60x18.SCALE)
+        inputValue = buySpotPrice.fmul(
+            (deltaPowN - FixedPointMathLib.WAD).fdiv(
+                delta - FixedPointMathLib.WAD,
+                FixedPointMathLib.WAD
+            ),
+            FixedPointMathLib.WAD
         );
 
         // Account for the protocol fee, a flat percentage of the buy amount
-        protocolFee = inputValue.mul(protocolFeeMultiplier);
+        protocolFee = inputValue.fmul(
+            protocolFeeMultiplier,
+            FixedPointMathLib.WAD
+        );
 
         // Account for the trade fee, only for Trade pools
-        inputValue += inputValue.mul(feeMultiplier);
+        inputValue += inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
 
         // Add the protocol fee to the required input amount
         inputValue += protocolFee;
@@ -114,11 +121,14 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
-        uint256 invDelta = delta.inv();
-        uint256 invDeltaPowN = invDelta.powu(numItems);
+        uint256 invDelta = FixedPointMathLib.WAD.fdiv(
+            delta,
+            FixedPointMathLib.WAD
+        );
+        uint256 invDeltaPowN = invDelta.fpow(numItems, FixedPointMathLib.WAD);
 
         // For an exponential curve, the spot price is divided by delta for each item sold
-        newSpotPrice = spotPrice.mul(invDeltaPowN);
+        newSpotPrice = spotPrice.fmul(invDeltaPowN, FixedPointMathLib.WAD);
         if (newSpotPrice < MIN_PRICE) {
             newSpotPrice = MIN_PRICE;
         }
@@ -126,17 +136,22 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         // If the user sells n items, then the total revenue is equal to:
         // spotPrice + ((1 / delta) * spotPrice) + ((1 / delta)^2 * spotPrice) + ... ((1 / delta)^(numItems - 1) * spotPrice)
         // This is equal to spotPrice * (1 - (1 / delta^n)) / (1 - (1 / delta))
-        outputValue = spotPrice.mul(
-            (PRBMathUD60x18.SCALE - invDeltaPowN).div(
-                PRBMathUD60x18.SCALE - invDelta
-            )
+        outputValue = spotPrice.fmul(
+            (FixedPointMathLib.WAD - invDeltaPowN).fdiv(
+                FixedPointMathLib.WAD - invDelta,
+                FixedPointMathLib.WAD
+            ),
+            FixedPointMathLib.WAD
         );
 
         // Account for the protocol fee, a flat percentage of the sell amount
-        protocolFee = outputValue.mul(protocolFeeMultiplier);
+        protocolFee = outputValue.fmul(
+            protocolFeeMultiplier,
+            FixedPointMathLib.WAD
+        );
 
         // Account for the trade fee, only for Trade pools
-        outputValue -= outputValue.mul(feeMultiplier);
+        outputValue -= outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
 
         // Remove the protocol fee from the output amount
         outputValue -= protocolFee;

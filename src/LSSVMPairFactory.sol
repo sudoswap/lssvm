@@ -4,11 +4,10 @@ pragma solidity ^0.8.0;
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairETH} from "./LSSVMPairETH.sol";
@@ -18,8 +17,8 @@ import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     using Clones for address;
-    using Address for address payable;
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for address payable;
+    using SafeTransferLib for ERC20;
 
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
@@ -210,7 +209,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @return pair The new pair
      */
     function createPairERC20(
-        IERC20 _token,
+        ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPair.PoolType _poolType,
@@ -270,7 +269,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @return pair The new pair
      */
     function createPairERC20Deterministic(
-        IERC20 _token,
+        ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPair.PoolType _poolType,
@@ -505,7 +504,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         _pair.transferOwnership(msg.sender);
 
         // transfer initial ETH to pair
-        payable(address(_pair)).sendValue(msg.value);
+        payable(address(_pair)).safeTransferETH(msg.value);
 
         // transfer initial NFTs from sender to pair
         for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
@@ -519,7 +518,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
 
     function _initializePairERC20(
         LSSVMPairERC20 _pair,
-        IERC20 _token,
+        ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPair.PoolType _poolType,
