@@ -90,7 +90,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             if (protocolFee > pairTokenBalance) {
                 protocolFee = pairTokenBalance;
             }
-            _token.safeTransfer(_factory.protocolFeeRecipient(), protocolFee);
+            _token.safeTransfer(address(_factory), protocolFee);
         }
     }
 

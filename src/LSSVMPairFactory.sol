@@ -403,8 +403,33 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
 
     /**
+        @notice Allows receiving ETH in order to receive protocol fees
+     */
+    receive() external payable {}
+
+    /**
      * Admin functions
      */
+
+    /**
+        @notice Withdraws the ETH balance to the protocol fee recipient.
+        Only callable by the owner.
+     */
+    function withdrawETHProtocolFees() external onlyOwner {
+        protocolFeeRecipient.safeTransferETH(address(this).balance);
+    }
+
+    /**
+        @notice Withdraws ERC20 tokens to the protocol fee recipient. Only callable by the owner.
+        @param token The token to transfer
+     */
+    function withdrawERC20ProtocolFees(ERC20 token) external onlyOwner {
+        token.safeTransferFrom(
+            address(this),
+            protocolFeeRecipient,
+            token.balanceOf(address(this))
+        );
+    }
 
     /**
         @notice Changes the protocol fee recipient address. Only callable by the owner.

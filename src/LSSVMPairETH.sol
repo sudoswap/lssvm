@@ -60,7 +60,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
             if (protocolFee > pairETHBalance) {
                 protocolFee = pairETHBalance;
             }
-            _factory.protocolFeeRecipient().safeTransferETH(protocolFee);
+            payable(address(_factory)).safeTransferETH(protocolFee);
         }
     }
 
