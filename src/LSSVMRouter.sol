@@ -627,12 +627,14 @@ contract LSSVMRouter {
         the sender, in order to minimize the number of token transfers. Only callable by an ERC20 pair.
         @param token The ERC20 token to transfer
         @param from The address to transfer tokens from
+        @param to The address to transfer tokens to
         @param amount The amount of tokens to transfer
         @param variant The pair variant of the pair contract
      */
     function pairTransferERC20From(
         ERC20 token,
         address from,
+        address to,
         uint256 amount,
         LSSVMPairFactoryLike.PairVariant variant
     ) external {
@@ -648,7 +650,7 @@ contract LSSVMRouter {
         );
 
         // transfer tokens to pair
-        token.safeTransferFrom(from, msg.sender, amount);
+        token.safeTransferFrom(from, to, amount);
     }
 
     /**

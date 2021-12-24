@@ -17,6 +17,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactoryLike _factory,
+        address payable _assetRecipient,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -26,6 +27,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
             _nft,
             _bondingCurve,
             _factory,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -40,6 +42,12 @@ abstract contract LSSVMPairETH is LSSVMPair {
         LSSVMPairFactoryLike /*_factory*/
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
+
+        // Transfer inputAmount ETH to assetRecipient if it's been set
+        address payable _assetRecipient = _getAssetRecipient();
+        if (_assetRecipient != address(this)) {
+            _assetRecipient.safeTransferETH(inputAmount);
+        }
     }
 
     function _refundTokenToSender(uint256 inputAmount) internal override {

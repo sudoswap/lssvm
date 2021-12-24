@@ -36,9 +36,11 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         internal
         override
     {
+        address _assetRecipient = _getAssetRecipient();
+
         // Take in NFTs from caller
         for (uint256 i = 0; i < nftIds.length; i++) {
-            _nft.safeTransferFrom(msg.sender, address(this), nftIds[i]);
+            _nft.safeTransferFrom(msg.sender, _assetRecipient, nftIds[i]);
         }
     }
 

@@ -21,6 +21,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactoryLike _factory,
+        address payable _assetRecipient,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -30,6 +31,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             _nft,
             _bondingCurve,
             _factory,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -47,34 +49,38 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         require(msg.value == 0, "ERC20 pair");
 
         ERC20 _token = token;
+        address _assetRecipient = _getAssetRecipient();
 
         if (isRouter) {
-            // verify if router is allowed
+            // Verify if router is allowed
             LSSVMRouter router = LSSVMRouter(payable(msg.sender));
             require(_factory.routerAllowed(router), "Not router");
 
-            // call router to transfer tokens from user
-            uint256 beforeBalance = _token.balanceOf(address(this));
+            // Call router to transfer tokens from user
+            uint256 beforeBalance = _token.balanceOf(_assetRecipient);
+
             router.pairTransferERC20From(
                 _token,
                 routerCaller,
+                _assetRecipient,
                 inputAmount,
                 pairVariant()
             );
 
-            // verify token transfer (protect pair against malicious router)
+            // Verify token transfer (protect pair against malicious router)
             require(
-                _token.balanceOf(address(this)) - beforeBalance == inputAmount,
+                _token.balanceOf(_assetRecipient) - beforeBalance ==
+                    inputAmount,
                 "ERC20 not transferred in"
             );
         } else {
-            // transfer tokens directly
-            _token.safeTransferFrom(msg.sender, address(this), inputAmount);
+            // Transfer tokens directly
+            _token.safeTransferFrom(msg.sender, _assetRecipient, inputAmount);
         }
     }
 
     function _refundTokenToSender(uint256 inputAmount) internal override {
-        // do nothing since we transferred the exact input amount
+        // Do nothing since we transferred the exact input amount
     }
 
     function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)

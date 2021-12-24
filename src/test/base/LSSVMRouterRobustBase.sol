@@ -67,6 +67,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         pair1 = factory.createPairETH{value: 10 ether}(
             test721,
             bondingCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             0,
             0,
@@ -82,6 +83,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         pair2 = factory.createPairETH{value: 10 ether}(
             test721,
             bondingCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             0,
             0,
@@ -97,6 +99,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         pair3 = factory.createPairETH{value: 10 ether}(
             test721,
             bondingCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             0,
             0,

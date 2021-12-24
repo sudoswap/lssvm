@@ -46,6 +46,10 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
     // When pool is unlocked (defaults to 0)
     uint256 public unlockTime;
 
+    // If set to 0, NFTs/tokens sent by traders during trades will be sent to the pair.
+    // Otherwise, assets will be sent to the set address. Not available to TRADE pools.
+    address payable public assetRecipient;
+
     // Events
     event SwapWithAnyNFTs(
         uint256 tokenAmount,
@@ -68,6 +72,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactoryLike _factory,
+        address payable _assetRecipient,
         PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -76,21 +81,29 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
         __Ownable_init();
         if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
             require(_fee == 0, "Only Trade Pools can have nonzero fee");
+
+            assetRecipient = _assetRecipient;
         }
         if (_poolType == PoolType.TRADE) {
             require(_fee < MAX_FEE, "Trade fee must be less than 100%");
+            require(
+                _assetRecipient == address(0),
+                "Trade pools can't set asset recipient"
+            );
+
+            fee = _fee;
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
         require(
             _bondingCurve.validateSpotPrice(_spotPrice),
             "Invalid new spot price for curve"
         );
-        factory = _factory;
+
         nft = _nft;
         bondingCurve = _bondingCurve;
+        factory = _factory;
         poolType = _poolType;
         delta = _delta;
-        fee = _fee;
         spotPrice = _spotPrice;
     }
 
@@ -450,6 +463,26 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
         internal
         virtual;
 
+    function _getAssetRecipient()
+        internal
+        view
+        returns (address payable _assetRecipient)
+    {
+        // If it's a TRADE pool, we know the recipient is 0
+        // So just return address(this)
+        if (poolType == PoolType.TRADE) {
+            return payable(address(this));
+        }
+
+        // Otherwise, we return the recipient if it's been set
+        // or replace it with address(this) if it's 0
+        _assetRecipient = assetRecipient;
+        if (_assetRecipient == address(0)) {
+            // Tokens will be transferred to address(this)
+            _assetRecipient = payable(address(this));
+        }
+    }
+
     /**
      * Owner functions
      */
@@ -534,6 +567,19 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");
         fee = newFee;
         emit FeeUpdated(newFee);
+    }
+
+    /**
+        @notice Changes the address that will receive assets received from
+        trades. Only callable by the owner.
+        @param newRecipient The new asset recipient
+     */
+    function changeAssetRecipient(address payable newRecipient)
+        external
+        onlyOwner
+    {
+        require(poolType != PoolType.TRADE, "Not for Trade pools");
+        assetRecipient = newRecipient;
     }
 
     /**
