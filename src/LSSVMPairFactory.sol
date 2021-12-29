@@ -613,4 +613,18 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             )
         }
     }
+
+    /** 
+      @dev Used to deposit NFTs into a pair after creation
+    */
+    function depositNFTs(IERC721 _nft, uint256[] calldata ids, address recipient) external {
+        // transfer initial NFTs from caller to recipient 
+        for (uint256 i = 0; i < ids.length; i++) {
+            _nft.safeTransferFrom(
+                msg.sender,
+                recipient,
+                ids[i]
+            );
+        }
+    }
 }

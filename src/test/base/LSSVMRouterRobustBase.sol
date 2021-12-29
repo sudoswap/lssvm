@@ -156,7 +156,6 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         require(remainingValue == 0.66 ether, "Incorrect ETH refund");
     }
 
-    /*
     // Test where pair 1 and pair 2 swap ETH for NFT succeed but pair 3 fails
     function test_robustSwapETHForSpecificNFTs() public {
         
@@ -207,7 +206,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
     }
 
     // Test where selling to pair 2 and pair 3 succeeds, but selling to pair 1 fails
-    function test_robustSwapNFTsforETH() public {
+    function test_robustSwapNFTsForToken() public {
 
         uint256[] memory nftIds1 = new uint256[](2);
         nftIds1[0] = 30;
@@ -240,7 +239,7 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         // the first swapPair gives 0.18 ETH
         // the second swapPair gives 0.36 ETH
         // the third swapPair gives 0.54 ETH 
-        uint256 remainingValue = router.robustSwapNFTsForETH(
+        uint256 remainingValue = router.robustSwapNFTsForToken(
             swapList,
             minOutputPerSwapPair,
             payable(address(this)),
@@ -252,7 +251,6 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         require((beforeNFTBalance-afterNFTBalance) == 4, "Incorrect NFT swap");
         require(remainingValue == 0.9 ether, "Incorrect ETH received");
     }
-    */
 
     receive() external payable {}
 
