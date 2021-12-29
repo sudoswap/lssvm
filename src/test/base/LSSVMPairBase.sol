@@ -74,6 +74,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         LSSVMPairETH pair = factory.createPairETH(
             test721,
             bondingCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             delta,
             0,
@@ -173,6 +174,7 @@ abstract contract LSSVMPairBaseTest is DSTest, ERC721Holder {
         LSSVMPairETH pair = factory.createPairETH(
             test721,
             bondingCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             delta,
             0,

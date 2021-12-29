@@ -57,6 +57,7 @@ contract LSSVMPairFactoryTest is DSTest {
         LSSVMPairETH pair = factory.createPairETH{value: 0.1 ether}(
             test721,
             linearCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             delta,
             fee,

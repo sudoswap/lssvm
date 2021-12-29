@@ -85,7 +85,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @notice Creates a pair contract using EIP-1167.
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
-        @param _poolType Buy, Sell, or Trade
+        @param _assetRecipient The address that will receive the assets traders give during trades.
+                               Not available to TRADE pools.
+        @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
@@ -96,6 +98,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     function createPairETH(
         IERC721 _nft,
         ICurve _bondingCurve,
+        address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -126,6 +129,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             pair,
             _nft,
             _bondingCurve,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -139,7 +143,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @notice Creates a pair contract using EIP-1167. Uses CREATE2 for deterministic address.
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
-        @param _poolType Buy, Sell, or Trade
+        @param _assetRecipient The address that will receive the assets traders give during trades.
+                               Not available to TRADE pools.
+        @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
@@ -151,6 +157,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     function createPairETHDeterministic(
         IERC721 _nft,
         ICurve _bondingCurve,
+        address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -186,6 +193,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             pair,
             _nft,
             _bondingCurve,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -199,7 +207,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @notice Creates a pair contract using EIP-1167.
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
-        @param _poolType Buy, Sell, or Trade
+        @param _assetRecipient The address that will receive the assets traders give during trades.
+                               Not available to TRADE pools.
+        @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
@@ -212,6 +222,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
+        address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -244,6 +255,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _token,
             _nft,
             _bondingCurve,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -258,7 +270,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @notice Creates a pair contract using EIP-1167. Uses CREATE2 for deterministic address.
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
-        @param _poolType Buy, Sell, or Trade
+        @param _assetRecipient The address that will receive the assets traders give during trades.
+                               Not available to TRADE pools.
+        @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
@@ -272,6 +286,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
+        address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -305,6 +320,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _token,
             _nft,
             _bondingCurve,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -510,6 +526,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         LSSVMPairETH _pair,
         IERC721 _nft,
         ICurve _bondingCurve,
+        address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -521,6 +538,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _nft,
             _bondingCurve,
             this,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,
@@ -546,6 +564,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
+        address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
@@ -559,6 +578,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _nft,
             _bondingCurve,
             this,
+            _assetRecipient,
             _poolType,
             _delta,
             _fee,

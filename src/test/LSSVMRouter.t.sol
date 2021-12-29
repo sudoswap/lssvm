@@ -64,6 +64,7 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         pair = factory.createPairETH{value: 10 ether}(
             test721,
             linearCurve,
+            payable(address(0)),
             LSSVMPair.PoolType.TRADE,
             delta,
             fee,
