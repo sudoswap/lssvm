@@ -1,22 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {DSTest} from "ds-test/test.sol";
-
-import {ExponentialCurve} from "../bonding-curves/ExponentialCurve.sol";
-import {Test721Enumerable} from "../mocks/Test721Enumerable.sol";
-import {IERC721Mintable} from "./IERC721Mintable.sol";
-import {ICurve} from "../bonding-curves/ICurve.sol";
-import {LSSVMPairBaseTest} from "./base/LSSVMPairBase.sol";
+import {ExponentialCurve} from "../../bonding-curves/ExponentialCurve.sol";
+import {Test721Enumerable} from "../../mocks/Test721Enumerable.sol";
+import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
+import {ICurve} from "../../bonding-curves/ICurve.sol";
+import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
-contract LSSVMPairExponentialEnumerableTest is DSTest, LSSVMPairBaseTest {
+abstract contract NoArbExponentialCurve is NoArbBondingCurve {
     function setupCurve() public override returns (ICurve) {
         return new ExponentialCurve();
-    }
-
-    function setup721() public override returns (IERC721Mintable) {
-        return IERC721Mintable(address(new Test721Enumerable()));
     }
 
     function modifyDelta(uint64 delta) public pure override returns (uint64) {

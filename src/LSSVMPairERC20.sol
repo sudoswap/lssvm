@@ -121,7 +121,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         onlyOwner
         onlyUnlocked
     {
-        ERC20(a).safeTransferFrom(address(this), msg.sender, amount);
+        ERC20(a).safeTransfer(msg.sender, amount);
 
         if (a == address(token)) {
             // emit event since it is the pair token
