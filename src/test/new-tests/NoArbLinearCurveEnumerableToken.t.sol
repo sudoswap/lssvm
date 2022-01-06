@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import {NoArbExponentialCurve} from "../abstract/NoArbExponentialCurve.sol";
+import {NoArbLinearCurve} from "../abstract/NoArbLinearCurve.sol";
 import {NoArbEnumerable} from "../abstract/NoArbEnumerable.sol";
 import {NoArbToken} from "../abstract/NoArbToken.sol";
 
-contract NoArbExponentialCurveEnumerableTokenTest is
-    NoArbExponentialCurve,
+contract NoArbLinearCurveEnumerableTokenTest is
+    NoArbLinearCurve,
     NoArbEnumerable,
     NoArbToken
 {}
