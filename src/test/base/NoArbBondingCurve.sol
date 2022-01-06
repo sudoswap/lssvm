@@ -134,82 +134,82 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder {
         withdrawTokens(pair);
     }
 
-    // /**
-    // @dev Ensures buying NFTs & selling them back results in no profit.
-    //  */
-    // function test_bondingCurveBuySellNoProfit(
-    //     uint56 spotPrice,
-    //     uint64 delta,
-    //     uint8 numItems
-    // ) public payable {
-    //     // modify spotPrice to be appropriate for the bonding curve
-    //     spotPrice = modifySpotPrice(spotPrice);
+    /**
+    @dev Ensures buying NFTs & selling them back results in no profit.
+     */
+    function test_bondingCurveBuySellNoProfit(
+        uint56 spotPrice,
+        uint64 delta,
+        uint8 numItems
+    ) public payable {
+        // modify spotPrice to be appropriate for the bonding curve
+        spotPrice = modifySpotPrice(spotPrice);
 
-    //     // modify delta to be appropriate for the bonding curve
-    //     delta = modifyDelta(delta);
+        // modify delta to be appropriate for the bonding curve
+        delta = modifyDelta(delta);
 
-    //     // decrease the range of numItems to speed up testing
-    //     numItems = numItems % 3;
+        // decrease the range of numItems to speed up testing
+        numItems = numItems % 3;
 
-    //     if (numItems == 0) {
-    //         return;
-    //     }
+        if (numItems == 0) {
+            return;
+        }
 
-    //     delete idList;
+        delete idList;
 
-    //     // initialize the pair
-    //     for (uint256 i = 0; i < numItems; i++) {
-    //         test721.mint(address(this), startingId);
-    //         idList.push(startingId);
-    //         startingId += 1;
-    //     }
-    //     LSSVMPair pair = setupPair(delta, spotPrice, idList);
-    //     test721.setApprovalForAll(address(pair), true);
+        // initialize the pair
+        for (uint256 i = 0; i < numItems; i++) {
+            test721.mint(address(this), startingId);
+            idList.push(startingId);
+            startingId += 1;
+        }
+        LSSVMPair pair = setupPair(delta, spotPrice, idList);
+        test721.setApprovalForAll(address(pair), true);
 
-    //     uint256 startBalance;
-    //     uint256 endBalance;
+        uint256 startBalance;
+        uint256 endBalance;
 
-    //     // buy all NFTs
-    //     {
-    //         (, uint256 newSpotPrice, uint256 inputAmount, ) = bondingCurve
-    //             .getBuyInfo(
-    //                 spotPrice,
-    //                 delta,
-    //                 numItems,
-    //                 0,
-    //                 protocolFeeMultiplier
-    //             );
+        // buy all NFTs
+        {
+            (, uint256 newSpotPrice, uint256 inputAmount, ) = bondingCurve
+                .getBuyInfo(
+                    spotPrice,
+                    delta,
+                    numItems,
+                    0,
+                    protocolFeeMultiplier
+                );
 
-    //         // buy NFTs
-    //         startBalance = getBalance();
-    //         pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
-    //             numItems,
-    //             address(this),
-    //             false,
-    //             address(0)
-    //         );
-    //         spotPrice = uint56(newSpotPrice);
-    //     }
+            // buy NFTs
+            startBalance = getBalance();
+            pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+                numItems,
+                address(this),
+                false,
+                address(0)
+            );
+            spotPrice = uint56(newSpotPrice);
+        }
 
-    //     // sell back the NFTs
-    //     {
-    //         bondingCurve.getSellInfo(
-    //             spotPrice,
-    //             delta,
-    //             numItems,
-    //             0,
-    //             protocolFeeMultiplier
-    //         );
-    //         pair.swapNFTsForToken(idList, 0, payable(address(this)));
-    //         endBalance = getBalance();
-    //     }
+        // sell back the NFTs
+        {
+            bondingCurve.getSellInfo(
+                spotPrice,
+                delta,
+                numItems,
+                0,
+                protocolFeeMultiplier
+            );
+            pair.swapNFTsForToken(idList, 0, payable(address(this)));
+            endBalance = getBalance();
+        }
 
-    //     // ensure the caller didn't profit from the aggregate trade
-    //     assertGeDecimal(startBalance, endBalance, 18);
+        // ensure the caller didn't profit from the aggregate trade
+        assertGeDecimal(startBalance, endBalance, 18);
 
-    //     // withdraw the tokens in the pair back
-    //     withdrawTokens(pair);
-    // }
+        // withdraw the tokens in the pair back
+        withdrawTokens(pair);
+    }
 
     function getBalance() public virtual returns (uint256);
 
