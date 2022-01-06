@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
+import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
+import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
+import {Configurable} from "./Configurable.sol";
 
-abstract contract NoArbETH is NoArbBondingCurve {
+abstract contract UsingETH is Configurable {
 
     function modifyInputAmount(uint256 inputAmount) public override pure returns (uint256) {
       return inputAmount;
@@ -19,10 +22,9 @@ abstract contract NoArbETH is NoArbBondingCurve {
         payable(address(pair)).transfer(amount);
     }
 
-    function setupPair(uint256 delta, uint256 spotPrice, uint256[] memory _idList) public override returns (LSSVMPair) {
-        // initialize the pair
+    function setupPair(LSSVMPairFactory factory, IERC721 nft, ICurve bondingCurve, uint256 delta, uint256 spotPrice, uint256[] memory _idList) public override returns (LSSVMPair) {
         LSSVMPairETH pair = factory.createPairETH(
-            test721,
+            nft,
             bondingCurve,
             payable(address(0)),
             LSSVMPair.PoolType.TRADE,

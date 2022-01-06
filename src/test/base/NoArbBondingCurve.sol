@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
+import {Configurable} from "../mixins/Configurable.sol";
 
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
@@ -18,7 +19,7 @@ import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Hevm} from "../utils/Hevm.sol";
 
-abstract contract NoArbBondingCurve is DSTest, ERC721Holder {
+abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
     uint256[] idList;
     uint256 startingId;
@@ -72,7 +73,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder {
 
         // initialize the pair
         uint256[] memory empty;
-        LSSVMPair pair = setupPair(delta, spotPrice, empty);
+        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, empty);
 
         // mint NFTs to sell to the pair
         for (uint256 i = 0; i < numItems; i++) {
@@ -163,7 +164,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder {
             idList.push(startingId);
             startingId += 1;
         }
-        LSSVMPair pair = setupPair(delta, spotPrice, idList);
+        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, idList);
         test721.setApprovalForAll(address(pair), true);
 
         uint256 startBalance;
@@ -210,24 +211,4 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder {
         // withdraw the tokens in the pair back
         withdrawTokens(pair);
     }
-
-    function getBalance() public virtual returns (uint256);
-
-    function setupPair(uint256 delta, uint256 spotPrice, uint256[] memory _idList) public virtual returns (LSSVMPair);
-
-    function setupCurve() public virtual returns (ICurve);
-
-    function setup721() public virtual returns (IERC721Mintable);
-
-    function modifyInputAmount(uint256 inputAmount) public virtual returns (uint256);
-
-    function modifyDelta(uint64 delta) public virtual returns (uint64);
-
-    function modifySpotPrice(uint56 spotPrice) public virtual returns (uint56);
-
-    function sendTokens(LSSVMPair pair, uint256 amount) public virtual;
-
-    function withdrawTokens(LSSVMPair pair) public virtual;
-
-    receive() external payable {}
 }

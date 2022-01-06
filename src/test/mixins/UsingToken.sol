@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
 import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
 import {Test20} from "../../mocks/Test20.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
+import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
+import {ICurve} from "../../bonding-curves/ICurve.sol";
+import {Configurable} from "./Configurable.sol";
 
-abstract contract NoArbToken is NoArbBondingCurve {
+abstract contract UsingToken is Configurable {
     using SafeTransferLib for ERC20;
     ERC20 test20;
 
@@ -28,7 +33,7 @@ abstract contract NoArbToken is NoArbBondingCurve {
         test20.safeTransfer(address(pair), amount);
     }
 
-    function setupPair(uint256 delta, uint256 spotPrice, uint256[] memory _idList) public override returns (LSSVMPair) {
+    function setupPair(LSSVMPairFactory factory, IERC721 nft, ICurve bondingCurve, uint256 delta, uint256 spotPrice, uint256[] memory _idList) public override returns (LSSVMPair) {
 
         // create ERC20 token
         test20 = new Test20();
@@ -36,7 +41,7 @@ abstract contract NoArbToken is NoArbBondingCurve {
         // initialize the pair
         LSSVMPair pair = factory.createPairERC20(
             test20,
-            test721,
+            nft,
             bondingCurve,
             payable(address(0)),
             LSSVMPair.PoolType.TRADE,

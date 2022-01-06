@@ -5,10 +5,10 @@ import {ExponentialCurve} from "../../bonding-curves/ExponentialCurve.sol";
 import {Test721Enumerable} from "../../mocks/Test721Enumerable.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
-import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {Configurable} from "./Configurable.sol";
 
-abstract contract NoArbExponentialCurve is NoArbBondingCurve {
+abstract contract UsingExponentialCurve is Configurable {
     function setupCurve() public override returns (ICurve) {
         return new ExponentialCurve();
     }

@@ -86,7 +86,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
         @param _assetRecipient The address that will receive the assets traders give during trades.
-                               Not available to TRADE pools.
+                              If set to address(0), assets will be sent to the pool address.
+                              Not available to TRADE pools. 
         @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
@@ -144,7 +145,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
         @param _assetRecipient The address that will receive the assets traders give during trades.
-                               Not available to TRADE pools.
+                              If set to address(0), assets will be sent to the pool address.
+                              Not available to TRADE pools.
         @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
@@ -208,7 +210,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
         @param _assetRecipient The address that will receive the assets traders give during trades.
-                               Not available to TRADE pools.
+                                If set to address(0), assets will be sent to the pool address.
+                                Not available to TRADE pools.
         @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
@@ -271,7 +274,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
         @param _assetRecipient The address that will receive the assets traders give during trades.
-                               Not available to TRADE pools.
+                                If set to address(0), assets will be sent to the pool address.
+                                Not available to TRADE pools.
         @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
