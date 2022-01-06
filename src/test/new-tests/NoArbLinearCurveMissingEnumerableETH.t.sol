@@ -3,11 +3,11 @@
 pragma solidity ^0.8.0;
 
 import {NoArbLinearCurve} from "../abstract/NoArbLinearCurve.sol";
-import {NoArbEnumerable} from "../abstract/NoArbEnumerable.sol";
+import {NoArbMissingEnumerable} from "../abstract/NoArbMissingEnumerable.sol";
 import {NoArbETH} from "../abstract/NoArbETH.sol";
 
-contract NoArbLinearCurveEnumerableETHTest is
+contract NoArbLinearCurveMissingEnumerableETHTest is
     NoArbLinearCurve,
-    NoArbEnumerable,
+    NoArbMissingEnumerable,
     NoArbETH
 {}

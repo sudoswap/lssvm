@@ -12,7 +12,7 @@ export DAPP_TEST_SMTTIMEOUT=500000
 export ETH_RPC_ACCOUNTS=true
 
 # only run test files that end in .t.sol
-export DAPP_TEST_MATCH=src/test/.*\.t\.sol
+export DAPP_TEST_MATCH=src/test/new-tests/.*\.t\.sol
 
 if [ "$DEEP_FUZZ" = "true" ]
 then 
