@@ -105,7 +105,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
             // sell NFTs
             test721.setApprovalForAll(address(pair), true);
-            startBalance = getBalance();
+            startBalance = getBalance(address(this));
             pair.swapNFTsForToken(idList, 0, payable(address(this)));
             spotPrice = uint56(newSpotPrice);
         }
@@ -125,7 +125,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 false,
                 address(0)
             );
-            endBalance = getBalance();
+            endBalance = getBalance(address(this));
         }
 
         // ensure the caller didn't profit from the aggregate trade
@@ -182,7 +182,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 );
 
             // buy NFTs
-            startBalance = getBalance();
+            startBalance = getBalance(address(this));
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
                 numItems,
                 address(this),
@@ -202,7 +202,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 protocolFeeMultiplier
             );
             pair.swapNFTsForToken(idList, 0, payable(address(this)));
-            endBalance = getBalance();
+            endBalance = getBalance(address(this));
         }
 
         // ensure the caller didn't profit from the aggregate trade

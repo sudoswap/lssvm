@@ -8,7 +8,8 @@ import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 
 abstract contract Configurable {
-    function getBalance() public virtual returns (uint256);
+
+    function getBalance(address a) public virtual returns (uint256);
 
     function setupPair(
         LSSVMPairFactory factory,
@@ -18,7 +19,7 @@ abstract contract Configurable {
         uint256 spotPrice, 
         uint256[] memory _idList,
         uint256 initialTokenBalance,
-        address routerAddress /* Semantically, this is a little weird, but please bear with us*/
+        address routerAddress /* Yes, this is weird, but due to how we encapsulate state, this is an easy way to set approval for the router.*/
     ) public payable virtual returns (LSSVMPair);
 
     function setupCurve() public virtual returns (ICurve);

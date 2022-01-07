@@ -14,8 +14,8 @@ abstract contract UsingETH is Configurable {
       return inputAmount;
     }
 
-    function getBalance() public override view returns (uint256) {
-        return address(this).balance;
+    function getBalance(address a) public override view returns (uint256) {
+        return a.balance;
     }
 
     function sendTokens(LSSVMPair pair, uint256 amount) public override {

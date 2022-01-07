@@ -23,8 +23,8 @@ abstract contract UsingERC20 is Configurable {
       return 0;
     }
 
-    function getBalance() public override view returns (uint256) {
-        return test20.balanceOf(address(this));
+    function getBalance(address a) public override view returns (uint256) {
+        return test20.balanceOf(a);
     }
 
     function sendTokens(LSSVMPair pair, uint256 amount) public override {
