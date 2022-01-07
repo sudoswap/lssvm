@@ -27,4 +27,4 @@ def generateAllTests():
 				writeToFiles(file_path, content)
 
 generateAllTests()
-print("Success")
+print("NoArb Tests Generated")
