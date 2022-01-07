@@ -31,15 +31,24 @@ abstract contract UsingERC20 is Configurable {
         test20.safeTransfer(address(pair), amount);
     }
 
-    function setupPair(LSSVMPairFactory factory, IERC721 nft, ICurve bondingCurve, uint256 delta, uint256 spotPrice, uint256[] memory _idList, uint256 initialTokenBalance) public payable override returns (LSSVMPair) {
+    function setupPair(
+        LSSVMPairFactory factory, 
+        IERC721 nft, 
+        ICurve bondingCurve, 
+        uint256 delta, 
+        uint256 spotPrice, 
+        uint256[] memory _idList, 
+        uint256 initialTokenBalance,
+        address routerAddress) public payable override returns (LSSVMPair) {
 
-        // create ERC20 token if not alrdy deployed
+        // create ERC20 token if not already deployed
         if (address(test20) == address(0)) {
             test20 = new Test20();
         }
 
-        // set approvals for factory
+        // set approvals for factory and router
         test20.approve(address(factory), type(uint256).max);
+        test20.approve(routerAddress, type(uint256).max);
 
         // mint enough tokens to caller
         IMintable(address(test20)).mint(address(this), 1000 ether);

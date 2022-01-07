@@ -17,7 +17,8 @@ abstract contract Configurable {
         uint256 delta, 
         uint256 spotPrice, 
         uint256[] memory _idList,
-        uint256 initialTokenBalance
+        uint256 initialTokenBalance,
+        address routerAddress /* Semantically, this is a little weird, but please bear with us*/
     ) public payable virtual returns (LSSVMPair);
 
     function setupCurve() public virtual returns (ICurve);

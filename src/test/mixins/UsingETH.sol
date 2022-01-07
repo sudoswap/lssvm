@@ -22,7 +22,15 @@ abstract contract UsingETH is Configurable {
         payable(address(pair)).transfer(amount);
     }
 
-    function setupPair(LSSVMPairFactory factory, IERC721 nft, ICurve bondingCurve, uint256 delta, uint256 spotPrice, uint256[] memory _idList, uint256) public payable override returns (LSSVMPair) {
+    function setupPair(
+        LSSVMPairFactory factory, 
+        IERC721 nft, 
+        ICurve bondingCurve, 
+        uint256 delta, 
+        uint256 spotPrice, 
+        uint256[] memory _idList, 
+        uint256,
+        address) public payable override returns (LSSVMPair) {
         LSSVMPairETH pair = factory.createPairETH{value: msg.value}(
             nft,
             bondingCurve,

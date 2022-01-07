@@ -17,7 +17,16 @@ abstract contract RouterRobustBaseERC20 is RouterRobustBaseTest {
         return router.robustSwapERC20ForAnyNFTs(swapList, inputAmount, maxCostPerPairSwap, nftRecipient, deadline);
     }
 
-    // robustSwapTokensForSpecific
+    function robustSwapTokensForSpecificNFTs(
+        LSSVMRouter router,
+        LSSVMRouter.PairSwapSpecific[] calldata swapList,
+        uint256[] memory maxCostPerPairSwap,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount) public override payable returns (uint256) {
+        return router.robustSwapERC20ForSpecificNFTs(swapList, inputAmount, maxCostPerPairSwap, nftRecipient, deadline);
+    }
 
     // robustSwapNFTsForTokens
 }

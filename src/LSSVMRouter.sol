@@ -538,7 +538,7 @@ contract LSSVMRouter {
     function robustSwapERC20ForSpecificNFTs(
         PairSwapSpecific[] calldata swapList,
         uint256 inputAmount,
-        uint256[] memory maxCostPerPairSwapPair,
+        uint256[] memory maxCostPerPairSwap,
         address nftRecipient,
         uint256 deadline
     )
@@ -558,7 +558,7 @@ contract LSSVMRouter {
             );
 
             // If within our maxCost, proceed
-            if (pairCost <= maxCostPerPairSwapPair[i]) {
+            if (pairCost <= maxCostPerPairSwap[i]) {
                 _verifyPairToken(swapList[i].pair, false);
 
                 remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs(
@@ -608,7 +608,7 @@ contract LSSVMRouter {
                     );
                 }
 
-                // Do the swap and update outputAmount with how much ETH we got
+                // Do the swap and update outputAmount with how many tokens we got
                 outputAmount += swapList[i].pair.routerSwapNFTsForToken(
                     tokenRecipient
                 );
@@ -831,8 +831,8 @@ contract LSSVMRouter {
                 );
             }
 
-            // Do the swap for ETH and then update outputAmount
-            // Note: minExpectedETHOutput is set to 0 since we're doing an aggregate slippage check
+            // Do the swap for token and then update outputAmount
+            // Note: minExpectedTokenOutput is set to 0 since we're doing an aggregate slippage check
             outputAmount += swapList[i].pair.routerSwapNFTsForToken(
                 tokenRecipient
             );
