@@ -4,21 +4,21 @@ pragma solidity ^0.8.0;
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {RouterRobustBaseTest} from "./RouterRobustBase.sol";
 
-abstract contract RouterRobustBaseERC20 is RouterRobustBaseTest {
+abstract contract RouterRobustBaseETH is RouterRobustBaseTest {
     function robustSwapTokensForAnyNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapAny[] calldata swapList,
         uint256[] memory maxCostPerPairSwap,
-        address payable,
+        address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
-        uint256 inputAmount
+        uint256
     ) public payable override returns (uint256) {
         return
-            router.robustSwapERC20ForAnyNFTs(
+            router.robustSwapETHForAnyNFTs{value: msg.value}(
                 swapList,
-                inputAmount,
                 maxCostPerPairSwap,
+                ethRecipient,
                 nftRecipient,
                 deadline
             );
@@ -28,16 +28,16 @@ abstract contract RouterRobustBaseERC20 is RouterRobustBaseTest {
         LSSVMRouter router,
         LSSVMRouter.PairSwapSpecific[] calldata swapList,
         uint256[] memory maxCostPerPairSwap,
-        address payable,
+        address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
-        uint256 inputAmount
+        uint256
     ) public payable override returns (uint256) {
         return
-            router.robustSwapERC20ForSpecificNFTs(
+            router.robustSwapETHForSpecificNFTs{value: msg.value}(
                 swapList,
-                inputAmount,
                 maxCostPerPairSwap,
+                ethRecipient,
                 nftRecipient,
                 deadline
             );
