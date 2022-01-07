@@ -4,15 +4,17 @@ pragma solidity ^0.8.0;
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {ICurve} from "./bonding-curves/ICurve.sol";
+
 import {LSSVMPair} from "./LSSVMPair.sol";
-import {LSSVMPairETH} from "./LSSVMPairETH.sol";
-import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {LSSVMPairETH} from "./LSSVMPairETH.sol";
+import {ICurve} from "./bonding-curves/ICurve.sol";
+import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
@@ -404,17 +406,17 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         returns (bool)
     {
         if (variant == PairVariant.ENUMERABLE_ETH) {
-            return _isClone(potentialPair, address(enumerableETHTemplate));
+            return _isClone(address(enumerableETHTemplate), potentialPair);
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ETH) {
             return
-                _isClone(potentialPair, address(missingEnumerableETHTemplate));
+                _isClone(address(missingEnumerableETHTemplate), potentialPair);
         } else if (variant == PairVariant.ENUMERABLE_ERC20) {
-            return _isClone(potentialPair, address(enumerableERC20Template));
+            return _isClone(address(enumerableERC20Template), potentialPair);
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ERC20) {
             return
                 _isClone(
-                    potentialPair,
-                    address(missingEnumerableERC20Template)
+                    address(missingEnumerableERC20Template),
+                    potentialPair
                 );
         } else {
             // invalid input
@@ -611,19 +613,19 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @dev Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
         MIT license, Copyright (c) 2018 Murray Software, LLC.
      */
-    function _isClone(address target, address query)
+    function _isClone(address template, address query)
         internal
         view
         returns (bool result)
     {
-        bytes20 targetBytes = bytes20(target);
+        bytes20 templateBytes = bytes20(template);
         assembly {
             let clone := mload(0x40)
             mstore(
                 clone,
                 0x363d3d373d3d3d363d7300000000000000000000000000000000000000000000
             )
-            mstore(add(clone, 0xa), targetBytes)
+            mstore(add(clone, 0xa), templateBytes)
             mstore(
                 add(clone, 0x1e),
                 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
@@ -641,14 +643,14 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     /** 
       @dev Used to deposit NFTs into a pair after creation
     */
-    function depositNFTs(IERC721 _nft, uint256[] calldata ids, address recipient) external {
-        // transfer initial NFTs from caller to recipient 
+    function depositNFTs(
+        IERC721 _nft,
+        uint256[] calldata ids,
+        address recipient
+    ) external {
+        // transfer initial NFTs from caller to recipient
         for (uint256 i = 0; i < ids.length; i++) {
-            _nft.safeTransferFrom(
-                msg.sender,
-                recipient,
-                ids[i]
-            );
+            _nft.safeTransferFrom(msg.sender, recipient, ids[i]);
         }
     }
 }
