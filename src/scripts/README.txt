@@ -1,3 +1,3 @@
 chmod u+x testgen.sh
-run from lssvm/src/ with scripts/rungen.sh
+run from lssvm/src/ with scripts/testgen.sh
 

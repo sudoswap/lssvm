@@ -73,7 +73,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // initialize the pair
         uint256[] memory empty;
-        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, empty);
+        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, empty, 0);
 
         // mint NFTs to sell to the pair
         for (uint256 i = 0; i < numItems; i++) {
@@ -164,7 +164,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             idList.push(startingId);
             startingId += 1;
         }
-        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, idList);
+        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, idList, 0);
         test721.setApprovalForAll(address(pair), true);
 
         uint256 startBalance;

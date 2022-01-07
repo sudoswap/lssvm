@@ -16,8 +16,10 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {Hevm} from "../utils/Hevm.sol";
+import {Configurable} from "../mixins/Configurable.sol";
 
-abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
+abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
+
     IERC721Mintable test721;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
@@ -64,15 +66,14 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         // pair 1 has spot price of 0.1 TOKEN, then pair 2 has 0.2 TOKEN, and pair 3 has 0.3 TOKEN
         // Send 10 NFTs to each pair
         // (0-9), (10-19), (20-29)
-        pair1 = factory.createPairETH{value: modifyInputAmount(10 ether)}(
+        pair1 = this.setupPair{value: modifyInputAmount(10 ether)}(
+            factory,
             test721,
             bondingCurve,
-            payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
-            0,
             0,
             0.1 ether,
-            empty
+            empty,
+            10 ether
         );
         for (uint256 j = 0; j < 10; j++) {
             test721.mint(address(this), nftIndex);
@@ -80,15 +81,14 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
             nftIndex++;
         }
 
-        pair2 = factory.createPairETH{value: modifyInputAmount(10 ether)}(
+        pair2 = this.setupPair{value: modifyInputAmount(10 ether)}(
+            factory,
             test721,
             bondingCurve,
-            payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
-            0,
             0,
             0.2 ether,
-            empty
+            empty,
+            10 ether
         );
         for (uint256 j = 0; j < 10; j++) {
             test721.mint(address(this), nftIndex);
@@ -96,15 +96,14 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
             nftIndex++;
         }
 
-        pair3 = factory.createPairETH{value: modifyInputAmount(10 ether)}(
+        pair3 = this.setupPair{value: modifyInputAmount(10 ether)}(
+            factory,
             test721,
             bondingCurve,
-            payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
-            0,
             0,
             0.3 ether,
-            empty
+            empty,
+            10 ether
         );
         for (uint256 j = 0; j < 10; j++) {
             test721.mint(address(this), nftIndex);
@@ -119,45 +118,47 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
         }
     }
 
-//     // Test where pair 1 and pair 2 swap ETH for NFT succeed but pair 3 fails
-//     function test_robustSwapETHForAnyNFTs() public {
-//         LSSVMRouter.PairSwapAny[]
-//             memory swapList = new LSSVMRouter.PairSwapAny[](3);
-//         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair1, numItems: 2});
-//         swapList[1] = LSSVMRouter.PairSwapAny({pair: pair2, numItems: 2});
-//         swapList[2] = LSSVMRouter.PairSwapAny({pair: pair3, numItems: 2});
+    // Test where pair 1 and pair 2 swap token for NFT succeed but pair 3 fails
+    function test_robustSwapTokenForAnyNFTs() public {
+        LSSVMRouter.PairSwapAny[]
+            memory swapList = new LSSVMRouter.PairSwapAny[](3);
+        swapList[0] = LSSVMRouter.PairSwapAny({pair: pair1, numItems: 2});
+        swapList[1] = LSSVMRouter.PairSwapAny({pair: pair2, numItems: 2});
+        swapList[2] = LSSVMRouter.PairSwapAny({pair: pair3, numItems: 2});
 
-//         uint256 beforeNFTBalance = test721.balanceOf(address(this));
+        uint256 beforeNFTBalance = test721.balanceOf(address(this));
 
-//         uint256[] memory maxCostPerNFTSwap = new uint256[](3);
-//         maxCostPerNFTSwap[0] = 0.44 ether;
-//         maxCostPerNFTSwap[1] = 0.44 ether;
-//         maxCostPerNFTSwap[2] = 0.44 ether;
+        uint256[] memory maxCostPerNFTSwap = new uint256[](3);
+        maxCostPerNFTSwap[0] = 0.44 ether;
+        maxCostPerNFTSwap[1] = 0.44 ether;
+        maxCostPerNFTSwap[2] = 0.44 ether;
 
-//         // Expect to have the first two swapPairs succeed, and the last one silently fail
-//         // with 10% protocol fee:
-//         // the first swapPair costs 0.22 ETH
-//         // the second swapPair costs 0.44 ETH
-//         // the third swapPair costs 0.66 ETH
-//         uint256 remainingValue = router.robustSwapETHForAnyNFTs{
-//             value: 1.32 ether
-//         }(
-//             swapList,
-//             maxCostPerNFTSwap,
-//             payable(address(this)),
-//             address(this),
-//             block.timestamp
-//         );
+        // Expect to have the first two swapPairs succeed, and the last one silently fail
+        // with 10% protocol fee:
+        // the first swapPair costs 0.22 tokens
+        // the second swapPair costs 0.44 tokens
+        // the third swapPair costs 0.66 tokens
+        uint256 remainingValue = this.robustSwapTokensForAnyNFTs{
+            value: modifyInputAmount(1.32 ether)
+        }(
+            router,
+            swapList,
+            maxCostPerNFTSwap,
+            payable(address(this)),
+            address(this),
+            block.timestamp,
+            1.32 ether
+        );
 
-//         uint256 afterNFTBalance = test721.balanceOf(address(this));
+        uint256 afterNFTBalance = test721.balanceOf(address(this));
 
-//         // If the first two swap pairs succeed, we pay 0.6 eth and gain 4 NFTs
-//         require(
-//             (afterNFTBalance - beforeNFTBalance) == 4,
-//             "Incorrect NFT swap"
-//         );
-//         require(remainingValue == 0.66 ether, "Incorrect ETH refund");
-//     }
+        // If the first two swap pairs succeed, we pay 0.6 tokens and gain 4 NFTs
+        require(
+            (afterNFTBalance - beforeNFTBalance) == 4,
+            "Incorrect NFT swap"
+        );
+        require(remainingValue == 0.66 ether, "Incorrect refund");
+    }
 
 //     // Test where pair 1 and pair 2 swap ETH for NFT succeed but pair 3 fails
 //     function test_robustSwapETHForSpecificNFTs() public {
@@ -255,13 +256,14 @@ abstract contract LSSVMRouterRobustBaseTest is DSTest, ERC721Holder {
 //         require(remainingValue == 0.9 ether, "Incorrect ETH received");
 //     }
 
-    receive() external payable {}
+    function robustSwapTokensForAnyNFTs(
+        LSSVMRouter router,
+        LSSVMRouter.PairSwapAny[] calldata swapList,
+        uint256[] memory maxCostPerPairSwapPair,
+        address payable ethRecipient,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount) public virtual payable returns (uint256);
 
-    function modifyInputAmount(uint256 inputAmount) public virtual returns (uint256);
-
-    function setupPair(uint256 delta, uint256 spotPrice, uint256[] memory _idList) public virtual returns (LSSVMPair);
-
-    function setupCurve() public virtual returns (ICurve);
-
-    function setup721() public virtual returns (IERC721Mintable);
+    // function robustSwapTokensForSpecificNFTs() public payable virtual;
 }

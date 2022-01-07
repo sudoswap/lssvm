@@ -5,6 +5,6 @@ pragma solidity ^0.8.0;
 import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
 import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
-import {UsingETH} from "../mixins/UsingETH.sol";
+import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract NoArbExponentialCurveMissingEnumerableETHTest is NoArbBondingCurve, UsingExponentialCurve, UsingMissingEnumerable, UsingETH {}
+contract NoArbExponentialCurveMissingEnumerableERC20Test is NoArbBondingCurve, UsingExponentialCurve, UsingMissingEnumerable, UsingERC20 {}

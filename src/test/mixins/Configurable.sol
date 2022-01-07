@@ -16,8 +16,9 @@ abstract contract Configurable {
         ICurve bondingCurve,
         uint256 delta, 
         uint256 spotPrice, 
-        uint256[] memory _idList
-    ) public virtual returns (LSSVMPair);
+        uint256[] memory _idList,
+        uint256 initialTokenBalance
+    ) public payable virtual returns (LSSVMPair);
 
     function setupCurve() public virtual returns (ICurve);
 

@@ -15,11 +15,9 @@ import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {Configurable} from "./Configurable.sol";
 
-abstract contract UsingToken is Configurable {
+abstract contract UsingERC20 is Configurable {
     using SafeTransferLib for ERC20;
     ERC20 test20;
-
-    event Balance(uint256 b);
 
     function modifyInputAmount(uint256) public override pure returns (uint256) {
       return 0;
@@ -33,10 +31,18 @@ abstract contract UsingToken is Configurable {
         test20.safeTransfer(address(pair), amount);
     }
 
-    function setupPair(LSSVMPairFactory factory, IERC721 nft, ICurve bondingCurve, uint256 delta, uint256 spotPrice, uint256[] memory _idList) public override returns (LSSVMPair) {
+    function setupPair(LSSVMPairFactory factory, IERC721 nft, ICurve bondingCurve, uint256 delta, uint256 spotPrice, uint256[] memory _idList, uint256 initialTokenBalance) public payable override returns (LSSVMPair) {
 
-        // create ERC20 token
-        test20 = new Test20();
+        // create ERC20 token if not alrdy deployed
+        if (address(test20) == address(0)) {
+            test20 = new Test20();
+        }
+
+        // set approvals for factory
+        test20.approve(address(factory), type(uint256).max);
+
+        // mint enough tokens to caller
+        IMintable(address(test20)).mint(address(this), 1000 ether);
 
         // initialize the pair
         LSSVMPair pair = factory.createPairERC20(
@@ -49,15 +55,11 @@ abstract contract UsingToken is Configurable {
             0,
             spotPrice,
             _idList,
-            0
+            initialTokenBalance
         );
 
-        // set approvals for factory and pair
+        // Set approvals for pair
         test20.approve(address(pair), type(uint256).max);
-        test20.approve(address(factory), type(uint256).max);
-
-        // mint enough tokens to caller
-        IMintable(address(test20)).mint(address(this), 1000000000 ether);
 
         return pair;
     }
