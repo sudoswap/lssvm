@@ -39,14 +39,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     // Fee is only relevant for TRADE pools
     uint256 public fee;
 
-    // Pool locking check
-    modifier onlyUnlocked() {
-        require(block.timestamp >= unlockTime);
-        _;
-    }
-    // When pool is unlocked (defaults to 0)
-    uint256 public unlockTime;
-
     // If set to 0, NFTs/tokens sent by traders during trades will be sent to the pair.
     // Otherwise, assets will be sent to the set address. Not available to TRADE pools.
     address payable public assetRecipient;
@@ -67,7 +59,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event TokenWithdrawn(uint256 amount);
     event DeltaUpdated(uint256 newDelta);
     event FeeUpdated(uint256 newFee);
-    event PoolLocked(uint256 unlockTime);
 
     function __LSSVMPair_init(
         address _owner,
@@ -521,7 +512,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256[] calldata ids,
         uint256[] calldata amounts,
         bytes calldata data
-    ) external onlyOwner onlyUnlocked {
+    ) external onlyOwner {
         IERC1155(a).safeBatchTransferFrom(
             address(this),
             msg.sender,
@@ -535,11 +526,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @notice Updates the selling spot price. Only callable by the owner.
         @param newSpotPrice The new selling spot price value, in Token
      */
-    function changeSpotPrice(uint256 newSpotPrice)
-        external
-        onlyOwner
-        onlyUnlocked
-    {
+    function changeSpotPrice(uint256 newSpotPrice) external onlyOwner {
         require(
             bondingCurve.validateSpotPrice(newSpotPrice),
             "Invalid new spot price for curve"
@@ -552,7 +539,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @notice Updates the delta parameter. Only callable by the owner.
         @param newDelta The new delta parameter
      */
-    function changeDelta(uint256 newDelta) external onlyOwner onlyUnlocked {
+    function changeDelta(uint256 newDelta) external onlyOwner {
         require(
             bondingCurve.validateDelta(newDelta),
             "Invalid delta for curve"
@@ -567,7 +554,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         MAX_FEE.
         @param newFee The new LP fee percentage, 18 decimals
      */
-    function changeFee(uint256 newFee) external onlyOwner onlyUnlocked {
+    function changeFee(uint256 newFee) external onlyOwner {
         require(poolType == PoolType.TRADE, "Only for Trade pools");
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");
         fee = newFee;
@@ -596,21 +583,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function call(address payable target, bytes calldata data)
         external
         onlyOwner
-        onlyUnlocked
     {
         require(factory.callAllowed(target), "Target must be whitelisted");
         (bool result, ) = target.call{value: 0}(data);
         require(result, "Call failed");
-    }
-
-    /**
-        @notice Locks owner controls until a later point in time. 
-        @dev Intended to be used similar to locking LP tokens so users know
-        the Token/NFTs in the pool will remain at least until newUnlockTime
-        @param newUnlockTime  The time when owner controls are reinstated
-     */
-    function lockPool(uint256 newUnlockTime) external onlyOwner onlyUnlocked {
-        unlockTime = newUnlockTime;
-        emit PoolLocked(newUnlockTime);
     }
 }

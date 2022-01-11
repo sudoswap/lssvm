@@ -121,7 +121,6 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         external
         override
         onlyOwner
-        onlyUnlocked
     {
         ERC20(a).safeTransfer(msg.sender, amount);
 
