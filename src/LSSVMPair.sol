@@ -39,9 +39,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     // Fee is only relevant for TRADE pools
     uint256 public fee;
 
-    // When pool is unlocked (defaults to 0)
-    uint256 public unlockTime;
-
     // If set to 0, NFTs/tokens sent by traders during trades will be sent to the pair.
     // Otherwise, assets will be sent to the set address. Not available to TRADE pools.
     address payable public assetRecipient;
@@ -62,7 +59,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event TokenWithdrawn(uint256 amount);
     event DeltaUpdated(uint256 newDelta);
     event FeeUpdated(uint256 newFee);
-    event PoolLocked(uint256 unlockTime);
 
     function __LSSVMPair_init(
         address _owner,
@@ -591,16 +587,5 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         require(factory.callAllowed(target), "Target must be whitelisted");
         (bool result, ) = target.call{value: 0}(data);
         require(result, "Call failed");
-    }
-
-    /**
-        @notice Locks owner controls until a later point in time. 
-        @dev Intended to be used similar to locking LP tokens so users know
-        the Token/NFTs in the pool will remain at least until newUnlockTime
-        @param newUnlockTime  The time when owner controls are reinstated
-     */
-    function lockPool(uint256 newUnlockTime) external onlyOwner {
-        unlockTime = newUnlockTime;
-        emit PoolLocked(newUnlockTime);
     }
 }
