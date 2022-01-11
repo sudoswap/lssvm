@@ -87,7 +87,6 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         external
         override
         onlyOwner
-        onlyUnlocked
     {
         for (uint256 i = 0; i < nftIds.length; i++) {
             IERC721(a).safeTransferFrom(address(this), msg.sender, nftIds[i]);

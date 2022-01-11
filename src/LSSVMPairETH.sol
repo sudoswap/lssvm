@@ -88,7 +88,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         @notice Withdraws all token owned by the pair to the owner address.
         Only callable by the owner.
      */
-    function withdrawAllETH() external onlyOwner onlyUnlocked nonReentrant {
+    function withdrawAllETH() external onlyOwner nonReentrant {
         withdrawETH(address(this).balance);
     }
 
@@ -98,7 +98,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         @param amount The amount of token to send to the owner. If the pair's balance is less than
         this value, the transaction will be reverted.
      */
-    function withdrawETH(uint256 amount) public onlyOwner onlyUnlocked {
+    function withdrawETH(uint256 amount) public onlyOwner {
         payable(owner()).safeTransferETH(amount);
 
         // emit event since ETH is the pair token
@@ -114,7 +114,6 @@ abstract contract LSSVMPairETH is LSSVMPair {
         external
         override
         onlyOwner
-        onlyUnlocked
     {
         ERC20(a).safeTransferFrom(address(this), msg.sender, amount);
     }
