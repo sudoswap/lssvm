@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
@@ -15,10 +14,11 @@ import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPairETH} from "./LSSVMPairETH.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
+import {LSSVMPairCloner} from "./lib/LSSVMPairCloner.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
-    using Clones for address;
+    using LSSVMPairCloner for address;
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
@@ -120,20 +120,32 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             )
         ) {
             pair = LSSVMPairETH(
-                payable(address(missingEnumerableETHTemplate).clone())
+                payable(
+                    address(missingEnumerableETHTemplate).clone(
+                        this,
+                        _bondingCurve,
+                        _nft,
+                        uint8(_poolType)
+                    )
+                )
             );
         } else {
             pair = LSSVMPairETH(
-                payable(address(enumerableETHTemplate).clone())
+                payable(
+                    address(enumerableETHTemplate).clone(
+                        this,
+                        _bondingCurve,
+                        _nft,
+                        uint8(_poolType)
+                    )
+                )
             );
         }
 
         _initializePairETH(
             pair,
             _nft,
-            _bondingCurve,
             _assetRecipient,
-            _poolType,
             _delta,
             _fee,
             _spotPrice,
@@ -182,6 +194,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             pair = LSSVMPairETH(
                 payable(
                     address(missingEnumerableETHTemplate).cloneDeterministic(
+                        this,
+                        _bondingCurve,
+                        _nft,
+                        uint8(_poolType),
                         _salt
                     )
                 )
@@ -189,16 +205,20 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         } else {
             pair = LSSVMPairETH(
                 payable(
-                    address(enumerableETHTemplate).cloneDeterministic(_salt)
+                    address(enumerableETHTemplate).cloneDeterministic(
+                        this,
+                        _bondingCurve,
+                        _nft,
+                        uint8(_poolType),
+                        _salt
+                    )
                 )
             );
         }
         _initializePairETH(
             pair,
             _nft,
-            _bondingCurve,
             _assetRecipient,
-            _poolType,
             _delta,
             _fee,
             _spotPrice,
@@ -247,11 +267,25 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             )
         ) {
             pair = LSSVMPairERC20(
-                payable(address(missingEnumerableERC20Template).clone())
+                payable(
+                    address(missingEnumerableERC20Template).clone(
+                        this,
+                        _bondingCurve,
+                        _nft,
+                        uint8(_poolType)
+                    )
+                )
             );
         } else {
             pair = LSSVMPairERC20(
-                payable(address(enumerableERC20Template).clone())
+                payable(
+                    address(enumerableERC20Template).clone(
+                        this,
+                        _bondingCurve,
+                        _nft,
+                        uint8(_poolType)
+                    )
+                )
             );
         }
 
@@ -259,9 +293,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             pair,
             _token,
             _nft,
-            _bondingCurve,
             _assetRecipient,
-            _poolType,
             _delta,
             _fee,
             _spotPrice,
@@ -313,21 +345,29 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ) {
             pair = LSSVMPairERC20(
                 address(missingEnumerableERC20Template).cloneDeterministic(
+                    this,
+                    _bondingCurve,
+                    _nft,
+                    uint8(_poolType),
                     _salt
                 )
             );
         } else {
             pair = LSSVMPairERC20(
-                address(enumerableERC20Template).cloneDeterministic(_salt)
+                address(enumerableERC20Template).cloneDeterministic(
+                    this,
+                    _bondingCurve,
+                    _nft,
+                    uint8(_poolType),
+                    _salt
+                )
             );
         }
         _initializePairERC20(
             pair,
             _token,
             _nft,
-            _bondingCurve,
             _assetRecipient,
-            _poolType,
             _delta,
             _fee,
             _spotPrice,
@@ -341,26 +381,38 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @notice Predicts the address of a pair for a 721 with Enumerable deployed using CREATE2, given the salt value.
         @param _salt The salt value used by CREATE2
      */
-    function predictEnumerableETHPairAddress(bytes32 _salt)
-        external
-        view
-        returns (address pairAddress)
-    {
+    function predictEnumerableETHPairAddress(
+        ICurve bondingCurve,
+        IERC721 nft,
+        LSSVMPair.PoolType poolType,
+        bytes32 _salt
+    ) external view returns (address pairAddress) {
         return
-            address(enumerableETHTemplate).predictDeterministicAddress(_salt);
+            address(enumerableETHTemplate).predictDeterministicAddress(
+                this,
+                bondingCurve,
+                nft,
+                uint8(poolType),
+                _salt
+            );
     }
 
     /**
         @notice Predicts the address of a pair for a 721 without Enumerable deployed using CREATE2, given the salt value.
         @param _salt The salt value used by CREATE2
      */
-    function predictMissingEnumerableETHPairAddress(bytes32 _salt)
-        external
-        view
-        returns (address pairAddress)
-    {
+    function predictMissingEnumerableETHPairAddress(
+        ICurve bondingCurve,
+        IERC721 nft,
+        LSSVMPair.PoolType poolType,
+        bytes32 _salt
+    ) external view returns (address pairAddress) {
         return
             address(missingEnumerableETHTemplate).predictDeterministicAddress(
+                this,
+                bondingCurve,
+                nft,
+                uint8(poolType),
                 _salt
             );
     }
@@ -369,26 +421,38 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @notice Predicts the address of a pair for a 721 with Enumerable deployed using CREATE2, given the salt value.
         @param _salt The salt value used by CREATE2
      */
-    function predictEnumerableERC20PairAddress(bytes32 _salt)
-        external
-        view
-        returns (address pairAddress)
-    {
+    function predictEnumerableERC20PairAddress(
+        ICurve bondingCurve,
+        IERC721 nft,
+        LSSVMPair.PoolType poolType,
+        bytes32 _salt
+    ) external view returns (address pairAddress) {
         return
-            address(enumerableERC20Template).predictDeterministicAddress(_salt);
+            address(enumerableERC20Template).predictDeterministicAddress(
+                this,
+                bondingCurve,
+                nft,
+                uint8(poolType),
+                _salt
+            );
     }
 
     /**
         @notice Predicts the address of a pair for a 721 without Enumerable deployed using CREATE2, given the salt value.
         @param _salt The salt value used by CREATE2
      */
-    function predictMissingEnumerableERC20PairAddress(bytes32 _salt)
-        external
-        view
-        returns (address pairAddress)
-    {
+    function predictMissingEnumerableERC20PairAddress(
+        ICurve bondingCurve,
+        IERC721 nft,
+        LSSVMPair.PoolType poolType,
+        bytes32 _salt
+    ) external view returns (address pairAddress) {
         return
             address(missingEnumerableERC20Template).predictDeterministicAddress(
+                this,
+                bondingCurve,
+                nft,
+                uint8(poolType),
                 _salt
             );
     }
@@ -531,26 +595,14 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     function _initializePairETH(
         LSSVMPairETH _pair,
         IERC721 _nft,
-        ICurve _bondingCurve,
         address payable _assetRecipient,
-        LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) internal {
         // initialize pair
-        _pair.initialize(
-            msg.sender,
-            _nft,
-            _bondingCurve,
-            this,
-            _assetRecipient,
-            _poolType,
-            _delta,
-            _fee,
-            _spotPrice
-        );
+        _pair.initialize(msg.sender, _assetRecipient, _delta, _fee, _spotPrice);
 
         // transfer initial ETH to pair
         payable(address(_pair)).safeTransferETH(msg.value);
@@ -569,9 +621,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         LSSVMPairERC20 _pair,
         ERC20 _token,
         IERC721 _nft,
-        ICurve _bondingCurve,
         address payable _assetRecipient,
-        LSSVMPair.PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice,
@@ -582,11 +632,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         _pair.initialize(
             msg.sender,
             _token,
-            _nft,
-            _bondingCurve,
-            this,
             _assetRecipient,
-            _poolType,
             _delta,
             _fee,
             _spotPrice
@@ -619,6 +665,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         returns (bool result)
     {
         bytes20 templateBytes = bytes20(template);
+        address factory = address(this);
         assembly {
             let clone := mload(0x40)
             mstore(
@@ -630,12 +677,16 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
                 add(clone, 0x1e),
                 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
             )
+            mstore(add(clone, 0x2d), shl(0x60, factory))
 
             let other := add(clone, 0x40)
-            extcodecopy(query, other, 0, 0x2d)
+            extcodecopy(query, other, 0, 0x41)
             result := and(
-                eq(mload(clone), mload(other)),
-                eq(mload(add(clone, 0xd)), mload(add(other, 0xd)))
+                and(
+                    eq(mload(clone), mload(other)),
+                    eq(mload(add(clone, 0x20)), mload(add(other, 0x20)))
+                ),
+                eq(mload(add(clone, 0x21)), mload(add(other, 0x21)))
             )
         }
     }

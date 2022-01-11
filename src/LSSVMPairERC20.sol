@@ -19,26 +19,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     function initialize(
         address _owner,
         ERC20 _token,
-        IERC721 _nft,
-        ICurve _bondingCurve,
-        LSSVMPairFactoryLike _factory,
         address payable _assetRecipient,
-        PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
     ) external payable {
-        __LSSVMPair_init(
-            _owner,
-            _nft,
-            _bondingCurve,
-            _factory,
-            _assetRecipient,
-            _poolType,
-            _delta,
-            _fee,
-            _spotPrice
-        );
+        __LSSVMPair_init(_owner, _assetRecipient, _delta, _fee, _spotPrice);
         token = ERC20(address(_token));
     }
 
@@ -46,12 +32,13 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        LSSVMPairFactoryLike _factory
+        LSSVMPairFactoryLike _factory,
+        PoolType _poolType
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
         ERC20 _token = token;
-        address _assetRecipient = _getAssetRecipient();
+        address _assetRecipient = _getAssetRecipient(_poolType);
 
         if (isRouter) {
             // Verify if router is allowed

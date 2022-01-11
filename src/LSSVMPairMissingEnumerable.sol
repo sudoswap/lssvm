@@ -5,6 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     using EnumerableSet for EnumerableSet.UintSet;
@@ -40,11 +41,12 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         }
     }
 
-    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
-        internal
-        override
-    {
-        address _assetRecipient = _getAssetRecipient();
+    function _takeNFTsFromSender(
+        IERC721 _nft,
+        uint256[] calldata nftIds,
+        PoolType _poolType
+    ) internal override {
+        address _assetRecipient = _getAssetRecipient(_poolType);
 
         // Take in NFTs from caller
         // Because we're missing enumerable, update pool's own ID set
@@ -58,7 +60,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
        @notice Returns all NFT IDs held by the pool
      */
     function getAllHeldIds() external view override returns (uint256[] memory) {
-        uint256 numNFTs = nft.balanceOf(address(this));
+        uint256 numNFTs = nft().balanceOf(address(this));
         uint256[] memory ids = new uint256[](numNFTs);
         for (uint256 i; i < numNFTs; i++) {
             ids[i] = idSet.at(i);
@@ -76,12 +78,17 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         uint256 id,
         bytes memory b
     ) public virtual returns (bytes4) {
-        IERC721 _nft = nft;
+        (
+            LSSVMPairFactoryLike _factory,
+            ,
+            IERC721 _nft,
+
+        ) = _readImmutableParams();
         if (msg.sender == address(_nft)) {
             if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
                 // Use NFT for trade
                 require(
-                    factory.routerAllowed(LSSVMRouter(payable(operator))),
+                    _factory.routerAllowed(LSSVMRouter(payable(operator))),
                     "Not router"
                 );
                 nftBalanceAtTransferStart = _nft.balanceOf(address(this));
@@ -97,7 +104,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
       @dev This is only for withdrawing the pair's NFT collection
      */
     function withdrawNFT(uint256[] calldata nftIds) external onlyOwner {
-        IERC721 _nft = nft;
+        IERC721 _nft = nft();
         for (uint256 i = 0; i < nftIds.length; i++) {
             _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
             idSet.remove(nftIds[i]);
@@ -109,7 +116,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         override
         onlyOwner
     {
-        require(a != address(nft), "Call withdrawNFT");
+        require(a != address(nft()), "Call withdrawNFT");
         for (uint256 i = 0; i < nftIds.length; i++) {
             IERC721(a).safeTransferFrom(address(this), msg.sender, nftIds[i]);
         }

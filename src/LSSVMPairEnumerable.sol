@@ -5,6 +5,7 @@ import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
+import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
 abstract contract LSSVMPairEnumerable is LSSVMPair {
     function _sendAnyNFTsToRecipient(
@@ -32,11 +33,12 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         }
     }
 
-    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
-        internal
-        override
-    {
-        address _assetRecipient = _getAssetRecipient();
+    function _takeNFTsFromSender(
+        IERC721 _nft,
+        uint256[] calldata nftIds,
+        PoolType _poolType
+    ) internal override {
+        address _assetRecipient = _getAssetRecipient(_poolType);
 
         // Take in NFTs from caller
         for (uint256 i = 0; i < nftIds.length; i++) {
@@ -48,10 +50,11 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
        @notice Returns all NFT IDs held by the pool
      */
     function getAllHeldIds() external view override returns (uint256[] memory) {
-        uint256 numNFTs = nft.balanceOf(address(this));
+        IERC721 _nft = nft();
+        uint256 numNFTs = _nft.balanceOf(address(this));
         uint256[] memory ids = new uint256[](numNFTs);
         for (uint256 i; i < numNFTs; i++) {
-            ids[i] = IERC721Enumerable(address(nft)).tokenOfOwnerByIndex(
+            ids[i] = IERC721Enumerable(address(_nft)).tokenOfOwnerByIndex(
                 address(this),
                 i
             );
@@ -69,12 +72,17 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         uint256,
         bytes memory b
     ) public virtual returns (bytes4) {
-        IERC721 _nft = nft;
+        (
+            LSSVMPairFactoryLike _factory,
+            ,
+            IERC721 _nft,
+
+        ) = _readImmutableParams();
         if (msg.sender == address(_nft)) {
             if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
                 // Use NFT for trade
                 require(
-                    factory.routerAllowed(LSSVMRouter(payable(operator))),
+                    _factory.routerAllowed(LSSVMRouter(payable(operator))),
                     "Not router"
                 );
                 nftBalanceAtTransferStart = _nft.balanceOf(address(this));
