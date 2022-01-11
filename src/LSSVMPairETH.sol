@@ -14,6 +14,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
 
     // Only called once by factory to initialize
     function initialize(
+        address _owner,
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactoryLike _factory,
@@ -22,8 +23,9 @@ abstract contract LSSVMPairETH is LSSVMPair {
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
-    ) external payable initializer {
+    ) external payable {
         __LSSVMPair_init(
+            _owner,
             _nft,
             _bondingCurve,
             _factory,

@@ -541,6 +541,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     ) internal {
         // initialize pair
         _pair.initialize(
+            msg.sender,
             _nft,
             _bondingCurve,
             this,
@@ -550,7 +551,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _fee,
             _spotPrice
         );
-        _pair.transferOwnership(msg.sender);
 
         // transfer initial ETH to pair
         payable(address(_pair)).safeTransferETH(msg.value);
@@ -580,6 +580,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     ) internal {
         // initialize pair
         _pair.initialize(
+            msg.sender,
             _token,
             _nft,
             _bondingCurve,
@@ -590,7 +591,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _fee,
             _spotPrice
         );
-        _pair.transferOwnership(msg.sender);
 
         // transfer initial tokens to pair
         _token.safeTransferFrom(

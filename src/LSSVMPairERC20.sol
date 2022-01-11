@@ -17,6 +17,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
 
     // Only called once by factory to initialize
     function initialize(
+        address _owner,
         ERC20 _token,
         IERC721 _nft,
         ICurve _bondingCurve,
@@ -26,8 +27,9 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
-    ) external payable initializer {
+    ) external payable {
         __LSSVMPair_init(
+            _owner,
             _nft,
             _bondingCurve,
             _factory,
