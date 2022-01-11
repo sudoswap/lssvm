@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {ICurve} from "./bonding-curves/ICurve.sol";
-import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
-abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
+import {Ownable} from "./lib/Ownable.sol";
+import {ICurve} from "./bonding-curves/ICurve.sol";
+import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
+
+abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     enum PoolType {
         TOKEN,
         NFT,
@@ -69,6 +70,7 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
     event PoolLocked(uint256 unlockTime);
 
     function __LSSVMPair_init(
+        address _owner,
         IERC721 _nft,
         ICurve _bondingCurve,
         LSSVMPairFactoryLike _factory,
@@ -77,8 +79,11 @@ abstract contract LSSVMPair is OwnableUpgradeable, ReentrancyGuard {
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
-    ) internal initializer {
-        __Ownable_init();
+    ) internal {
+        require(address(factory) == address(0), "Initialized");
+
+        __Ownable_init(_owner);
+
         if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
             require(_fee == 0, "Only Trade Pools can have nonzero fee");
 
