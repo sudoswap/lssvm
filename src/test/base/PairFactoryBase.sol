@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";

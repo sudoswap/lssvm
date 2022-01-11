@@ -20,7 +20,7 @@ import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {Hevm} from "../utils/Hevm.sol";
 import {Configurable} from "../mixins/Configurable.sol";
 
-abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
+abstract contract RouterRobustBase is DSTest, ERC721Holder, Configurable {
     IERC721Mintable test721;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
@@ -142,7 +142,7 @@ abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
         // the first swapPair costs 0.22 tokens
         // the second swapPair costs 0.44 tokens
         // the third swapPair costs 0.66 tokens
-        uint256 remainingValue = this.robustSwapTokensForAnyNFTs{
+        uint256 remainingValue = this.robustSwapTokenForAnyNFTs{
             value: modifyInputAmount(1.32 ether)
         }(
             router,
@@ -205,7 +205,7 @@ abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
         // the first swapPair costs 0.22 ETH
         // the second swapPair costs 0.44 ETH
         // the third swapPair costs 0.66 ETH
-        uint256 remainingValue = this.robustSwapTokensForSpecificNFTs{
+        uint256 remainingValue = this.robustSwapTokenForSpecificNFTs{
             value: modifyInputAmount(1.32 ether)
         }(
             router,
@@ -284,7 +284,7 @@ abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
         require(remainingValue == 0.9 ether, "Incorrect ETH received");
     }
 
-    function robustSwapTokensForAnyNFTs(
+    function robustSwapTokenForAnyNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapAny[] calldata swapList,
         uint256[] memory maxCostPerPairSwapPair,
@@ -294,7 +294,7 @@ abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
         uint256 inputAmount
     ) public payable virtual returns (uint256);
 
-    function robustSwapTokensForSpecificNFTs(
+    function robustSwapTokenForSpecificNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapSpecific[] calldata swapList,
         uint256[] memory maxCostPerPairSwapPair,
@@ -303,6 +303,4 @@ abstract contract RouterRobustBaseTest is DSTest, ERC721Holder, Configurable {
         uint256 deadline,
         uint256 inputAmount
     ) public payable virtual returns (uint256);
-
-    // function robustSwapTokensForSpecificNFTs() public payable virtual;
 }

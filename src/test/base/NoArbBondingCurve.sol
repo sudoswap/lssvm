@@ -17,7 +17,6 @@ import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
 import {Test721} from "../../mocks/Test721.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import {Hevm} from "../utils/Hevm.sol";
 
 abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 

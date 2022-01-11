@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
-import {RouterRobustBaseTest} from "./RouterRobustBase.sol";
+import {RouterRobustBase} from "./RouterRobustBase.sol";
 
-abstract contract RouterRobustBaseETH is RouterRobustBaseTest {
-    function robustSwapTokensForAnyNFTs(
+abstract contract RouterRobustBaseETH is RouterRobustBase {
+
+    function robustSwapTokenForAnyNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapAny[] calldata swapList,
         uint256[] memory maxCostPerPairSwap,
@@ -24,7 +25,7 @@ abstract contract RouterRobustBaseETH is RouterRobustBaseTest {
             );
     }
 
-    function robustSwapTokensForSpecificNFTs(
+    function robustSwapTokenForSpecificNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapSpecific[] calldata swapList,
         uint256[] memory maxCostPerPairSwap,

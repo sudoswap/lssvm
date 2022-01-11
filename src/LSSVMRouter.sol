@@ -378,7 +378,7 @@ contract LSSVMRouter {
         @notice Swaps ERC20 tokens to NFTs and then back to the token again, with the goal of arbitraging between pools
         @param trade The struct containing all ERC20-to-NFT swaps and NFT-to-ERC20 swaps.
         @param inputAmount The amount of ERC20 tokens to add to the ERC20-to-NFT swaps
-        @param minProfit The minimum accpetable amount of ETH profit
+        @param minProfit The minimum accpetable amount of ERC20 profit
         @param tokenRecipient The address that will receive the token output
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
