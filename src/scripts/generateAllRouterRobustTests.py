@@ -32,4 +32,4 @@ def generateAllTests():
 				writeToFiles(file_path, content)
 
 generateAllTests()
-print("RobustRouter Tests Generated")
+print("RouterRobust Tests Generated")

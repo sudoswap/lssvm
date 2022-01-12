@@ -27,6 +27,7 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
     LSSVMPair pair;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
+    uint256 numInitialNFTs = 10;
 
     function setUp() public {
         bondingCurve = setupCurve();
@@ -54,12 +55,13 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
         // Setup pair parameters
         uint256 delta = 0 ether;
         uint256 spotPrice = 1 ether;
-        uint256 numInitialNFTs = 10;
         uint256[] memory idList = new uint256[](numInitialNFTs);
         for (uint256 i = 1; i <= numInitialNFTs; i++) {
             test721.mint(address(this), i);
             idList[i - 1] = i;
         }
+
+        // Create a pair with a spot price of 1 eth, 10 NFTs, and no price increases
         pair = this.setupPair{value: modifyInputAmount(10 ether)}(
             factory,
             test721,
@@ -71,7 +73,7 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
             address(router)
         );
 
-        // mint extra NFTs to this contract
+        // mint extra NFTs to this contract (i.e. to be held by the caller)
         for (uint256 i = numInitialNFTs + 1; i <= 2 * numInitialNFTs; i++) {
             test721.mint(address(this), i);
         }
@@ -81,13 +83,15 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
         LSSVMRouter.PairSwapAny[]
             memory swapList = new LSSVMRouter.PairSwapAny[](1);
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 1});
-        this.swapTokenForAnyNFTs{value: modifyInputAmount(1.11 ether)}(
+        uint256 inputAmount;
+        (, , inputAmount, ) = pair.getBuyNFTQuote(1);
+        this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
             payable(address(this)),
             address(this),
             block.timestamp,
-            1.11 ether
+            inputAmount
         );
     }
 
@@ -100,18 +104,19 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
             pair: pair,
             nftIds: nftIds
         });
-        this.swapTokenForSpecificNFTs{value: modifyInputAmount(1.11 ether)}(
+        uint256 inputAmount;
+        (, , inputAmount, ) = pair.getBuyNFTQuote(1);
+        this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
             payable(address(this)),
             address(this),
             block.timestamp,
-            1.11 ether
+            inputAmount
         );
     }
 
     function test_swapSingleNFTForToken() public {
-        uint256 numInitialNFTs = 10;
         uint256[] memory nftIds = new uint256[](1);
         nftIds[0] = numInitialNFTs + 1;
         LSSVMRouter.PairSwapSpecific[]
@@ -128,92 +133,98 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
         );
     }
 
-    // function test_swapSingleNFTForAnyNFT() public {
-    //     uint256 numInitialNFTs = 10;
+    function test_swapSingleNFTForAnyNFT() public {
+        // construct NFT to Token swap list
+        uint256[] memory sellNFTIds = new uint256[](1);
+        sellNFTIds[0] = numInitialNFTs + 1;
+        LSSVMRouter.PairSwapSpecific[]
+            memory nftToTokenSwapList = new LSSVMRouter.PairSwapSpecific[](1);
+        nftToTokenSwapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: sellNFTIds
+        });
 
-    //     // construct NFT to ETH swap list
-    //     uint256[] memory sellNFTIds = new uint256[](1);
-    //     sellNFTIds[0] = numInitialNFTs + 1;
-    //     LSSVMRouter.PairSwapSpecific[]
-    //         memory nftToETHSwapList = new LSSVMRouter.PairSwapSpecific[](1);
-    //     nftToETHSwapList[0] = LSSVMRouter.PairSwapSpecific({
-    //         pair: pair,
-    //         nftIds: sellNFTIds
-    //     });
+        // construct Token to NFT swap list
+        LSSVMRouter.PairSwapAny[]
+            memory tokenToNFTSwapList = new LSSVMRouter.PairSwapAny[](1);
+        tokenToNFTSwapList[0] = LSSVMRouter.PairSwapAny({
+            pair: pair,
+            numItems: 1
+        });
 
-    //     // construct ETH to NFT swap list
-    //     LSSVMRouter.PairSwapAny[]
-    //         memory ethToNFTSwapList = new LSSVMRouter.PairSwapAny[](1);
-    //     ethToNFTSwapList[0] = LSSVMRouter.PairSwapAny({
-    //         pair: pair,
-    //         numItems: 1
-    //     });
+        // NOTE: We send some tokens (more than enough) to cover the protocol fee needed
+        uint256 inputAmount = 0.01 ether;
+        this.swapNFTsForAnyNFTsThroughToken{value: modifyInputAmount(inputAmount)}(
+            router, 
+            LSSVMRouter.NFTsForAnyNFTsTrade({
+                nftToTokenTrades: nftToTokenSwapList,
+                tokenToNFTTrades: tokenToNFTSwapList
+            }), 
+            0, 
+            payable(address(this)),
+            address(this),
+            block.timestamp, 
+            inputAmount
+        );
+    }
 
-    //     router.swapNFTsForAnyNFTsThroughETH{value: 1 ether}(
-    //         LSSVMRouter.NFTsForAnyNFTsTrade({
-    //             nftToTokenTrades: nftToETHSwapList,
-    //             tokenToNFTTrades: ethToNFTSwapList
-    //         }),
-    //         0,
-    //         payable(address(this)),
-    //         address(this),
-    //         block.timestamp
-    //     );
-    // }
+    function test_swapSingleNFTForSpecificNFT() public {
 
-    // function test_swapSingleNFTForSpecificNFT() public {
-    //     uint256 numInitialNFTs = 10;
+        // construct NFT to token swap list
+        uint256[] memory sellNFTIds = new uint256[](1);
+        sellNFTIds[0] = numInitialNFTs + 1;
+        LSSVMRouter.PairSwapSpecific[]
+            memory nftToTokenSwapList = new LSSVMRouter.PairSwapSpecific[](1);
+        nftToTokenSwapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: sellNFTIds
+        });
 
-    //     // construct NFT to ETH swap list
-    //     uint256[] memory sellNFTIds = new uint256[](1);
-    //     sellNFTIds[0] = numInitialNFTs + 1;
-    //     LSSVMRouter.PairSwapSpecific[]
-    //         memory nftToETHSwapList = new LSSVMRouter.PairSwapSpecific[](1);
-    //     nftToETHSwapList[0] = LSSVMRouter.PairSwapSpecific({
-    //         pair: pair,
-    //         nftIds: sellNFTIds
-    //     });
+        // construct token to NFT swap list
+        uint256[] memory buyNFTIds = new uint256[](1);
+        buyNFTIds[0] = 1;
+        LSSVMRouter.PairSwapSpecific[]
+            memory tokenToNFTSwapList = new LSSVMRouter.PairSwapSpecific[](1);
+        tokenToNFTSwapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: buyNFTIds
+        });
 
-    //     // construct ETH to NFT swap list
-    //     uint256[] memory buyNFTIds = new uint256[](1);
-    //     buyNFTIds[0] = 1;
-    //     LSSVMRouter.PairSwapSpecific[]
-    //         memory ethToNFTSwapList = new LSSVMRouter.PairSwapSpecific[](1);
-    //     ethToNFTSwapList[0] = LSSVMRouter.PairSwapSpecific({
-    //         pair: pair,
-    //         nftIds: buyNFTIds
-    //     });
-
-    //     router.swapNFTsForSpecificNFTsThroughETH{value: 1 ether}(
-    //         LSSVMRouter.NFTsForSpecificNFTsTrade({
-    //             nftToTokenTrades: nftToETHSwapList,
-    //             tokenToNFTTrades: ethToNFTSwapList
-    //         }),
-    //         0,
-    //         payable(address(this)),
-    //         address(this),
-    //         block.timestamp
-    //     );
-    // }
+        // NOTE: We send some tokens (more than enough) to cover the protocol fee 
+        uint256 inputAmount = 0.01 ether;
+        this.swapNFTsForSpecificNFTsThroughToken{value: modifyInputAmount(inputAmount)}(
+            router, 
+            LSSVMRouter.NFTsForSpecificNFTsTrade({
+                nftToTokenTrades: nftToTokenSwapList,
+                tokenToNFTTrades: tokenToNFTSwapList
+            }), 
+            0, 
+            payable(address(this)),
+            address(this),
+            block.timestamp, 
+            inputAmount
+        );
+    }
 
     function test_swapTokenfor5NFTs() public {
         LSSVMRouter.PairSwapAny[]
             memory swapList = new LSSVMRouter.PairSwapAny[](1);
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 5});
         uint256 startBalance = test721.balanceOf(address(this));
-        this.swapTokenForAnyNFTs(
+        uint256 inputAmount;
+        (, , inputAmount, ) = pair.getBuyNFTQuote(5);
+        this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router, 
             swapList, 
             payable(address(this)), 
             address(this), 
             block.timestamp, 
-            7 ether);
+            inputAmount);
         uint256 endBalance = test721.balanceOf(address(this));
         require((endBalance - startBalance) == 5, "Too few NFTs acquired");
     }
 
     function test_swap5NFTsForToken() public {
-        uint256 numInitialNFTs = 10;
         uint256[] memory nftIds = new uint256[](5);
         for (uint256 i = 0; i < 5; i++) {
             nftIds[i] = numInitialNFTs + i + 1;
@@ -244,6 +255,26 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
     function swapTokenForSpecificNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapSpecific[] calldata swapList,
+        address payable ethRecipient,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable virtual returns (uint256);
+
+    function swapNFTsForAnyNFTsThroughToken(
+        LSSVMRouter router,
+        LSSVMRouter.NFTsForAnyNFTsTrade calldata trade,
+        uint256 minOutput,
+        address payable ethRecipient,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable virtual returns (uint256);
+
+    function swapNFTsForSpecificNFTsThroughToken(
+        LSSVMRouter router,
+        LSSVMRouter.NFTsForSpecificNFTsTrade calldata trade,
+        uint256 minOutput,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,

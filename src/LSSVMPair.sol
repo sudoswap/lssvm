@@ -52,8 +52,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event DeltaUpdated(uint256 newDelta);
     event FeeUpdated(uint256 newFee);
 
-    event log_bytes(bytes);
-
     function __LSSVMPair_init(
         address _owner,
         address payable _assetRecipient,
@@ -63,10 +61,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     ) internal {
         require(owner() == address(0), "Initialized");
         __Ownable_init(_owner);
-
-        bytes memory raw = msg.data[msg.data.length -
-            IMMUTABLE_PARAMS_LENGTH +
-            20:msg.data.length - IMMUTABLE_PARAMS_LENGTH + 40];
 
         ICurve _bondingCurve = bondingCurve();
         PoolType _poolType = poolType();
