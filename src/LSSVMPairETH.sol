@@ -15,38 +15,25 @@ abstract contract LSSVMPairETH is LSSVMPair {
     // Only called once by factory to initialize
     function initialize(
         address _owner,
-        IERC721 _nft,
-        ICurve _bondingCurve,
-        LSSVMPairFactoryLike _factory,
         address payable _assetRecipient,
-        PoolType _poolType,
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
     ) external payable {
-        __LSSVMPair_init(
-            _owner,
-            _nft,
-            _bondingCurve,
-            _factory,
-            _assetRecipient,
-            _poolType,
-            _delta,
-            _fee,
-            _spotPrice
-        );
+        __LSSVMPair_init(_owner, _assetRecipient, _delta, _fee, _spotPrice);
     }
 
     function _validateTokenInput(
         uint256 inputAmount,
         bool, /*isRouter*/
         address, /*routerCaller*/
-        LSSVMPairFactoryLike /*_factory*/
+        LSSVMPairFactoryLike, /*_factory*/
+        PoolType _poolType
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
-        address payable _assetRecipient = _getAssetRecipient();
+        address payable _assetRecipient = _getAssetRecipient(_poolType);
         if (_assetRecipient != address(this)) {
             _assetRecipient.safeTransferETH(inputAmount);
         }

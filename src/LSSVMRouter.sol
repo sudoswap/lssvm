@@ -445,8 +445,6 @@ contract LSSVMRouter {
 
             // If within our maxCost, proceed
             if (pairCost <= maxCostPerPairSwap[i]) {
-                _verifyPairToken(swapList[i].pair, true);
-
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
                 remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
@@ -488,8 +486,6 @@ contract LSSVMRouter {
 
             // If within our maxCost, proceed
             if (pairCost <= maxCostPerPairSwapPair[i]) {
-                _verifyPairToken(swapList[i].pair, true);
-
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
                 remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
@@ -523,8 +519,6 @@ contract LSSVMRouter {
 
             // If within our maxCost, proceed
             if (pairCost <= maxCostPerPairSwap[i]) {
-                _verifyPairToken(swapList[i].pair, false);
-
                 remainingValue -= swapList[i].pair.swapTokenForAnyNFTs(
                     swapList[i].numItems,
                     nftRecipient,
@@ -559,8 +553,6 @@ contract LSSVMRouter {
 
             // If within our maxCost, proceed
             if (pairCost <= maxCostPerPairSwap[i]) {
-                _verifyPairToken(swapList[i].pair, false);
-
                 remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs(
                     swapList[i].nftIds,
                     nftRecipient,
@@ -661,32 +653,6 @@ contract LSSVMRouter {
         require(block.timestamp <= deadline, "Deadline passed");
     }
 
-    /**
-        @dev Verifies that a pair is an ETH pair or an ERC20 pair.
-        If the pair is not of the expected type, the call reverts.
-        @param pair The pair to verify
-        @param shouldBeETH True if the pair should be an ETH pair, false otherwise
-     */
-    function _verifyPairToken(LSSVMPair pair, bool shouldBeETH) internal pure {
-        LSSVMPairFactoryLike.PairVariant variant = pair.pairVariant();
-        if (shouldBeETH) {
-            require(
-                variant ==
-                    LSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ETH ||
-                    variant == LSSVMPairFactoryLike.PairVariant.ENUMERABLE_ETH,
-                "Not ETH pair"
-            );
-        } else {
-            require(
-                variant ==
-                    LSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20 ||
-                    variant ==
-                    LSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20,
-                "Not ERC20 pair"
-            );
-        }
-    }
-
     function _swapETHForAnyNFTs(
         PairSwapAny[] calldata swapList,
         uint256 inputAmount,
@@ -698,9 +664,6 @@ contract LSSVMRouter {
         // Do swaps
         uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Verify pair is an ETH pair
-            _verifyPairToken(swapList[i].pair, true);
-
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
@@ -729,9 +692,6 @@ contract LSSVMRouter {
         // Do swaps
         uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Verify pair is an ETH pair
-            _verifyPairToken(swapList[i].pair, true);
-
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].nftIds.length
             );
@@ -758,9 +718,6 @@ contract LSSVMRouter {
 
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Verify pair is an ERC20 pair
-            _verifyPairToken(swapList[i].pair, false);
-
             // Tokens are transferred in by the pair calling router.pairTransferERC20From
             // Total tokens taken from sender cannot exceed inputAmount
             // because otherwise the deduction from remainingValue will fail
@@ -782,9 +739,6 @@ contract LSSVMRouter {
 
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Verify pair is an ERC20 pair
-            _verifyPairToken(swapList[i].pair, false);
-
             // Tokens are transferred in by the pair calling router.pairTransferERC20From
             // Total tokens taken from sender cannot exceed inputAmount
             // because otherwise the deduction from remainingValue will fail
