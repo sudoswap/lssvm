@@ -32,13 +32,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        LSSVMPairFactoryLike _factory,
-        PoolType _poolType
+        LSSVMPairFactoryLike _factory
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
         ERC20 _token = token;
-        address _assetRecipient = _getAssetRecipient(_poolType);
+        address _assetRecipient = _getAssetRecipient();
 
         if (isRouter) {
             // Verify if router is allowed

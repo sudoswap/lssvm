@@ -33,12 +33,11 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         }
     }
 
-    function _takeNFTsFromSender(
-        IERC721 _nft,
-        uint256[] calldata nftIds,
-        PoolType _poolType
-    ) internal override {
-        address _assetRecipient = _getAssetRecipient(_poolType);
+    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
+        internal
+        override
+    {
+        address _assetRecipient = _getAssetRecipient();
 
         // Take in NFTs from caller
         for (uint256 i = 0; i < nftIds.length; i++) {
@@ -72,12 +71,8 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         uint256,
         bytes memory b
     ) public virtual returns (bytes4) {
-        (
-            LSSVMPairFactoryLike _factory,
-            ,
-            IERC721 _nft,
-
-        ) = _readImmutableParams();
+        LSSVMPairFactoryLike _factory = factory();
+        IERC721 _nft = nft();
         if (msg.sender == address(_nft)) {
             if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
                 // Use NFT for trade
