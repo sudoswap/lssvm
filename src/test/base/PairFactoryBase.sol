@@ -17,6 +17,8 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {Configurable} from "../mixins/Configurable.sol";
 
 abstract contract PairFactoryBase is DSTest, Configurable {
+    
+    uint256 numItems = 1;
     uint256[] idList;
     IERC721 test721;
     ICurve bondingCurve;
@@ -41,21 +43,16 @@ abstract contract PairFactoryBase is DSTest, Configurable {
         );
         factory.setBondingCurveAllowed(bondingCurve, true);
         test721.setApprovalForAll(address(factory), true);
-    }
-
-    function test_createPair() public {
-        
-        delete idList;
-
-        uint256 delta = 1.1 ether;
-        uint256 spotPrice = 1 ether;
-        uint256 numItems = 10;
-        uint256 tokenAmount = 0.1 ether;
-
         for (uint256 i = 1; i <= numItems; i++) {
             IERC721Mintable(address(test721)).mint(address(this), i);
             idList.push(i);
         }
+    }
+
+    function test_createPair() public {
+        uint256 delta = 1.1 ether;
+        uint256 spotPrice = 1 ether;
+        uint256 tokenAmount = 0.1 ether;
         LSSVMPair pair = this.setupPair{value: modifyInputAmount(tokenAmount)}(
             factory,
             test721,
@@ -70,6 +67,7 @@ abstract contract PairFactoryBase is DSTest, Configurable {
         // verify pair variables
         assertEq(address(pair.nft()), address(test721));
         assertEq(address(pair.bondingCurve()), address(bondingCurve));
+        assertEq(uint(pair.poolType()), uint(LSSVMPair.PoolType.TRADE));
         assertEq(pair.spotPrice(), spotPrice);
         assertEq(pair.owner(), address(this));
         assertEq(pair.fee(), 0);
@@ -77,8 +75,40 @@ abstract contract PairFactoryBase is DSTest, Configurable {
         assertEq(getBalance(address(pair)), tokenAmount);
 
         // verify NFT ownership
-        for (uint256 i = 1; i <= numItems; i++) {
-            assertEq(test721.ownerOf(i), address(pair));
-        }
+        assertEq(test721.ownerOf(1), address(pair));
+
+        // change pair variables, verify the new value is correct
+
+        // changing spot works as expected
+        // changing delta works as expected
+        // changing fee works as expected
+        // (reverts if greater than max fee)
+        // changing asset recipient works as expected
+        // withdrawing tokens (erc20/721/1155) works as expected
+        // withdrawing ETH works as expected
+        // need to mock 1155
+        // arbitrary call (just call mint on Test721) works as expected
+
+        // revoking ownership works as expected
+        // everything above now fails as expected 
+
+        // ensure that calling init again will fail
+    }
+
+    function test_createPairBasic() public {
+        uint256 delta = 1.1 ether;
+        uint256 spotPrice = 1 ether;
+        uint256 tokenAmount = 0.1 ether;
+        uint256[] memory empty;
+        this.setupPair{value: modifyInputAmount(tokenAmount)}(
+            factory,
+            test721,
+            bondingCurve,
+            delta,
+            spotPrice,
+            empty,
+            tokenAmount,
+            address(0)
+        );
     }
 }
