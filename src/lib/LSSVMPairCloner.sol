@@ -110,7 +110,7 @@ library LSSVMPairCloner {
             let ptr := mload(0x40)
             mstore(
                 ptr,
-                hex"36_3d_3d_37_60_73_60_36_36_39_3d_3d_3d_36_60_73_01_3d_73_00_00_00_00_00_00_00_00_00_00_00_00_00"
+                hex"36_3d_3d_37_60_3d_60_36_36_39_3d_3d_3d_36_60_3d_01_3d_73_00_00_00_00_00_00_00_00_00_00_00_00_00"
             )
             mstore(add(ptr, 0x13), shl(0x60, implementation))
             mstore(
