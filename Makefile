@@ -23,7 +23,7 @@ clean  :; forge clean
 lint   :; yarn run lintm
 estimate :; ./scripts/estimate-gas.sh ${contract}
 size   :; ./scripts/contract-size.sh ${contract}
-snapshot :; forge snapshot
+snapshot :; dapp snapshot
 test-deploy :; ./scripts/test-deploy.sh
 
 # Deployment helpers
