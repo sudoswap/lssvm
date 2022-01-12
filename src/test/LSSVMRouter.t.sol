@@ -116,7 +116,6 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 1});
         router.swapETHForAnyNFTs{value: 1.11 ether}(
             swapList,
-            2 ether,
             payable(address(this)),
             address(this),
             block.timestamp
@@ -134,7 +133,6 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         });
         router.swapETHForSpecificNFTs{value: 1.11 ether}(
             swapList,
-            2 ether,
             payable(address(this)),
             address(this),
             block.timestamp
@@ -235,7 +233,6 @@ contract LSSVMRouterTest is DSTest, ERC721Holder {
         uint256 startBalance = test721.balanceOf(address(this));
         router.swapETHForAnyNFTs{value: 7 ether}(
             swapList,
-            7 ether,
             payable(address(this)),
             address(this),
             block.timestamp
