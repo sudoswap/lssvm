@@ -9,21 +9,23 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
+import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {Test20} from "../../mocks/Test20.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {Configurable} from "./Configurable.sol";
+import {RouterCaller} from "./RouterCaller.sol";
 
-abstract contract UsingERC20 is Configurable {
+abstract contract UsingERC20 is Configurable, RouterCaller {
     using SafeTransferLib for ERC20;
     ERC20 test20;
 
-    function modifyInputAmount(uint256) public override pure returns (uint256) {
-      return 0;
+    function modifyInputAmount(uint256) public pure override returns (uint256) {
+        return 0;
     }
 
-    function getBalance(address a) public override view returns (uint256) {
+    function getBalance(address a) public view override returns (uint256) {
         return test20.balanceOf(a);
     }
 
@@ -32,15 +34,15 @@ abstract contract UsingERC20 is Configurable {
     }
 
     function setupPair(
-        LSSVMPairFactory factory, 
-        IERC721 nft, 
-        ICurve bondingCurve, 
-        uint256 delta, 
-        uint256 spotPrice, 
-        uint256[] memory _idList, 
+        LSSVMPairFactory factory,
+        IERC721 nft,
+        ICurve bondingCurve,
+        uint256 delta,
+        uint256 spotPrice,
+        uint256[] memory _idList,
         uint256 initialTokenBalance,
-        address routerAddress) public payable override returns (LSSVMPair) {
-
+        address routerAddress
+    ) public payable override returns (LSSVMPair) {
         // create ERC20 token if not already deployed
         if (address(test20) == address(0)) {
             test20 = new Test20();
@@ -76,5 +78,115 @@ abstract contract UsingERC20 is Configurable {
     function withdrawTokens(LSSVMPair pair) public override {
         uint256 total = test20.balanceOf(address(pair));
         LSSVMPairERC20(address(pair)).withdrawERC20(address(test20), total);
+    }
+
+    function swapTokenForAnyNFTs(
+        LSSVMRouter router,
+        LSSVMRouter.PairSwapAny[] calldata swapList,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable override returns (uint256) {
+        return
+            router.swapERC20ForAnyNFTs(
+                swapList,
+                inputAmount,
+                nftRecipient,
+                deadline
+            );
+    }
+
+    function swapTokenForSpecificNFTs(
+        LSSVMRouter router,
+        LSSVMRouter.PairSwapSpecific[] calldata swapList,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable override returns (uint256) {
+        return
+            router.swapERC20ForSpecificNFTs(
+                swapList,
+                inputAmount,
+                nftRecipient,
+                deadline
+            );
+    }
+
+    function swapNFTsForAnyNFTsThroughToken(
+        LSSVMRouter router,
+        LSSVMRouter.NFTsForAnyNFTsTrade calldata trade,
+        uint256 minOutput,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable override returns (uint256) {
+        return
+            router.swapNFTsForAnyNFTsThroughERC20(
+                trade,
+                inputAmount,
+                minOutput,
+                nftRecipient,
+                deadline
+            );
+    }
+
+    function swapNFTsForSpecificNFTsThroughToken(
+        LSSVMRouter router,
+        LSSVMRouter.NFTsForSpecificNFTsTrade calldata trade,
+        uint256 minOutput,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable override returns (uint256) {
+        return
+            router.swapNFTsForSpecificNFTsThroughERC20(
+                trade,
+                inputAmount,
+                minOutput,
+                nftRecipient,
+                deadline
+            );
+    }
+
+    function robustSwapTokenForAnyNFTs(
+        LSSVMRouter router,
+        LSSVMRouter.PairSwapAny[] calldata swapList,
+        uint256[] memory maxCostPerPairSwap,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable override returns (uint256) {
+        return
+            router.robustSwapERC20ForAnyNFTs(
+                swapList,
+                inputAmount,
+                maxCostPerPairSwap,
+                nftRecipient,
+                deadline
+            );
+    }
+
+    function robustSwapTokenForSpecificNFTs(
+        LSSVMRouter router,
+        LSSVMRouter.PairSwapSpecific[] calldata swapList,
+        uint256[] memory maxCostPerPairSwap,
+        address payable,
+        address nftRecipient,
+        uint256 deadline,
+        uint256 inputAmount
+    ) public payable override returns (uint256) {
+        return
+            router.robustSwapERC20ForSpecificNFTs(
+                swapList,
+                inputAmount,
+                maxCostPerPairSwap,
+                nftRecipient,
+                deadline
+            );
     }
 }

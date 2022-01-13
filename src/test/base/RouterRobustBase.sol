@@ -19,8 +19,14 @@ import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {Hevm} from "../utils/Hevm.sol";
 import {Configurable} from "../mixins/Configurable.sol";
+import {RouterCaller} from "../mixins/RouterCaller.sol";
 
-abstract contract RouterRobustBase is DSTest, ERC721Holder, Configurable {
+abstract contract RouterRobustBase is
+    DSTest,
+    ERC721Holder,
+    Configurable,
+    RouterCaller
+{
     IERC721Mintable test721;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
@@ -283,24 +289,4 @@ abstract contract RouterRobustBase is DSTest, ERC721Holder, Configurable {
         );
         require(remainingValue == 0.9 ether, "Incorrect ETH received");
     }
-
-    function robustSwapTokenForAnyNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.PairSwapAny[] calldata swapList,
-        uint256[] memory maxCostPerPairSwapPair,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline,
-        uint256 inputAmount
-    ) public payable virtual returns (uint256);
-
-    function robustSwapTokenForSpecificNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.PairSwapSpecific[] calldata swapList,
-        uint256[] memory maxCostPerPairSwapPair,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline,
-        uint256 inputAmount
-    ) public payable virtual returns (uint256);
 }
