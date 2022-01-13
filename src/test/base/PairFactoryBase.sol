@@ -3,11 +3,8 @@ pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import {Test1155} from "../../mocks/Test1155.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
-import {IERC1155Mintable} from "../interfaces/IERC1155Mintable.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
@@ -19,19 +16,13 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {Configurable} from "../mixins/Configurable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
-abstract contract PairFactoryBase is
-    DSTest,
-    ERC721Holder,
-    ERC1155Holder,
-    Configurable
-{
+abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
     uint256 delta = 1.1 ether;
     uint256 spotPrice = 1 ether;
     uint256 tokenAmount = 0.1 ether;
     uint256 numItems = 2;
     uint256[] idList;
     IERC721 test721;
-    IERC1155 test1155;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
     address payable constant feeRecipient = payable(address(69));
