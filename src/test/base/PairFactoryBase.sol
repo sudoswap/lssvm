@@ -72,6 +72,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_createPair_notOwner_rescueERC721ERC20() public {
+        pair.renounceOwnership();
         pair.withdrawERC721(address(test721), idList);
         pair.withdrawERC20(address(testERC20), 1 ether);
     }
