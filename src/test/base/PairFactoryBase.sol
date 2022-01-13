@@ -55,7 +55,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             idList.push(i);
         }
         testERC20 = IERC20(address(new Test20()));
-        IMintable(address(testERC20)).mint(address(pair), 1 ether);
+        IMintable(address(testERC20)).mint(address(pair), 1000 ether);
 
         pair = this.setupPair{value: modifyInputAmount(tokenAmount)}(
             factory,
@@ -69,7 +69,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
         );
     }
 
-    function test_createPair_owner_rescueERC721ERC20ERC1155() public {
+    function test_createPair_owner_rescueERC721ERC20() public {
         pair.withdrawERC721(address(test721), idList);
         pair.withdrawERC20(address(testERC20), 1 ether);
     }
@@ -106,14 +106,8 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
         // // changing fee works as expected
         pair.changeFee(0.2 ether);
         assertEq(pair.fee(), 0.2 ether);
-        // (reverts if greater than max fee)
-        // changing asset recipient works as expected
-
-        // withdrawing tokens (erc20/721/1155) works as expected
 
         // withdrawing ETH works as expected
-
-        // need to mock 1155
 
         // arbitrary call (just call mint on Test721) works as expected
     }
