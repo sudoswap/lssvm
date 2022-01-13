@@ -531,34 +531,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function withdrawERC20(address a, uint256 amount) external virtual;
 
     /**
-        @notice Rescues ERC1155 tokens from the pair to the owner. Only callable by the owner.
-        @param a The address of the token to transfer
-        @param ids The list of token IDs to send to the owner
-        @param amounts The list of amounts of tokens to send to the owner
-        @param data The raw data that the token might use in transfers
-     */
-    function withdrawERC1155(
-        //Red
-        address a,
-        uint256[] calldata ids,
-        uint256[] calldata amounts,
-        bytes calldata data
-    ) external onlyOwner {
-        IERC1155(a).safeBatchTransferFrom(
-            address(this),
-            msg.sender,
-            ids,
-            amounts,
-            data
-        );
-    }
-
-    /**
         @notice Updates the selling spot price. Only callable by the owner.
         @param newSpotPrice The new selling spot price value, in Token
      */
     function changeSpotPrice(uint256 newSpotPrice) external onlyOwner {
-        //Red
         ICurve _bondingCurve = bondingCurve();
         require(
             _bondingCurve.validateSpotPrice(newSpotPrice),
@@ -573,7 +549,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param newDelta The new delta parameter
      */
     function changeDelta(uint256 newDelta) external onlyOwner {
-        //Red
         ICurve _bondingCurve = bondingCurve();
         require(
             _bondingCurve.validateDelta(newDelta),
@@ -590,7 +565,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param newFee The new LP fee percentage, 18 decimals
      */
     function changeFee(uint256 newFee) external onlyOwner {
-        //Red
         PoolType _poolType = poolType();
         require(_poolType == PoolType.TRADE, "Only for Trade pools");
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");

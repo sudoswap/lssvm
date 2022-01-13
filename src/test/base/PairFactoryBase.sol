@@ -19,11 +19,16 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {Configurable} from "../mixins/Configurable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
-abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
+abstract contract PairFactoryBase is
+    DSTest,
+    ERC721Holder,
+    ERC1155Holder,
+    Configurable
+{
     uint256 delta = 1.1 ether;
     uint256 spotPrice = 1 ether;
     uint256 tokenAmount = 0.1 ether;
-    uint256 numItems = 1;
+    uint256 numItems = 2;
     uint256[] idList;
     IERC721 test721;
     IERC1155 test1155;
@@ -54,9 +59,6 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             IERC721Mintable(address(test721)).mint(address(this), i);
             idList.push(i);
         }
-
-        test1155 = new Test1155();
-
         pair = this.setupPair{value: modifyInputAmount(tokenAmount)}(
             factory,
             test721,
@@ -71,8 +73,6 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
 
     function test_createPair_owner_rescueERC721ERC20ERC1155() public {
         pair.withdrawERC721(address(test721), idList);
-
-        //1155
     }
 
     function testFail_createPair_tradePool_owner_changeAssetRecipient() public {
