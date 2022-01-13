@@ -54,8 +54,6 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             IERC721Mintable(address(test721)).mint(address(this), i);
             idList.push(i);
         }
-        testERC20 = IERC20(address(new Test20()));
-        IMintable(address(testERC20)).mint(address(pair), 1000 ether);
 
         pair = this.setupPair{value: modifyInputAmount(tokenAmount)}(
             factory,
@@ -67,6 +65,9 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             tokenAmount,
             address(0)
         );
+
+        testERC20 = IERC20(address(new Test20()));
+        IMintable(address(testERC20)).mint(address(pair), 1 ether);
     }
 
     function test_createPair_owner_rescueERC721ERC20() public {
