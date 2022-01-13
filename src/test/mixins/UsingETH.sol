@@ -34,6 +34,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
         ICurve bondingCurve,
         uint256 delta,
         uint256 spotPrice,
+        LSSVMPair.PoolType poolType,
         uint256[] memory _idList,
         uint256,
         address
@@ -42,7 +43,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
             nft,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            poolType,
             delta,
             0,
             spotPrice,

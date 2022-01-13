@@ -61,6 +61,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             bondingCurve,
             delta,
             spotPrice,
+            LSSVMPair.PoolType.TRADE,
             idList,
             tokenAmount,
             address(0)
@@ -68,6 +69,11 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
 
         testERC20 = IERC20(address(new Test20()));
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
+    }
+
+    function testFail_createPair_notOwner_rescueERC721ERC20() public {
+        pair.withdrawERC721(address(test721), idList);
+        pair.withdrawERC20(address(testERC20), 1 ether);
     }
 
     function test_createPair_owner_rescueERC721ERC20() public {
@@ -136,6 +142,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             bondingCurve,
             delta,
             spotPrice,
+            LSSVMPair.PoolType.TRADE,
             empty,
             tokenAmount,
             address(0)

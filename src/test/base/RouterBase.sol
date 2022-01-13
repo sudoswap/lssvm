@@ -73,6 +73,7 @@ abstract contract RouterBase is
             bondingCurve,
             modifyDelta(uint64(delta)),
             spotPrice,
+            LSSVMPair.PoolType.TRADE,
             idList,
             10 ether,
             address(router)

@@ -8,15 +8,15 @@ import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 
 abstract contract Configurable {
-
     function getBalance(address a) public virtual returns (uint256);
 
     function setupPair(
         LSSVMPairFactory factory,
         IERC721 nft,
         ICurve bondingCurve,
-        uint256 delta, 
-        uint256 spotPrice, 
+        uint256 delta,
+        uint256 spotPrice,
+        LSSVMPair.PoolType poolType,
         uint256[] memory _idList,
         uint256 initialTokenBalance,
         address routerAddress /* Yes, this is weird, but due to how we encapsulate state, this is an easy way to set approval for the router.*/
@@ -26,7 +26,10 @@ abstract contract Configurable {
 
     function setup721() public virtual returns (IERC721Mintable);
 
-    function modifyInputAmount(uint256 inputAmount) public virtual returns (uint256);
+    function modifyInputAmount(uint256 inputAmount)
+        public
+        virtual
+        returns (uint256);
 
     function modifyDelta(uint64 delta) public virtual returns (uint64);
 

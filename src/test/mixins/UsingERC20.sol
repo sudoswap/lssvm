@@ -39,6 +39,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         ICurve bondingCurve,
         uint256 delta,
         uint256 spotPrice,
+        LSSVMPair.PoolType poolType,
         uint256[] memory _idList,
         uint256 initialTokenBalance,
         address routerAddress
@@ -61,7 +62,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
             nft,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            poolType,
             delta,
             0,
             spotPrice,

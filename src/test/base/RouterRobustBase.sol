@@ -79,6 +79,7 @@ abstract contract RouterRobustBase is
             bondingCurve,
             modifyDelta(0),
             0.1 ether,
+            LSSVMPair.PoolType.TRADE,
             empty,
             10 ether,
             address(router)
@@ -95,6 +96,7 @@ abstract contract RouterRobustBase is
             bondingCurve,
             modifyDelta(0),
             0.2 ether,
+            LSSVMPair.PoolType.TRADE,
             empty,
             10 ether,
             address(router)
@@ -111,6 +113,7 @@ abstract contract RouterRobustBase is
             bondingCurve,
             modifyDelta(0),
             0.3 ether,
+            LSSVMPair.PoolType.TRADE,
             empty,
             10 ether,
             address(router)

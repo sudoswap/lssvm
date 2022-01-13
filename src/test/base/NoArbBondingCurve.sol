@@ -19,7 +19,6 @@ import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
-
     uint256[] idList;
     uint256 startingId;
     IERC721Mintable test721;
@@ -72,7 +71,17 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // initialize the pair
         uint256[] memory empty;
-        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, empty, 0, address(0));
+        LSSVMPair pair = setupPair(
+            factory,
+            test721,
+            bondingCurve,
+            delta,
+            spotPrice,
+            LSSVMPair.PoolType.TRADE,
+            empty,
+            0,
+            address(0)
+        );
 
         // mint NFTs to sell to the pair
         for (uint256 i = 0; i < numItems; i++) {
@@ -163,7 +172,17 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             idList.push(startingId);
             startingId += 1;
         }
-        LSSVMPair pair = setupPair(factory, test721, bondingCurve, delta, spotPrice, idList, 0, address(0));
+        LSSVMPair pair = setupPair(
+            factory,
+            test721,
+            bondingCurve,
+            delta,
+            spotPrice,
+            LSSVMPair.PoolType.TRADE,
+            idList,
+            0,
+            address(0)
+        );
         test721.setApprovalForAll(address(pair), true);
 
         uint256 startBalance;
