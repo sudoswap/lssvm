@@ -101,7 +101,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         override
         onlyOwner
     {
-        ERC20(a).safeTransferFrom(address(this), msg.sender, amount);
+        ERC20(a).safeTransfer(msg.sender, amount);
     }
 
     /**
