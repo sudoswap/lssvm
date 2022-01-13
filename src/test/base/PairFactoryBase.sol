@@ -71,6 +71,15 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
     }
 
+    function test_createPair_notOwner_transferOwnership() public {
+        pair.transferOwnership(payable(address(2)));
+    }
+
+    function testFail_createPair_owner_transferOwnership() public {
+        pair.renounceOwnership();
+        pair.transferOwnership(payable(address(2)));
+    }
+
     function testFail_createPair_notOwner_rescueERC721ERC20() public {
         pair.renounceOwnership();
         pair.withdrawERC721(address(test721), idList);
@@ -86,7 +95,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
         pair.changeAssetRecipient(payable(address(1)));
     }
 
-    function testFail_createPair_tradePool_owner_revertChangeFee() public {
+    function testFail_createPair_tradePool_owner_LargeChangeFee() public {
         pair.changeFee(100 ether);
     }
 
