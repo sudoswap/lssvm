@@ -13,19 +13,14 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 abstract contract LSSVMPairERC20 is LSSVMPair {
     using SafeTransferLib for ERC20;
 
-    ERC20 public token;
-
-    // Only called once by factory to initialize
-    function initialize(
-        address _owner,
-        ERC20 _token,
-        address payable _assetRecipient,
-        uint256 _delta,
-        uint256 _fee,
-        uint256 _spotPrice
-    ) external payable {
-        __LSSVMPair_init(_owner, _assetRecipient, _delta, _fee, _spotPrice);
-        token = ERC20(address(_token));
+    function token() public pure returns (ERC20 _token) {
+        uint256 paramsLength = _immutableParamsLength();
+        assembly {
+            _token := shr(
+                0x60,
+                calldataload(add(sub(calldatasize(), paramsLength), 61))
+            )
+        }
     }
 
     function _validateTokenInput(
@@ -36,7 +31,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
-        ERC20 _token = token;
+        ERC20 _token = token();
         address _assetRecipient = _getAssetRecipient();
 
         if (isRouter) {
@@ -77,7 +72,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     {
         // Take protocol fee
         if (protocolFee > 0) {
-            ERC20 _token = token;
+            ERC20 _token = token();
 
             // Round down to the actual token balance if there are numerical stability issues with the above calculations
             uint256 pairTokenBalance = _token.balanceOf(address(this));
@@ -94,8 +89,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     ) internal override {
         // Send tokens to caller
         if (outputAmount > 0) {
-            token.safeTransfer(tokenRecipient, outputAmount);
+            token().safeTransfer(tokenRecipient, outputAmount);
         }
+    }
+
+    function _immutableParamsLength() internal pure override returns (uint256) {
+        return 81;
     }
 
     /**
@@ -110,7 +109,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     {
         ERC20(a).safeTransfer(msg.sender, amount);
 
-        if (a == address(token)) {
+        if (a == address(token())) {
             // emit event since it is the pair token
             emit TokenWithdrawn(amount);
         }
