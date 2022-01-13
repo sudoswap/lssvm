@@ -3,8 +3,11 @@ pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
+import {IMintable} from "../interfaces/IMintable.sol";
+import {Test20} from "../../mocks/Test20.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
@@ -23,6 +26,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
     uint256 numItems = 2;
     uint256[] idList;
     IERC721 test721;
+    IERC20 testERC20;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
     address payable constant feeRecipient = payable(address(69));
@@ -50,6 +54,9 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
             IERC721Mintable(address(test721)).mint(address(this), i);
             idList.push(i);
         }
+        testERC20 = IERC20(address(new Test20()));
+        IMintable(address(testERC20)).mint(address(pair), 1 ether);
+
         pair = this.setupPair{value: modifyInputAmount(tokenAmount)}(
             factory,
             test721,
@@ -64,6 +71,7 @@ abstract contract PairFactoryBase is DSTest, ERC721Holder, Configurable {
 
     function test_createPair_owner_rescueERC721ERC20ERC1155() public {
         pair.withdrawERC721(address(test721), idList);
+        pair.withdrawERC20(address(testERC20), 1 ether);
     }
 
     function testFail_createPair_tradePool_owner_changeAssetRecipient() public {
