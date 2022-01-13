@@ -17,8 +17,9 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {Configurable} from "../mixins/Configurable.sol";
+import {RouterCaller} from "../mixins/RouterCaller.sol";
 
-abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
+abstract contract RouterBase is DSTest, ERC721Holder, Configurable, RouterCaller {
 
     IERC721Mintable test721;
     ICurve bondingCurve;
@@ -242,42 +243,4 @@ abstract contract RouterBase is DSTest, ERC721Holder, Configurable {
             block.timestamp
         );
     }
-
-    function swapTokenForAnyNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.PairSwapAny[] calldata swapList,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline,
-        uint256 inputAmount
-    ) public payable virtual returns (uint256);
-
-    function swapTokenForSpecificNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.PairSwapSpecific[] calldata swapList,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline,
-        uint256 inputAmount
-    ) public payable virtual returns (uint256);
-
-    function swapNFTsForAnyNFTsThroughToken(
-        LSSVMRouter router,
-        LSSVMRouter.NFTsForAnyNFTsTrade calldata trade,
-        uint256 minOutput,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline,
-        uint256 inputAmount
-    ) public payable virtual returns (uint256);
-
-    function swapNFTsForSpecificNFTsThroughToken(
-        LSSVMRouter router,
-        LSSVMRouter.NFTsForSpecificNFTsTrade calldata trade,
-        uint256 minOutput,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline,
-        uint256 inputAmount
-    ) public payable virtual returns (uint256);
 }

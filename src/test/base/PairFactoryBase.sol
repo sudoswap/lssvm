@@ -76,23 +76,6 @@ abstract contract PairFactoryBase is DSTest, Configurable {
 
         // verify NFT ownership
         assertEq(test721.ownerOf(1), address(pair));
-
-        // change pair variables, verify the new value is correct
-
-        // changing spot works as expected
-        // changing delta works as expected
-        // changing fee works as expected
-        // (reverts if greater than max fee)
-        // changing asset recipient works as expected
-        // withdrawing tokens (erc20/721/1155) works as expected
-        // withdrawing ETH works as expected
-        // need to mock 1155
-        // arbitrary call (just call mint on Test721) works as expected
-
-        // revoking ownership works as expected
-        // everything above now fails as expected 
-
-        // ensure that calling init again will fail
     }
 
     function test_createPairBasic() public {
