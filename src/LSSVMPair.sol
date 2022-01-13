@@ -247,6 +247,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @return outputAmount The amount of token received
      */
     function swapNFTsForToken(
+        //Red
         uint256[] calldata nftIds,
         uint256 minExpectedTokenOutput,
         address payable tokenRecipient
@@ -436,6 +437,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         returns (LSSVMPairFactoryLike.PairVariant);
 
     function factory() public view returns (LSSVMPairFactoryLike _factory) {
+        //Red
         (_factory, , , ) = _readImmutableParams();
     }
 
@@ -560,6 +562,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param data The raw data that the token might use in transfers
      */
     function withdrawERC1155(
+        //Red
         address a,
         uint256[] calldata ids,
         uint256[] calldata amounts,
@@ -579,6 +582,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param newSpotPrice The new selling spot price value, in Token
      */
     function changeSpotPrice(uint256 newSpotPrice) external onlyOwner {
+        //Red
         ICurve _bondingCurve = bondingCurve();
         require(
             _bondingCurve.validateSpotPrice(newSpotPrice),
@@ -593,6 +597,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param newDelta The new delta parameter
      */
     function changeDelta(uint256 newDelta) external onlyOwner {
+        //Red
         ICurve _bondingCurve = bondingCurve();
         require(
             _bondingCurve.validateDelta(newDelta),
@@ -609,6 +614,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param newFee The new LP fee percentage, 18 decimals
      */
     function changeFee(uint256 newFee) external onlyOwner {
+        //Red
         PoolType _poolType = poolType();
         require(_poolType == PoolType.TRADE, "Only for Trade pools");
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");
@@ -621,10 +627,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         trades. Only callable by the owner.
         @param newRecipient The new asset recipient
      */
-    function changeAssetRecipient(address payable newRecipient)
-        external
-        onlyOwner
-    {
+    function changeAssetRecipient(
+        address payable newRecipient //Red
+    ) external onlyOwner {
         PoolType _poolType = poolType();
         require(_poolType != PoolType.TRADE, "Not for Trade pools");
         assetRecipient = newRecipient;

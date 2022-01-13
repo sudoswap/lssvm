@@ -171,6 +171,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @return pair The new pair
      */
     function createPairETHDeterministic(
+        //Red
         IERC721 _nft,
         ICurve _bondingCurve,
         address payable _assetRecipient,

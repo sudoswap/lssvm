@@ -100,25 +100,25 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         return this.onERC721Received.selector;
     }
 
-    /**
-      @dev This is only for withdrawing the pair's NFT collection
-     */
-    function withdrawNFT(uint256[] calldata nftIds) external onlyOwner {
-        IERC721 _nft = nft();
-        for (uint256 i = 0; i < nftIds.length; i++) {
-            _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
-            idSet.remove(nftIds[i]);
-        }
-    }
-
     function withdrawERC721(address a, uint256[] calldata nftIds)
         external
         override
         onlyOwner
     {
-        require(a != address(nft()), "Call withdrawNFT");
-        for (uint256 i = 0; i < nftIds.length; i++) {
-            IERC721(a).safeTransferFrom(address(this), msg.sender, nftIds[i]);
+        IERC721 _nft = nft();
+        if (a != address(_nft)) {
+            for (uint256 i = 0; i < nftIds.length; i++) {
+                IERC721(a).safeTransferFrom(
+                    address(this),
+                    msg.sender,
+                    nftIds[i]
+                );
+            }
+        } else {
+            for (uint256 i = 0; i < nftIds.length; i++) {
+                _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+                idSet.remove(nftIds[i]);
+            }
         }
     }
 }

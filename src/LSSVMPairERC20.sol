@@ -61,7 +61,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
                 _token.balanceOf(_assetRecipient) - beforeBalance ==
                     inputAmount,
                 "ERC20 not transferred in"
-            );
+            ); //Red
         } else {
             // Transfer tokens directly
             _token.safeTransferFrom(msg.sender, _assetRecipient, inputAmount);
