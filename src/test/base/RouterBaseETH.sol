@@ -4,19 +4,19 @@ pragma solidity ^0.8.0;
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
 import {RouterBase} from "./RouterBase.sol";
 
-abstract contract RouterBaseERC20 is RouterBase {
+abstract contract RouterBaseETH is RouterBase {
     function swapTokenForAnyNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapAny[] calldata swapList,
-        address payable,
+        address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
-        uint256 inputAmount
+        uint256
     ) public payable override returns (uint256) {
         return
-            router.swapERC20ForAnyNFTs(
+            router.swapETHForAnyNFTs{value: msg.value}(
                 swapList,
-                inputAmount,
+                ethRecipient,
                 nftRecipient,
                 deadline
             );
@@ -25,15 +25,15 @@ abstract contract RouterBaseERC20 is RouterBase {
     function swapTokenForSpecificNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapSpecific[] calldata swapList,
-        address payable,
+        address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
-        uint256 inputAmount
+        uint256
     ) public payable override returns (uint256) {
         return
-            router.swapERC20ForSpecificNFTs(
+            router.swapETHForSpecificNFTs{value: msg.value}(
                 swapList,
-                inputAmount,
+                ethRecipient,
                 nftRecipient,
                 deadline
             );
@@ -43,16 +43,16 @@ abstract contract RouterBaseERC20 is RouterBase {
         LSSVMRouter router,
         LSSVMRouter.NFTsForAnyNFTsTrade calldata trade,
         uint256 minOutput,
-        address payable,
+        address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
-        uint256 inputAmount
+        uint256
     ) public payable override returns (uint256) {
         return
-            router.swapNFTsForAnyNFTsThroughERC20(
+            router.swapNFTsForAnyNFTsThroughETH{value: msg.value}(
                 trade,
-                inputAmount,
                 minOutput,
+                ethRecipient,
                 nftRecipient,
                 deadline
             );
@@ -62,16 +62,16 @@ abstract contract RouterBaseERC20 is RouterBase {
         LSSVMRouter router,
         LSSVMRouter.NFTsForSpecificNFTsTrade calldata trade,
         uint256 minOutput,
-        address payable,
+        address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
-        uint256 inputAmount
+        uint256
     ) public payable override returns (uint256) {
         return
-            router.swapNFTsForSpecificNFTsThroughERC20(
+            router.swapNFTsForSpecificNFTsThroughETH{value: msg.value}(
                 trade,
-                inputAmount,
                 minOutput,
+                ethRecipient,
                 nftRecipient,
                 deadline
             );

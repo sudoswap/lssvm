@@ -16,8 +16,10 @@ done
 
 if [ "$name" = "noarb" ]; then
     python3 scripts/generateAllNoArbTests.py 
-elif [ "$name" == "robustrouter" ]; then
-    python3 scripts/generateAllRobustRouterTests.py
+elif [ "$name" == "routerrobust" ]; then
+    python3 scripts/generateAllRouterRobustTests.py
+elif [ "$name" == "router" ]; then
+    python3 scripts/generateAllRouterTests.py
 else
-    python3 scripts/generateAllNoArbTests.py && python3 scripts/generateAllRobustRouterTests.py    
+    python3 scripts/generateAllNoArbTests.py && python3 scripts/generateAllRouterRobustTests.py && python3 scripts/generateAllRouterTests.py    
 fi

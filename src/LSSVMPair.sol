@@ -6,14 +6,11 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import {Ownable} from "./lib/Ownable.sol";
-import {Bytecode} from "./lib/Bytecode.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
 abstract contract LSSVMPair is Ownable, ReentrancyGuard {
-    using Bytecode for address;
-
     enum PoolType {
         TOKEN,
         NFT,
@@ -22,6 +19,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     uint256 internal constant MAX_FEE = 9e17; // 90%, must <= 1 - MAX_PROTOCOL_FEE
     bytes1 internal constant NFT_TRANSFER_START = 0x11;
+    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 61;
 
     // Temporarily used during LSSVMRouter::_swapNFTsForToken to store the number of NFTs transferred
     // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForToken.
@@ -64,7 +62,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         require(owner() == address(0), "Initialized");
         __Ownable_init(_owner);
 
-        (, ICurve _bondingCurve, , PoolType _poolType) = _readImmutableParams();
+        ICurve _bondingCurve = bondingCurve();
+        PoolType _poolType = poolType();
 
         if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
             require(_fee == 0, "Only Trade Pools can have nonzero fee");
@@ -112,22 +111,22 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         bool isRouter,
         address routerCaller
     ) external payable virtual returns (uint256 inputAmount) {
-        (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            IERC721 _nft,
-            PoolType _poolType
-        ) = _readImmutableParams();
+        LSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+        IERC721 _nft = nft();
 
         // Input validation
-        require(
-            _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
-            "Wrong Pool type"
-        );
-        require(
-            (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
-            "Ask for > 0 and <= balanceOf NFTs"
-        );
+        {
+            PoolType _poolType = poolType();
+            require(
+                _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+            require(
+                (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
+                "Ask for > 0 and <= balanceOf NFTs"
+            );
+        }
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
@@ -149,13 +148,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             emit SpotPriceUpdated(newSpotPrice);
         }
 
-        _validateTokenInput(
-            inputAmount,
-            isRouter,
-            routerCaller,
-            _factory,
-            _poolType
-        );
+        _validateTokenInput(inputAmount, isRouter, routerCaller, _factory);
 
         _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
 
@@ -185,29 +178,30 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         bool isRouter,
         address routerCaller
     ) external payable virtual returns (uint256 inputAmount) {
-        (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            IERC721 _nft,
-            PoolType _poolType
-        ) = _readImmutableParams();
+        LSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+        IERC721 _nft = nft();
 
         // Input validation
-        require(
-            _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
-            "Wrong Pool type"
-        );
-        require(
-            (nftIds.length > 0) &&
-                (nftIds.length <= _nft.balanceOf(address(this))),
-            "Must ask for > 0 and < balanceOf NFTs"
-        );
+        {
+            PoolType _poolType = poolType();
+            require(
+                _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+            require(
+                (nftIds.length > 0) &&
+                    (nftIds.length <= _nft.balanceOf(address(this))),
+                "Must ask for > 0 and < balanceOf NFTs"
+            );
+        }
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
         {
             CurveErrorCodes.Error error;
-            (error, spotPrice, inputAmount, protocolFee) = _bondingCurve
+            uint256 newSpotPrice;
+            (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
                 .getBuyInfo(
                     spotPrice,
                     delta,
@@ -217,16 +211,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 );
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
-            emit SpotPriceUpdated(spotPrice);
+            // Update spot price
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
         }
 
-        _validateTokenInput(
-            inputAmount,
-            isRouter,
-            routerCaller,
-            _factory,
-            _poolType
-        );
+        _validateTokenInput(inputAmount, isRouter, routerCaller, _factory);
 
         _sendSpecificNFTsToRecipient(_nft, nftRecipient, nftIds);
 
@@ -252,18 +242,18 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256 minExpectedTokenOutput,
         address payable tokenRecipient
     ) external virtual returns (uint256 outputAmount) {
-        (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            IERC721 _nft,
-            PoolType _poolType
-        ) = _readImmutableParams();
+        LSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+        IERC721 _nft = nft();
 
         // Input validation
-        require(
-            _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
-            "Wrong Pool type"
-        );
+        {
+            PoolType _poolType = poolType();
+            require(
+                _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
+                "Wrong Pool type"
+            );
+        }
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
@@ -291,7 +281,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             "Out too little tokens"
         );
 
-        _takeNFTsFromSender(_nft, nftIds, _poolType);
+        _takeNFTsFromSender(_nft, nftIds);
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
@@ -311,18 +301,15 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         virtual
         returns (uint256 outputAmount)
     {
-        // Store storage variables locally for cheaper lookup
-        (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            IERC721 _nft,
-            PoolType _poolType
-        ) = _readImmutableParams();
+        LSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+        IERC721 _nft = nft();
         uint256 _nftBalanceAtTransferStart = nftBalanceAtTransferStart;
         delete nftBalanceAtTransferStart;
 
         // Input validation
         {
+            PoolType _poolType = poolType();
             require(
                 _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
@@ -377,19 +364,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             uint256 protocolFee
         )
     {
-        (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            ,
-
-        ) = _readImmutableParams();
-        (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
+        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve()
             .getBuyInfo(
                 spotPrice,
                 delta,
                 numNFTs,
                 fee,
-                _factory.protocolFeeMultiplier()
+                factory().protocolFeeMultiplier()
             );
     }
 
@@ -406,19 +387,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             uint256 protocolFee
         )
     {
-        (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            ,
-
-        ) = _readImmutableParams();
-        (error, newSpotPrice, outputAmount, protocolFee) = _bondingCurve
+        (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve()
             .getSellInfo(
                 spotPrice,
                 delta,
                 numNFTs,
                 fee,
-                _factory.protocolFeeMultiplier()
+                factory().protocolFeeMultiplier()
             );
     }
 
@@ -436,21 +411,44 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         virtual
         returns (LSSVMPairFactoryLike.PairVariant);
 
-    function factory() public view returns (LSSVMPairFactoryLike _factory) {
-        //Red
-        (_factory, , , ) = _readImmutableParams();
+    function factory() public pure returns (LSSVMPairFactoryLike _factory) {
+        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        assembly {
+            _factory := shr(
+                0x60,
+                calldataload(sub(calldatasize(), paramsLength))
+            )
+        }
     }
 
-    function bondingCurve() public view returns (ICurve _bondingCurve) {
-        (, _bondingCurve, , ) = _readImmutableParams();
+    function bondingCurve() public pure returns (ICurve _bondingCurve) {
+        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        assembly {
+            _bondingCurve := shr(
+                0x60,
+                calldataload(add(sub(calldatasize(), paramsLength), 20))
+            )
+        }
     }
 
-    function nft() public view returns (IERC721 _nft) {
-        (, , _nft, ) = _readImmutableParams();
+    function nft() public pure returns (IERC721 _nft) {
+        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        assembly {
+            _nft := shr(
+                0x60,
+                calldataload(add(sub(calldatasize(), paramsLength), 40))
+            )
+        }
     }
 
-    function poolType() public view returns (PoolType _poolType) {
-        (, , , _poolType) = _readImmutableParams();
+    function poolType() public pure returns (PoolType _poolType) {
+        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        assembly {
+            _poolType := shr(
+                0xf8,
+                calldataload(add(sub(calldatasize(), paramsLength), 60))
+            )
+        }
     }
 
     /**
@@ -461,8 +459,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        LSSVMPairFactoryLike _factory,
-        PoolType _poolType
+        LSSVMPairFactoryLike _factory
     ) internal virtual;
 
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
@@ -488,20 +485,18 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256[] calldata nftIds
     ) internal virtual;
 
-    function _takeNFTsFromSender(
-        IERC721 _nft,
-        uint256[] calldata nftIds,
-        PoolType _poolType
-    ) internal virtual;
+    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
+        internal
+        virtual;
 
-    function _getAssetRecipient(PoolType _poolType)
+    function _getAssetRecipient()
         internal
         view
         returns (address payable _assetRecipient)
     {
         // If it's a TRADE pool, we know the recipient is 0
         // So just return address(this)
-        if (_poolType == PoolType.TRADE) {
+        if (poolType() == PoolType.TRADE) {
             return payable(address(this));
         }
 
@@ -511,25 +506,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         if (_assetRecipient == address(0)) {
             // Tokens will be transferred to address(this)
             _assetRecipient = payable(address(this));
-        }
-    }
-
-    function _readImmutableParams()
-        internal
-        view
-        returns (
-            LSSVMPairFactoryLike _factory,
-            ICurve _bondingCurve,
-            IERC721 _nft,
-            PoolType _poolType
-        )
-    {
-        bytes memory packedParams = address(this).codeAt(0x2d, 0x6a);
-        assembly {
-            _factory := shr(0x60, mload(add(packedParams, 0x20)))
-            _bondingCurve := shr(0x60, mload(add(packedParams, 0x34)))
-            _nft := shr(0x60, mload(add(packedParams, 0x48)))
-            _poolType := shr(0xf8, mload(add(packedParams, 0x5c)))
         }
     }
 

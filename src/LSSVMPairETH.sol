@@ -27,13 +27,12 @@ abstract contract LSSVMPairETH is LSSVMPair {
         uint256 inputAmount,
         bool, /*isRouter*/
         address, /*routerCaller*/
-        LSSVMPairFactoryLike, /*_factory*/
-        PoolType _poolType
+        LSSVMPairFactoryLike /*_factory*/
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
-        address payable _assetRecipient = _getAssetRecipient(_poolType);
+        address payable _assetRecipient = _getAssetRecipient();
         if (_assetRecipient != address(this)) {
             _assetRecipient.safeTransferETH(inputAmount);
         }
@@ -110,6 +109,14 @@ abstract contract LSSVMPairETH is LSSVMPair {
         for the owner to top up the pair's token reserves.
      */
     receive() external payable {
+        emit TokenDeposited(msg.value);
+    }
+
+    /**
+        @dev All token transfers into the pair are accepted. This is the main method
+        for the owner to top up the pair's token reserves.
+     */
+    fallback() external payable {
         emit TokenDeposited(msg.value);
     }
 }

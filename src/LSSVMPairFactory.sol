@@ -155,80 +155,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
 
     /**
-        @notice Creates a pair contract using EIP-1167. Uses CREATE2 for deterministic address.
-        @param _nft The NFT contract of the collection the pair trades
-        @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
-        @param _assetRecipient The address that will receive the assets traders give during trades.
-                              If set to address(0), assets will be sent to the pool address.
-                              Not available to TRADE pools.
-        @param _poolType TOKEN, NFT, or TRADE
-        @param _delta The delta value used by the bonding curve. The meaning of delta depends
-        on the specific curve.
-        @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
-        @param _spotPrice The initial selling spot price, in ETH
-        @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
-        @param _salt The salt value used by CREATE2
-        @return pair The new pair
-     */
-    function createPairETHDeterministic(
-        //Red
-        IERC721 _nft,
-        ICurve _bondingCurve,
-        address payable _assetRecipient,
-        LSSVMPair.PoolType _poolType,
-        uint256 _delta,
-        uint256 _fee,
-        uint256 _spotPrice,
-        uint256[] calldata _initialNFTIDs,
-        bytes32 _salt
-    ) external payable returns (LSSVMPairETH pair) {
-        require(
-            bondingCurveAllowed[_bondingCurve],
-            "Bonding curve not whitelisted"
-        );
-        if (
-            !ERC165Checker.supportsInterface(
-                address(_nft),
-                INTERFACE_ID_ERC721_ENUMERABLE
-            )
-        ) {
-            pair = LSSVMPairETH(
-                payable(
-                    address(missingEnumerableETHTemplate).cloneDeterministic(
-                        this,
-                        _bondingCurve,
-                        _nft,
-                        uint8(_poolType),
-                        _salt
-                    )
-                )
-            );
-        } else {
-            pair = LSSVMPairETH(
-                payable(
-                    address(enumerableETHTemplate).cloneDeterministic(
-                        this,
-                        _bondingCurve,
-                        _nft,
-                        uint8(_poolType),
-                        _salt
-                    )
-                )
-            );
-        }
-        _initializePairETH(
-            pair,
-            _nft,
-            _assetRecipient,
-            _delta,
-            _fee,
-            _spotPrice,
-            _initialNFTIDs
-        );
-        emit PairCreated(address(pair), address(_nft));
-    }
-
-    /**
         @notice Creates a pair contract using EIP-1167.
         @param _nft The NFT contract of the collection the pair trades
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
@@ -305,160 +231,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
 
     /**
-        @notice Creates a pair contract using EIP-1167. Uses CREATE2 for deterministic address.
-        @param _nft The NFT contract of the collection the pair trades
-        @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
-        @param _assetRecipient The address that will receive the assets traders give during trades.
-                                If set to address(0), assets will be sent to the pool address.
-                                Not available to TRADE pools.
-        @param _poolType TOKEN, NFT, or TRADE
-        @param _delta The delta value used by the bonding curve. The meaning of delta depends
-        on the specific curve.
-        @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
-        @param _spotPrice The initial selling spot price, in ETH
-        @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
-        @param _initialTokenBalance The initial token balance sent from the sender to the new pair
-        @param _salt The salt value used by CREATE2
-        @return pair The new pair
-     */
-    function createPairERC20Deterministic(
-        ERC20 _token,
-        IERC721 _nft,
-        ICurve _bondingCurve,
-        address payable _assetRecipient,
-        LSSVMPair.PoolType _poolType,
-        uint256 _delta,
-        uint256 _fee,
-        uint256 _spotPrice,
-        uint256[] calldata _initialNFTIDs,
-        uint256 _initialTokenBalance,
-        bytes32 _salt
-    ) external returns (LSSVMPairERC20 pair) {
-        require(
-            bondingCurveAllowed[_bondingCurve],
-            "Bonding curve not whitelisted"
-        );
-        if (
-            !ERC165Checker.supportsInterface(
-                address(_nft),
-                INTERFACE_ID_ERC721_ENUMERABLE
-            )
-        ) {
-            pair = LSSVMPairERC20(
-                address(missingEnumerableERC20Template).cloneDeterministic(
-                    this,
-                    _bondingCurve,
-                    _nft,
-                    uint8(_poolType),
-                    _salt
-                )
-            );
-        } else {
-            pair = LSSVMPairERC20(
-                address(enumerableERC20Template).cloneDeterministic(
-                    this,
-                    _bondingCurve,
-                    _nft,
-                    uint8(_poolType),
-                    _salt
-                )
-            );
-        }
-        _initializePairERC20(
-            pair,
-            _token,
-            _nft,
-            _assetRecipient,
-            _delta,
-            _fee,
-            _spotPrice,
-            _initialNFTIDs,
-            _initialTokenBalance
-        );
-        emit PairCreated(address(pair), address(_nft));
-    }
-
-    /**
-        @notice Predicts the address of a pair for a 721 with Enumerable deployed using CREATE2, given the salt value.
-        @param _salt The salt value used by CREATE2
-     */
-    function predictEnumerableETHPairAddress(
-        ICurve bondingCurve,
-        IERC721 nft,
-        LSSVMPair.PoolType poolType,
-        bytes32 _salt
-    ) external view returns (address pairAddress) {
-        return
-            address(enumerableETHTemplate).predictDeterministicAddress(
-                this,
-                bondingCurve,
-                nft,
-                uint8(poolType),
-                _salt
-            );
-    }
-
-    /**
-        @notice Predicts the address of a pair for a 721 without Enumerable deployed using CREATE2, given the salt value.
-        @param _salt The salt value used by CREATE2
-     */
-    function predictMissingEnumerableETHPairAddress(
-        ICurve bondingCurve,
-        IERC721 nft,
-        LSSVMPair.PoolType poolType,
-        bytes32 _salt
-    ) external view returns (address pairAddress) {
-        return
-            address(missingEnumerableETHTemplate).predictDeterministicAddress(
-                this,
-                bondingCurve,
-                nft,
-                uint8(poolType),
-                _salt
-            );
-    }
-
-    /**
-        @notice Predicts the address of a pair for a 721 with Enumerable deployed using CREATE2, given the salt value.
-        @param _salt The salt value used by CREATE2
-     */
-    function predictEnumerableERC20PairAddress(
-        ICurve bondingCurve,
-        IERC721 nft,
-        LSSVMPair.PoolType poolType,
-        bytes32 _salt
-    ) external view returns (address pairAddress) {
-        return
-            address(enumerableERC20Template).predictDeterministicAddress(
-                this,
-                bondingCurve,
-                nft,
-                uint8(poolType),
-                _salt
-            );
-    }
-
-    /**
-        @notice Predicts the address of a pair for a 721 without Enumerable deployed using CREATE2, given the salt value.
-        @param _salt The salt value used by CREATE2
-     */
-    function predictMissingEnumerableERC20PairAddress(
-        ICurve bondingCurve,
-        IERC721 nft,
-        LSSVMPair.PoolType poolType,
-        bytes32 _salt
-    ) external view returns (address pairAddress) {
-        return
-            address(missingEnumerableERC20Template).predictDeterministicAddress(
-                this,
-                bondingCurve,
-                nft,
-                uint8(poolType),
-                _salt
-            );
-    }
-
-    /**
         @notice Checks if an address is a LSSVMPair. Uses the fact that the pairs are EIP-1167 minimal proxies.
         @param potentialPair The address to check
         @param variant The pair variant (NFT is enumerable or not, pair uses ETH or ERC20)
@@ -471,15 +243,26 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         returns (bool)
     {
         if (variant == PairVariant.ENUMERABLE_ETH) {
-            return _isClone(address(enumerableETHTemplate), potentialPair);
+            return
+                LSSVMPairCloner.isClone(
+                    address(enumerableETHTemplate),
+                    potentialPair
+                );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ETH) {
             return
-                _isClone(address(missingEnumerableETHTemplate), potentialPair);
+                LSSVMPairCloner.isClone(
+                    address(missingEnumerableETHTemplate),
+                    potentialPair
+                );
         } else if (variant == PairVariant.ENUMERABLE_ERC20) {
-            return _isClone(address(enumerableERC20Template), potentialPair);
+            return
+                LSSVMPairCloner.isClone(
+                    address(enumerableERC20Template),
+                    potentialPair
+                );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ERC20) {
             return
-                _isClone(
+                LSSVMPairCloner.isClone(
                     address(missingEnumerableERC20Template),
                     potentialPair
                 );
@@ -653,42 +436,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
                 address(_pair),
                 _initialNFTIDs[i]
             );
-        }
-    }
-
-    /**
-        @dev Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
-        MIT license, Copyright (c) 2018 Murray Software, LLC.
-     */
-    function _isClone(address template, address query)
-        internal
-        view
-        returns (bool result)
-    {
-        bytes20 templateBytes = bytes20(template);
-        address factory = address(this);
-        assembly {
-            let clone := mload(0x40)
-            mstore(
-                clone,
-                0x363d3d373d3d3d363d7300000000000000000000000000000000000000000000
-            )
-            mstore(add(clone, 0xa), templateBytes)
-            mstore(
-                add(clone, 0x1e),
-                0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
-            )
-            mstore(add(clone, 0x2d), shl(0x60, factory))
-
-            let other := add(clone, 0x40)
-            extcodecopy(query, other, 0, 0x41)
-            result := and(
-                and(
-                    eq(mload(clone), mload(other)),
-                    eq(mload(add(clone, 0x20)), mload(add(other, 0x20)))
-                ),
-                eq(mload(add(clone, 0x21)), mload(add(other, 0x21)))
-            )
         }
     }
 

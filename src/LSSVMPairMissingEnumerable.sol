@@ -41,12 +41,11 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         }
     }
 
-    function _takeNFTsFromSender(
-        IERC721 _nft,
-        uint256[] calldata nftIds,
-        PoolType _poolType
-    ) internal override {
-        address _assetRecipient = _getAssetRecipient(_poolType);
+    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
+        internal
+        override
+    {
+        address _assetRecipient = _getAssetRecipient();
 
         // Take in NFTs from caller
         // Because we're missing enumerable, update pool's own ID set
@@ -78,12 +77,8 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         uint256 id,
         bytes memory b
     ) public virtual returns (bytes4) {
-        (
-            LSSVMPairFactoryLike _factory,
-            ,
-            IERC721 _nft,
-
-        ) = _readImmutableParams();
+        LSSVMPairFactoryLike _factory = factory();
+        IERC721 _nft = nft();
         if (msg.sender == address(_nft)) {
             if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
                 // Use NFT for trade

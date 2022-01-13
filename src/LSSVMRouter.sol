@@ -74,12 +74,7 @@ contract LSSVMRouter {
         returns (uint256 remainingValue)
     {
         return
-            _swapETHForAnyNFTs(
-                swapList,
-                msg.value,
-                ethRecipient,
-                nftRecipient
-            );
+            _swapETHForAnyNFTs(swapList, msg.value, ethRecipient, nftRecipient);
     }
 
     /**
@@ -129,28 +124,25 @@ contract LSSVMRouter {
     ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
-        uint256 ethReceived = _swapNFTsForToken(
+        outputAmount = _swapNFTsForToken(
             trade.nftToTokenTrades,
             0,
             payable(address(this))
         );
 
-        // Add extra value to buy NFTs (if ETH is also sent)
-        ethReceived += msg.value;
+        // Add extra value to buy NFTs
+        outputAmount += msg.value;
 
         // Swap ETH for any NFTs
-        uint256 ethSent = _swapETHForAnyNFTs(
-            trade.tokenToNFTTrades,
-            ethReceived-minOutput,
-            ethRecipient,
-            nftRecipient
-        );
-
-        // Send at least minOutput back to caller
-        // We know ethSent is at most ethReceived - minOutput
-        // So the difference is at least minOutput
-        outputAmount = ethReceived - ethSent;
-        ethRecipient.safeTransferETH(outputAmount);
+        // cost <= inputValue = outputAmount - minOutput, so outputAmount' = (outputAmount - minOutput - cost) + minOutput >= minOutput
+        outputAmount =
+            _swapETHForAnyNFTs(
+                trade.tokenToNFTTrades,
+                outputAmount - minOutput,
+                ethRecipient,
+                nftRecipient
+            ) +
+            minOutput;
     }
 
     /**
@@ -172,28 +164,25 @@ contract LSSVMRouter {
     ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
-        uint256 ethReceived = _swapNFTsForToken(
+        outputAmount = _swapNFTsForToken(
             trade.nftToTokenTrades,
             0,
             payable(address(this))
         );
 
-        // Add extra value to buy NFTs (if ETH is also sent)
-        ethReceived += msg.value;
+        // Add extra value to buy NFTs
+        outputAmount += msg.value;
 
         // Swap ETH for specific NFTs
-        uint256 ethSent = _swapETHForSpecificNFTs(
-            trade.tokenToNFTTrades,
-            ethReceived - minOutput,
-            ethRecipient,
-            nftRecipient
-        );
-
-        // Send at least minOutput back to caller
-        // We know ethSent is at most ethReceived - minOutput
-        // So the difference is at least minOutput
-        outputAmount = ethReceived - ethSent;
-        ethRecipient.safeTransferETH(outputAmount);
+        // cost <= inputValue = outputAmount - minOutput, so outputAmount' = (outputAmount - minOutput - cost) + minOutput >= minOutput
+        outputAmount =
+            _swapETHForSpecificNFTs(
+                trade.tokenToNFTTrades,
+                outputAmount - minOutput,
+                ethRecipient,
+                nftRecipient
+            ) +
+            minOutput;
     }
 
     /**
@@ -667,7 +656,7 @@ contract LSSVMRouter {
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
-            
+
             // Total ETH taken from sender cannot exceed inputAmount
             // because otherwise the deduction from remainingValue will fail
             remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
