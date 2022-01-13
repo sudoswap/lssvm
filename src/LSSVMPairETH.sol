@@ -12,17 +12,6 @@ abstract contract LSSVMPairETH is LSSVMPair {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
-    // Only called once by factory to initialize
-    function initialize(
-        address _owner,
-        address payable _assetRecipient,
-        uint256 _delta,
-        uint256 _fee,
-        uint256 _spotPrice
-    ) external payable {
-        __LSSVMPair_init(_owner, _assetRecipient, _delta, _fee, _spotPrice);
-    }
-
     function _validateTokenInput(
         uint256 inputAmount,
         bool, /*isRouter*/
@@ -68,6 +57,10 @@ abstract contract LSSVMPairETH is LSSVMPair {
         if (outputAmount > 0) {
             tokenRecipient.safeTransferETH(outputAmount);
         }
+    }
+
+    function _immutableParamsLength() internal pure override returns (uint256) {
+        return 61;
     }
 
     /**

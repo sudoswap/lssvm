@@ -19,7 +19,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     uint256 internal constant MAX_FEE = 9e17; // 90%, must <= 1 - MAX_PROTOCOL_FEE
     bytes1 internal constant NFT_TRANSFER_START = 0x11;
-    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 61;
 
     // Temporarily used during LSSVMRouter::_swapNFTsForToken to store the number of NFTs transferred
     // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForToken.
@@ -52,13 +51,14 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event DeltaUpdated(uint256 newDelta);
     event FeeUpdated(uint256 newFee);
 
-    function __LSSVMPair_init(
+    // Only called once by factory to initialize
+    function initialize(
         address _owner,
         address payable _assetRecipient,
         uint256 _delta,
         uint256 _fee,
         uint256 _spotPrice
-    ) internal {
+    ) external payable {
         require(owner() == address(0), "Initialized");
         __Ownable_init(_owner);
 
@@ -412,7 +412,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         returns (LSSVMPairFactoryLike.PairVariant);
 
     function factory() public pure returns (LSSVMPairFactoryLike _factory) {
-        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        uint256 paramsLength = _immutableParamsLength();
         assembly {
             _factory := shr(
                 0x60,
@@ -422,7 +422,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     }
 
     function bondingCurve() public pure returns (ICurve _bondingCurve) {
-        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        uint256 paramsLength = _immutableParamsLength();
         assembly {
             _bondingCurve := shr(
                 0x60,
@@ -432,7 +432,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     }
 
     function nft() public pure returns (IERC721 _nft) {
-        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        uint256 paramsLength = _immutableParamsLength();
         assembly {
             _nft := shr(
                 0x60,
@@ -442,7 +442,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     }
 
     function poolType() public pure returns (PoolType _poolType) {
-        uint256 paramsLength = IMMUTABLE_PARAMS_LENGTH;
+        uint256 paramsLength = _immutableParamsLength();
         assembly {
             _poolType := shr(
                 0xf8,
@@ -508,6 +508,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             _assetRecipient = payable(address(this));
         }
     }
+
+    function _immutableParamsLength() internal pure virtual returns (uint256);
 
     /**
      * Owner functions
