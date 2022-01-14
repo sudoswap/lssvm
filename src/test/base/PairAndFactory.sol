@@ -110,7 +110,6 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function test_modifyPairParams() public {
-
         // changing spot works as expected
         pair.changeSpotPrice(2 ether);
         assertEq(pair.spotPrice(), 2 ether);
@@ -122,9 +121,11 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         // // changing fee works as expected
         pair.changeFee(0.2 ether);
         assertEq(pair.fee(), 0.2 ether);
+    }
 
+    function test_withdraw() public {
         // withdrawing ETH works as expected
-
+        withdrawTokens(pair);
         // arbitrary call (just call mint on Test721) works as expected
     }
 
