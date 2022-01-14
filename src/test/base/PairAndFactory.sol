@@ -18,6 +18,7 @@ import {LSSVMPairEnumerableERC20} from "../../LSSVMPairEnumerableERC20.sol";
 import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableERC20.sol";
 import {Configurable} from "../mixins/Configurable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {Test721} from "../../mocks/Test721.sol";
 
 abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     uint256 delta = 1.1 ether;
@@ -25,6 +26,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     uint256 tokenAmount = 0.1 ether;
     uint256 numItems = 2;
     uint256[] idList;
+    uint256[] idList2;
     IERC721 test721;
     IERC20 testERC20;
     ICurve bondingCurve;
@@ -124,9 +126,39 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function test_withdraw() public {
-        // withdrawing ETH works as expected
         withdrawTokens(pair);
+        assertEq(getBalance(address(pair)), 0);
+    }
+
+    function testFail_withdraw() public {
+        pair.renounceOwnership();
+        withdrawTokens(pair);
+    }
+
+    function testFail_callMint721() public {
+        bytes memory data = abi.encodeWithSelector(
+            Test721.mint.selector,
+            address(this),
+            1000
+        );
+        pair.call(payable(address(test721)), data);
+    }
+
+    function test_callMint721() public {
         // arbitrary call (just call mint on Test721) works as expected
+
+        // add to whitelist
+        factory.setCallAllowed(payable(address(test721)), true);
+
+        bytes memory data = abi.encodeWithSelector(
+            Test721.mint.selector,
+            address(this),
+            1000
+        );
+        pair.call(payable(address(test721)), data);
+
+        // verify NFT ownership
+        assertEq(test721.ownerOf(1000), address(this));
     }
 
     function testFail_rescueTokensNotOwner() public {
