@@ -71,19 +71,13 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
     }
 
-    function test_createPair_basic() public {
-        uint256[] memory empty;
-        this.setupPair{value: modifyInputAmount(tokenAmount)}(
-            factory,
-            test721,
-            bondingCurve,
-            delta,
-            spotPrice,
-            LSSVMPair.PoolType.TRADE,
-            empty,
-            tokenAmount,
-            address(0)
-        );
+    function test_transferOwnership() public {
+        pair.transferOwnership(payable(address(2)));
+    }
+
+    function testFail_transferOwnership() public {
+        pair.renounceOwnership();
+        pair.transferOwnership(payable(address(2)));
     }
 
     function test_rescueTokens() public {
@@ -91,7 +85,15 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         pair.withdrawERC20(address(testERC20), 1 ether);
     }
 
-    function test_createPairInitial() public {
+    function testFail_tradePoolChangeAssetRecipient() public {
+        pair.changeAssetRecipient(payable(address(1)));
+    }
+
+    function testFail_tradePoolChangeFeePastMax() public {
+        pair.changeFee(100 ether);
+    }
+
+    function test_verifyPoolParams() public {
         // verify pair variables
         assertEq(address(pair.nft()), address(test721));
         assertEq(address(pair.bondingCurve()), address(bondingCurve));
