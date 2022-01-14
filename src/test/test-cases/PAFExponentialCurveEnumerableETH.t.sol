@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {RouterRobustSwap} from "../base/RouterRobustSwap.sol";
+import {PairAndFactory} from "../base/PairAndFactory.sol";
 import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RouterRobustSwapExponentialCurveEnumerableETHTest is RouterRobustSwap, UsingExponentialCurve, UsingEnumerable, UsingETH {}
+contract PAFExponentialCurveEnumerableETHTest is PairAndFactory, UsingExponentialCurve, UsingEnumerable, UsingETH {}

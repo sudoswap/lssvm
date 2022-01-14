@@ -1,4 +1,5 @@
 NoArbBondingCurve,NoArb
-RouterRobustSwap,RouterRobustSwap
-RouterSinglePool,RouterSinglePool
-PairAndFactory,PairAndFactory
+RouterRobustSwap,RRS
+RouterSinglePool,RSP
+PairAndFactory,PAF
+RouterMultiPool,RMP

@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {RouterRobustSwap} from "../base/RouterRobustSwap.sol";
+import {RouterMultiPool} from "../base/RouterMultiPool.sol";
 import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract RouterRobustSwapExponentialCurveMissingEnumerableERC20Test is RouterRobustSwap, UsingExponentialCurve, UsingMissingEnumerable, UsingERC20 {}
+contract RMPExponentialCurveMissingEnumerableERC20Test is RouterMultiPool, UsingExponentialCurve, UsingMissingEnumerable, UsingERC20 {}

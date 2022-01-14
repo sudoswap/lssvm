@@ -7,4 +7,4 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract PairAndFactoryLinearCurveEnumerableERC20Test is PairAndFactory, UsingLinearCurve, UsingEnumerable, UsingERC20 {}
+contract PAFLinearCurveEnumerableERC20Test is PairAndFactory, UsingLinearCurve, UsingEnumerable, UsingERC20 {}

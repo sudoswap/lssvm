@@ -215,7 +215,7 @@ abstract contract RouterSinglePool is
         );
     }
 
-    function test_swapTokenfor5NFTs() public {
+    function test_swapTokenforAny5NFTs() public {
         LSSVMRouter.PairSwapAny[]
             memory swapList = new LSSVMRouter.PairSwapAny[](1);
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 5});
@@ -223,6 +223,31 @@ abstract contract RouterSinglePool is
         uint256 inputAmount;
         (, , inputAmount, ) = pair.getBuyNFTQuote(5);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+            router,
+            swapList,
+            payable(address(this)),
+            address(this),
+            block.timestamp,
+            inputAmount
+        );
+        uint256 endBalance = test721.balanceOf(address(this));
+        require((endBalance - startBalance) == 5, "Too few NFTs acquired");
+    }
+
+    function test_swapTokenforSpecific5NFTs() public {
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](1);
+        uint256[] memory nftIds = new uint256[](5);
+        nftIds[0] = 1;
+        nftIds[1] = 2;
+        nftIds[2] = 3;
+        nftIds[3] = 4;
+        nftIds[4] = 5;
+        swapList[0] = LSSVMRouter.PairSwapSpecific({pair: pair, nftIds: nftIds});
+        uint256 startBalance = test721.balanceOf(address(this));
+        uint256 inputAmount;
+        (, , inputAmount, ) = pair.getBuyNFTQuote(5);
+        this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
             payable(address(this)),
