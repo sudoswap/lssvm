@@ -3,7 +3,7 @@ import csv
 ENUMERABLE_TYPE = ['Enumerable', 'MissingEnumerable']
 CURVE_TYPE = ['ExponentialCurve', 'LinearCurve']
 TOKEN_TYPE = ['ETH', 'ERC20']
-FILE_OUT_PATH_BASE = '../test/'
+FILE_OUT_PATH_BASE = '../test/test-cases/'
 
 def writeToFiles(path, content):
 	f = open(path, "w")
@@ -22,10 +22,10 @@ def generateAllTests(base_test, prefix):
 				file_path = f"{FILE_OUT_PATH_BASE}{file_name}.t.sol"
 
 				content = f"// SPDX-License-Identifier: MIT\n\npragma solidity ^0.8.0;\n\n"
-				content += f"import {{{base_test}}} from \"./base/{base_test}.sol\";\n"
-				content += f"import {{{file_curve_type}}} from \"./mixins/{file_curve_type}.sol\";\n"
-				content += f"import {{{file_enumerable_type}}} from \"./mixins/{file_enumerable_type}.sol\";\n"
-				content += f"import {{{file_token_type}}} from \"./mixins/{file_token_type}.sol\";\n\n"
+				content += f"import {{{base_test}}} from \"../base/{base_test}.sol\";\n"
+				content += f"import {{{file_curve_type}}} from \"../mixins/{file_curve_type}.sol\";\n"
+				content += f"import {{{file_enumerable_type}}} from \"../mixins/{file_enumerable_type}.sol\";\n"
+				content += f"import {{{file_token_type}}} from \"../mixins/{file_token_type}.sol\";\n\n"
 				content += f"contract {file_name}Test is {base_test}, {file_curve_type}, {file_enumerable_type}, {file_token_type} {{}}\n"
 
 				writeToFiles(file_path, content)

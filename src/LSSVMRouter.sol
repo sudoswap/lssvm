@@ -186,43 +186,6 @@ contract LSSVMRouter {
     }
 
     /**
-        @dev This function reverts if no profit can be gained
-        @notice Swaps ETH to NFTs and then back to ETH again, with the goal of arbitraging between pools
-        @param trade The struct containing all ETH-to-NFT swaps and NFT-to-ETH swaps.
-        @param minProfit The minimum accpetable amount of ETH profit
-        @param ethRecipient The address that will receive the ETH output
-        @param nftRecipient The address that will receive the NFT output
-        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
-        @return profitAmount The total ETH profit received
-     */
-    function swapETHForETH(
-        TokenToTokenTrade calldata trade,
-        uint256 minProfit,
-        address payable ethRecipient,
-        address nftRecipient,
-        uint256 deadline
-    ) external payable checkDeadline(deadline) returns (uint256 profitAmount) {
-        // Assume we get everything we specified in trade.tokenToNFTTrades.nftIds
-        uint256 remainingValue = _swapETHForSpecificNFTs(
-            trade.tokenToNFTTrades,
-            msg.value,
-            ethRecipient,
-            nftRecipient
-        );
-
-        // Once we have all the NFTs, send them to the new pool for ETH
-        // profitAmount = outputAmount + remainingValue - msg.value >= minProfit
-        // thus outputAmount >= minOutput = msg.value - remainingValue + minProfit enforces slippage check
-        uint256 outputAmount = _swapNFTsForToken(
-            trade.nftToTokenTrades,
-            msg.value - remainingValue + minProfit,
-            ethRecipient
-        );
-
-        profitAmount = outputAmount - msg.value + remainingValue;
-    }
-
-    /**
         ERC20 swaps
 
         Note: All ERC20 swaps assume that a single ERC20 token is used for all the pairs involved.
@@ -363,48 +326,9 @@ contract LSSVMRouter {
     }
 
     /**
-        @dev This function reverts if no profit can be gained.
-        @notice Swaps ERC20 tokens to NFTs and then back to the token again, with the goal of arbitraging between pools
-        @param trade The struct containing all ERC20-to-NFT swaps and NFT-to-ERC20 swaps.
-        @param inputAmount The amount of ERC20 tokens to add to the ERC20-to-NFT swaps
-        @param minProfit The minimum accpetable amount of ERC20 profit
-        @param tokenRecipient The address that will receive the token output
-        @param nftRecipient The address that will receive the NFT output
-        @param deadline The Unix timestamp (in seconds) at/after which the swap will be revert
-        @return profitAmount The total token profit received
-     */
-    function swapERC20ForERC20(
-        TokenToTokenTrade calldata trade,
-        uint256 inputAmount,
-        uint256 minProfit,
-        address tokenRecipient,
-        address nftRecipient,
-        uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 profitAmount) {
-        // Assume we get everything we specified in trade.tokenToNFTTrades.nftIds
-        // maxCost is set to infinity since we're doing slippage check later
-        uint256 remainingValue = _swapERC20ForSpecificNFTs(
-            trade.tokenToNFTTrades,
-            inputAmount,
-            nftRecipient
-        );
-
-        // Once we have all the NFTs, send them to the new pool for tokens
-        // profitAmount = outputAmount + remainingValue - inputAmount >= minProfit
-        // thus outputAmount >= minOutput = inputAmount - remainingValue + minProfit enforces slippage check
-        uint256 outputAmount = _swapNFTsForToken(
-            trade.nftToTokenTrades,
-            inputAmount - remainingValue + minProfit,
-            payable(tokenRecipient)
-        );
-
-        profitAmount = outputAmount - inputAmount + remainingValue;
-    }
-
-    /**
-        Robust swaps
+        Robust Swaps
         These are "robust" versions of the above swap functions which will never revert due to slippage
-        Instead, if the price changes more than the user specifies, no swap is attempted
+        Instead, users specify a per-swap max cost. If the price changes more than the user specifies, no swap is attempted. This allows users to specify a batch of swaps, and execute as many of them as possible.
      */
 
     /**
