@@ -45,7 +45,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         internal
         override
     {
-        address _assetRecipient = _getAssetRecipient();
+        address _assetRecipient = getAssetRecipient();
 
         // Take in NFTs from caller
         // Because we're missing enumerable, update pool's own ID set
@@ -72,26 +72,16 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         if it's the same collection used by pool (and doesn't auto-track via enumerable)
      */
     function onERC721Received(
-        address operator,
+        address,
         address,
         uint256 id,
-        bytes memory b
+        bytes memory 
     ) public virtual returns (bytes4) {
-        LSSVMPairFactoryLike _factory = factory();
         IERC721 _nft = nft();
+        // If it's from the pair's NFT, add the ID to ID set
         if (msg.sender == address(_nft)) {
-            if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
-                // Use NFT for trade
-                require(
-                    _factory.routerAllowed(LSSVMRouter(payable(operator))),
-                    "Not router"
-                );
-                nftBalanceAtTransferStart = _nft.balanceOf(address(this));
-            }
-            // Add id to id set
             idSet.add(id);
         }
-
         return this.onERC721Received.selector;
     }
 

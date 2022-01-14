@@ -59,6 +59,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             factory,
             test721,
             bondingCurve,
+            payable(address(0)),
             delta,
             spotPrice,
             LSSVMPair.PoolType.TRADE,
@@ -69,6 +70,22 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
         testERC20 = IERC20(address(new Test20()));
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
+    }
+
+    function test_basicDeploy() public {
+        uint256[] memory empty;
+        this.setupPair{value: modifyInputAmount(tokenAmount)}(
+            factory,
+            test721,
+            bondingCurve,
+            payable(address(0)),
+            delta,
+            spotPrice,
+            LSSVMPair.PoolType.TRADE,
+            empty,
+            tokenAmount,
+            address(0)
+        );
     }
 
     function test_transferOwnership() public {
@@ -103,6 +120,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         assertEq(pair.owner(), address(this));
         assertEq(pair.fee(), 0);
         assertEq(pair.assetRecipient(), address(0));
+        assertEq(pair.getAssetRecipient(), address(pair));
         assertEq(getBalance(address(pair)), tokenAmount);
 
         // verify NFT ownership

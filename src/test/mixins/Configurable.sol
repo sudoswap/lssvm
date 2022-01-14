@@ -14,6 +14,7 @@ abstract contract Configurable {
         LSSVMPairFactory factory,
         IERC721 nft,
         ICurve bondingCurve,
+        address payable assetRecipient,
         uint256 delta,
         uint256 spotPrice,
         LSSVMPair.PoolType poolType,

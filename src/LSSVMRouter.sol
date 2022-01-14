@@ -491,24 +491,19 @@ contract LSSVMRouter {
 
             // If at least equal to our minOutput, proceed
             if (pairOutput >= minOutputPerSwapPair[i]) {
-                // Transfer NFTs directly from sender to pair
                 IERC721 nft = swapList[i].pair.nft();
 
-                // Signal transfer start to pair
-                bytes memory signal = new bytes(1);
-                signal[0] = NFT_TRANSFER_START;
-                nft.safeTransferFrom(
-                    msg.sender,
-                    address(swapList[i].pair),
-                    swapList[i].nftIds[0],
-                    signal
-                );
+                // Cache current asset recipient balance
+                swapList[i].pair.cacheAssetRecipientNFTBalance();
 
-                // Transfer the remaining NFTs
-                for (uint256 j = 1; j < swapList[i].nftIds.length; j++) {
+                // Get current asset recipient
+                address payable assetRecipient = swapList[i].pair.getAssetRecipient();
+
+                // Transfer all the NFTs to asset recipient
+                for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
                     nft.safeTransferFrom(
                         msg.sender,
-                        address(swapList[i].pair),
+                        assetRecipient,
                         swapList[i].nftIds[j]
                     );
                 }
@@ -674,22 +669,19 @@ contract LSSVMRouter {
 
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Transfer NFTs directly from sender to pair
             IERC721 nft = swapList[i].pair.nft();
 
-            // Signal transfer start to pair
-            nft.safeTransferFrom(
-                msg.sender,
-                address(swapList[i].pair),
-                swapList[i].nftIds[0],
-                signal
-            );
+            // Cache current asset recipient balance
+            swapList[i].pair.cacheAssetRecipientNFTBalance();
 
-            // Transfer the remaining NFTs
-            for (uint256 j = 1; j < swapList[i].nftIds.length; j++) {
+            // Get current asset recipient
+            address payable assetRecipient = swapList[i].pair.getAssetRecipient();
+
+            // Transfer all the NFTs to recipient
+            for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
                 nft.safeTransferFrom(
                     msg.sender,
-                    address(swapList[i].pair),
+                    assetRecipient,
                     swapList[i].nftIds[j]
                 );
             }

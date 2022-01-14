@@ -32,6 +32,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
         LSSVMPairFactory factory,
         IERC721 nft,
         ICurve bondingCurve,
+        address payable assetRecipient,
         uint256 delta,
         uint256 spotPrice,
         LSSVMPair.PoolType poolType,
@@ -42,7 +43,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
         LSSVMPairETH pair = factory.createPairETH{value: msg.value}(
             nft,
             bondingCurve,
-            payable(address(0)),
+            assetRecipient,
             poolType,
             delta,
             0,

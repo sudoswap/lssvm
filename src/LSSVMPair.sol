@@ -7,6 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 
 import {Ownable} from "./lib/Ownable.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
+import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
@@ -18,11 +19,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     }
 
     uint256 internal constant MAX_FEE = 9e17; // 90%, must <= 1 - MAX_PROTOCOL_FEE
-    bytes1 internal constant NFT_TRANSFER_START = 0x11;
 
     // Temporarily used during LSSVMRouter::_swapNFTsForToken to store the number of NFTs transferred
     // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForToken.
-    uint256 internal nftBalanceAtTransferStart;
+    uint256 internal assetRecipientNFTBalanceAtTransferStart;
 
     uint256 public spotPrice;
     uint256 public delta;
@@ -31,7 +31,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     uint256 public fee;
 
     // If set to 0, NFTs/tokens sent by traders during trades will be sent to the pair.
-    // Otherwise, assets will be sent to the set address. Not available to TRADE pools.
+    // Otherwise, assets will be sent to the set address. Not available for TRADE pools.
     address payable public assetRecipient;
 
     // Events
@@ -304,8 +304,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
-        uint256 _nftBalanceAtTransferStart = nftBalanceAtTransferStart;
-        delete nftBalanceAtTransferStart;
+        uint256 _assetRecipientNFTBalanceAtTransferStart = assetRecipientNFTBalanceAtTransferStart;
+        delete assetRecipientNFTBalanceAtTransferStart;
 
         // Input validation
         {
@@ -315,13 +315,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 "Wrong Pool type"
             );
         }
-        require(_nftBalanceAtTransferStart != 0, "Not in router swap context");
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        uint256 numNFTs = _nft.balanceOf(address(this)) -
-            _nftBalanceAtTransferStart +
-            1;
+        uint256 numNFTs = _nft.balanceOf(getAssetRecipient()) - _assetRecipientNFTBalanceAtTransferStart;
         {
             uint256 newSpotPrice;
             CurveErrorCodes.Error error;
@@ -345,6 +342,14 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         _payProtocolFee(_factory, protocolFee);
 
         emit SwapWithAnyNFTs(outputAmount, numNFTs, true);
+    }
+
+    /**
+      @notice Stores the assetRecipient's current NFT balance for use with routerSwapNFTForToken. Only callable by the router
+     */
+    function cacheAssetRecipientNFTBalance() public {
+        require(factory().routerAllowed(LSSVMRouter(payable(msg.sender))), "Not router");
+        assetRecipientNFTBalanceAtTransferStart = nft().balanceOf(getAssetRecipient());
     }
 
     /**
@@ -451,6 +456,26 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
     }
 
+    function getAssetRecipient()
+        public
+        view
+        returns (address payable _assetRecipient)
+    {
+        // If it's a TRADE pool, we know the recipient is 0
+        // So just return address(this)
+        if (poolType() == PoolType.TRADE) {
+            return payable(address(this));
+        }
+
+        // Otherwise, we return the recipient if it's been set
+        // or replace it with address(this) if it's 0
+        _assetRecipient = assetRecipient;
+        if (_assetRecipient == address(0)) {
+            // Tokens will be transferred to address(this)
+            _assetRecipient = payable(address(this));
+        }
+    }
+
     /**
      * Internal functions
      */
@@ -488,26 +513,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
         internal
         virtual;
-
-    function _getAssetRecipient()
-        internal
-        view
-        returns (address payable _assetRecipient)
-    {
-        // If it's a TRADE pool, we know the recipient is 0
-        // So just return address(this)
-        if (poolType() == PoolType.TRADE) {
-            return payable(address(this));
-        }
-
-        // Otherwise, we return the recipient if it's been set
-        // or replace it with address(this) if it's 0
-        _assetRecipient = assetRecipient;
-        if (_assetRecipient == address(0)) {
-            // Tokens will be transferred to address(this)
-            _assetRecipient = payable(address(this));
-        }
-    }
 
     function _immutableParamsLength() internal pure virtual returns (uint256);
 

@@ -72,10 +72,11 @@ abstract contract RouterMultiPool is
         for (uint256 i = 1; i <= 5; i++) {
             uint256[] memory idList = new uint256[](1);
             idList[0] = i;
-            pairs[i] = this.setupPair{value: modifyInputAmount(1 ether)}(
+            pairs[i] = this.setupPair{value: modifyInputAmount(i*1 ether)}(
                 factory,
                 test721,
                 bondingCurve,
+                payable(address(0)),
                 modifyDelta(0),
                 (i* 1 ether),
                 LSSVMPair.PoolType.TRADE,

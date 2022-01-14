@@ -21,7 +21,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         require(msg.value >= inputAmount, "Sent too little ETH");
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
-        address payable _assetRecipient = _getAssetRecipient();
+        address payable _assetRecipient = getAssetRecipient();
         if (_assetRecipient != address(this)) {
             _assetRecipient.safeTransferETH(inputAmount);
         }

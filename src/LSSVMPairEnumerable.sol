@@ -37,7 +37,7 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         internal
         override
     {
-        address _assetRecipient = _getAssetRecipient();
+        address _assetRecipient = getAssetRecipient();
 
         // Take in NFTs from caller
         for (uint256 i = 0; i < nftIds.length; i++) {
@@ -53,7 +53,7 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         uint256 numNFTs = _nft.balanceOf(address(this));
         uint256[] memory ids = new uint256[](numNFTs);
         for (uint256 i; i < numNFTs; i++) {
-            ids[i] = IERC721Enumerable(address(_nft)).tokenOfOwnerByIndex( //Red loop?
+            ids[i] = IERC721Enumerable(address(_nft)).tokenOfOwnerByIndex(
                 address(this),
                 i
             );
@@ -66,23 +66,11 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         If it's from the Router, we cache the current balance amount
      */
     function onERC721Received(
-        address operator,
+        address,
         address,
         uint256,
-        bytes memory b
+        bytes memory 
     ) public virtual returns (bytes4) {
-        LSSVMPairFactoryLike _factory = factory();
-        IERC721 _nft = nft();
-        if (msg.sender == address(_nft)) {
-            if (b.length == 1 && b[0] == NFT_TRANSFER_START) {
-                // Use NFT for trade
-                require(
-                    _factory.routerAllowed(LSSVMRouter(payable(operator))),
-                    "Not router"
-                );
-                nftBalanceAtTransferStart = _nft.balanceOf(address(this));
-            }
-        }
         return this.onERC721Received.selector;
     }
 

@@ -32,7 +32,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         require(msg.value == 0, "ERC20 pair");
 
         ERC20 _token = token();
-        address _assetRecipient = _getAssetRecipient();
+        address _assetRecipient = getAssetRecipient();
 
         if (isRouter) {
             // Verify if router is allowed
