@@ -11,8 +11,6 @@ contract LSSVMRouter {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
-    bytes1 private constant NFT_TRANSFER_START = 0x11;
-
     struct PairSwapAny {
         LSSVMPair pair;
         uint256 numItems;
@@ -664,9 +662,6 @@ contract LSSVMRouter {
         uint256 minOutput,
         address payable tokenRecipient
     ) internal returns (uint256 outputAmount) {
-        bytes memory signal = new bytes(1);
-        signal[0] = NFT_TRANSFER_START;
-
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
             IERC721 nft = swapList[i].pair.nft();
