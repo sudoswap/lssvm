@@ -26,7 +26,6 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     uint256 tokenAmount = 0.1 ether;
     uint256 numItems = 2;
     uint256[] idList;
-    uint256[] idList2;
     IERC721 test721;
     IERC20 testERC20;
     ICurve bondingCurve;
@@ -90,6 +89,10 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         );
     }
 
+    /**
+     * Test Owner functions
+     */
+
     function test_transferOwnership() public {
         pair.transferOwnership(payable(address(2)));
     }
@@ -141,6 +144,13 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         // // changing fee works as expected
         pair.changeFee(0.2 ether);
         assertEq(pair.fee(), 0.2 ether);
+    }
+
+    function test_getAllHeldNFTs() public {
+        uint256[] memory allIds = pair.getAllHeldIds();
+        for (uint256 i = 0; i < allIds.length; ++i) {
+            assertEq(allIds[i], idList[i]);
+        }
     }
 
     function test_withdraw() public {
@@ -207,4 +217,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         pair.renounceOwnership();
         pair.changeFee(0.2 ether);
     }
+
+    /**
+     * Test Admin functions
+     */
 }
