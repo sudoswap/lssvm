@@ -71,7 +71,7 @@ library LSSVMPairCloner {
             mstore(add(ptr, 0x1d), shl(0x60, implementation))
 
             // 5a          | GAS                   | gas addr 0 cds 0 0 0    | [0, cds] = calldata
-            // f4          | DELEGATECALL          | success 0                | [0, cds] = calldata
+            // f4          | DELEGATECALL          | success 0               | [0, cds] = calldata
             // 3d          | RETURNDATASIZE        | rds success 0           | [0, cds] = calldata
             // 82          | DUP3                  | 0 rds success 0         | [0, cds] = calldata
             // 80          | DUP1                  | 0 0 rds success 0       | [0, cds] = calldata
@@ -79,7 +79,7 @@ library LSSVMPairCloner {
             // 90          | SWAP1                 | 0 success               | [0, rds] = return data
             // 3d          | RETURNDATASIZE        | rds 0 success           | [0, rds] = return data
             // 91          | SWAP2                 | success 0 rds           | [0, rds] = return data
-            // 60 0x36     | PUSH1 0x36            | 0x36 sucess 0 rds       | [0, rds] = return data
+            // 60 0x36     | PUSH1 0x36            | 0x36 success 0 rds      | [0, rds] = return data
             // 57          | JUMPI                 | 0 rds                   | [0, rds] = return data
             // fd          | REVERT                | –                       | [0, rds] = return data
             // 5b          | JUMPDEST              | 0 rds                   | [0, rds] = return data
@@ -102,6 +102,14 @@ library LSSVMPairCloner {
         }
     }
 
+    /**
+     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
+     *
+     * This function uses the create opcode, which should never revert.
+     *
+     * During the delegate call, extra data is copied into the calldata which can then be
+     * accessed by the implementation contract.
+     */
     function cloneERC20Pair(
         address implementation,
         LSSVMPairFactoryLike factory,
@@ -156,7 +164,7 @@ library LSSVMPairCloner {
             mstore(add(ptr, 0x1d), shl(0x60, implementation))
 
             // 5a          | GAS                   | gas addr 0 cds 0 0 0    | [0, cds] = calldata
-            // f4          | DELEGATECALL          | success 0                | [0, cds] = calldata
+            // f4          | DELEGATECALL          | success 0               | [0, cds] = calldata
             // 3d          | RETURNDATASIZE        | rds success 0           | [0, cds] = calldata
             // 82          | DUP3                  | 0 rds success 0         | [0, cds] = calldata
             // 80          | DUP1                  | 0 0 rds success 0       | [0, cds] = calldata
@@ -164,7 +172,7 @@ library LSSVMPairCloner {
             // 90          | SWAP1                 | 0 success               | [0, rds] = return data
             // 3d          | RETURNDATASIZE        | rds 0 success           | [0, rds] = return data
             // 91          | SWAP2                 | success 0 rds           | [0, rds] = return data
-            // 60 0x36     | PUSH1 0x36            | 0x36 sucess 0 rds       | [0, rds] = return data
+            // 60 0x36     | PUSH1 0x36            | 0x36 success 0 rds      | [0, rds] = return data
             // 57          | JUMPI                 | 0 rds                   | [0, rds] = return data
             // fd          | REVERT                | –                       | [0, rds] = return data
             // 5b          | JUMPDEST              | 0 rds                   | [0, rds] = return data
@@ -188,6 +196,13 @@ library LSSVMPairCloner {
         }
     }
 
+    /**
+     * @notice Checks if a contract is a clone of a LSSVMPairETH.
+     * @dev Only checks the runtime bytecode, does not check the extra data.
+     * @param implementation the LSSVMPairETH implementation contract
+     * @param query the contract to check
+     * @return result True if the contract is a clone, false otherwise
+     */
     function isETHPairClone(address implementation, address query)
         internal
         view
@@ -216,6 +231,13 @@ library LSSVMPairCloner {
         }
     }
 
+    /**
+     * @notice Checks if a contract is a clone of a LSSVMPairERC20.
+     * @dev Only checks the runtime bytecode, does not check the extra data.
+     * @param implementation the LSSVMPairERC20 implementation contract
+     * @param query the contract to check
+     * @return result True if the contract is a clone, false otherwise
+     */
     function isERC20PairClone(address implementation, address query)
         internal
         view
