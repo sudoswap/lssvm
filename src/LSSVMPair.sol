@@ -229,7 +229,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     /**
         @notice Sends a set of NFTs to the pair in exchange for token
-        @dev To compute the amount of token to that will be received, call bondingCurve.getSellInfo
+        @dev To compute the amount of token to that will be received, call bondingCurve.getSellInfo.
+        Note that in practice, routerSwapNFTsForToken will be typically used to avoid users having
+        to approve their NFTs for spending for each new pair.
         @param nftIds The list of IDs of the NFTs to sell to the pair
         @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
@@ -318,7 +320,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        uint256 numNFTs = _nft.balanceOf(getAssetRecipient()) - _assetRecipientNFTBalanceAtTransferStart;
+        uint256 numNFTs = _nft.balanceOf(getAssetRecipient()) -
+            _assetRecipientNFTBalanceAtTransferStart;
         {
             uint256 newSpotPrice;
             CurveErrorCodes.Error error;
@@ -348,8 +351,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
       @notice Stores the assetRecipient's current NFT balance for use with routerSwapNFTForToken. Only callable by the router
      */
     function cacheAssetRecipientNFTBalance() public {
-        require(factory().routerAllowed(LSSVMRouter(payable(msg.sender))), "Not router");
-        assetRecipientNFTBalanceAtTransferStart = nft().balanceOf(getAssetRecipient());
+        require(
+            factory().routerAllowed(LSSVMRouter(payable(msg.sender))),
+            "Not router"
+        );
+        assetRecipientNFTBalanceAtTransferStart = nft().balanceOf(
+            getAssetRecipient()
+        );
     }
 
     /**
