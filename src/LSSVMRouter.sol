@@ -557,10 +557,20 @@ contract LSSVMRouter {
         Internal functions
      */
 
+    /**
+        @param deadline The last valid time for a swap
+     */
     function _checkDeadline(uint256 deadline) internal view {
         require(block.timestamp <= deadline, "Deadline passed");
     }
 
+    /**
+        @notice Internal function used to swap ETH for any NFTs
+        @param swapList The list of pairs and swap calldata
+        @param inputAmount The total amount of ETH to send
+        @param ethRecipient The address receiving excess ETH
+        @param nftRecipient The address receiving the NFTs from the pairs
+     */
     function _swapETHForAnyNFTs(
         PairSwapAny[] calldata swapList,
         uint256 inputAmount,
@@ -572,6 +582,7 @@ contract LSSVMRouter {
         // Do swaps
         uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
+            // Calculate the cost per swap
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
@@ -589,6 +600,13 @@ contract LSSVMRouter {
         }
     }
 
+    /**
+        @notice Internal function used to swap ETH for a specific set of NFTs
+        @param swapList The list of pairs and swap calldata
+        @param inputAmount The total amount of ETH to send
+        @param ethRecipient The address receiving excess ETH
+        @param nftRecipient The address receiving the NFTs from the pairs
+     */
     function _swapETHForSpecificNFTs(
         PairSwapSpecific[] calldata swapList,
         uint256 inputAmount,
@@ -600,6 +618,7 @@ contract LSSVMRouter {
         // Do swaps
         uint256 pairCost;
         for (uint256 i = 0; i < swapList.length; i++) {
+            // Calculate the cost per swap
             (, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].nftIds.length
             );
@@ -617,6 +636,16 @@ contract LSSVMRouter {
         }
     }
 
+    /**
+        @notice Internal function used to swap an ERC20 token for any NFTs
+        @dev Note that we don't need to query the pair's bonding curve first for pricing data because
+        we just calculate and take the required amount from the caller during swap time. 
+        However, we can't "pull" ETH, which is why for the ETH->NFT swaps, we need to calculate the pricing info
+        to figure out how much the router should send to the pool.
+        @param swapList The list of pairs and swap calldata
+        @param inputAmount The total amount of ERC20 tokens to send
+        @param nftRecipient The address receiving the NFTs from the pairs
+     */
     function _swapERC20ForAnyNFTs(
         PairSwapAny[] calldata swapList,
         uint256 inputAmount,
@@ -638,6 +667,16 @@ contract LSSVMRouter {
         }
     }
 
+    /**
+        @notice Internal function used to swap an ERC20 token for specific NFTs
+        @dev Note that we don't need to query the pair's bonding curve first for pricing data because
+        we just calculate and take the required amount from the caller during swap time. 
+        However, we can't "pull" ETH, which is why for the ETH->NFT swaps, we need to calculate the pricing info
+        to figure out how much the router should send to the pool.
+        @param swapList The list of pairs and swap calldata
+        @param inputAmount The total amount of ERC20 tokens to send
+        @param nftRecipient The address receiving the NFTs from the pairs
+     */
     function _swapERC20ForSpecificNFTs(
         PairSwapSpecific[] calldata swapList,
         uint256 inputAmount,
@@ -659,6 +698,14 @@ contract LSSVMRouter {
         }
     }
 
+    /**
+        @notice Swaps NFTs for tokens, designed to be used for 1 token at a time
+        @dev Calling with multiple tokens is permitted, BUT minOutput will be 
+        far from enough of a safety check because different tokens almost certainly have different unit prices.
+        @param swapList The list of pairs and swap calldata 
+        @param minOutput The minimum number of tokens to be receieved frm the swaps 
+        @param tokenRecipient The address that receives the tokens
+     */
     function _swapNFTsForToken(
         PairSwapSpecific[] calldata swapList,
         uint256 minOutput,
@@ -692,7 +739,7 @@ contract LSSVMRouter {
             );
         }
 
-        // Slippage check
+        // Aggregate slippage check
         require(outputAmount >= minOutput, "outputAmount too low");
     }
 }
