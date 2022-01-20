@@ -32,7 +32,7 @@ abstract contract RouterSinglePool is
     LSSVMPair pair;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
-    uint256 numInitialNFTs = 10;
+    uint256 constant numInitialNFTs = 10;
 
     function setUp() public {
         bondingCurve = setupCurve();
@@ -138,6 +138,25 @@ abstract contract RouterSinglePool is
             payable(address(this)),
             block.timestamp
         );
+    }
+
+    function testGas_swapSingleNFTForToken5Times() public {
+        for (uint256 i = 1; i <= 5; i++) {
+            uint256[] memory nftIds = new uint256[](1);
+            nftIds[0] = numInitialNFTs + i;
+            LSSVMRouter.PairSwapSpecific[]
+                memory swapList = new LSSVMRouter.PairSwapSpecific[](1);
+            swapList[0] = LSSVMRouter.PairSwapSpecific({
+                pair: pair,
+                nftIds: nftIds
+            });
+            router.swapNFTsForToken(
+                swapList,
+                0.9 ether,
+                payable(address(this)),
+                block.timestamp
+            );
+        }
     }
 
     function test_swapSingleNFTForAnyNFT() public {

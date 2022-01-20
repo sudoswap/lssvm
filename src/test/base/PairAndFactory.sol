@@ -73,7 +73,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
     }
 
-    function test_basicDeploy() public {
+    function testGas_basicDeploy() public {
         uint256[] memory empty;
         this.setupPair{value: modifyInputAmount(tokenAmount)}(
             factory,
@@ -90,7 +90,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     /**
-     * Test Owner functions
+     * Test LSSVMPair Owner functions
      */
 
     function test_transferOwnership() public {
@@ -187,6 +187,14 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
         // verify NFT ownership
         assertEq(test721.ownerOf(1000), address(this));
+    }
+
+    /**
+        Test failure conditions
+     */
+
+    function testFail_routerSwapNotFromRouter() public {
+        pair.routerSwapNFTsForToken(payable(address(this)));
     }
 
     function testFail_rescueTokensNotOwner() public {

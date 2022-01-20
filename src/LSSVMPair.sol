@@ -307,9 +307,11 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
     }
 
+    event CachedBalanceInPairContext(uint256 a);
+
     /**
-        @notice Sells NFTs to the pair in exchange for token. Only callable by the LSSVMRouter.
-        @dev To compute the amount of token to that will be received, call bondingCurve.getSellInfo
+        @notice Sells NFTs to the pair in exchange for token. Only intended to be callable by the LSSVMRouter.
+        @dev To compute the amount of token to that will be received, we call bondingCurve.getSellInfo
         @param tokenRecipient The recipient of the token output
         @return outputAmount The amount of token received
      */
@@ -321,7 +323,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
-        uint256 _assetRecipientNFTBalanceAtTransferStart = assetRecipientNFTBalanceAtTransferStart;
+
+        // We subtract 1 (after having added 1 when caching)
+        // meaning that non-router calls to routerSwap will underflow here
+        uint256 _assetRecipientNFTBalanceAtTransferStart = assetRecipientNFTBalanceAtTransferStart - 1;
         delete assetRecipientNFTBalanceAtTransferStart;
 
         // Input validation
@@ -370,9 +375,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             factory().routerAllowed(LSSVMRouter(payable(msg.sender))),
             "Not router"
         );
+
+        // We set it to be 1 greater than the current balance to indirectly avoid
+        // others from calling routerSwap
         assetRecipientNFTBalanceAtTransferStart = nft().balanceOf(
             getAssetRecipient()
-        );
+        ) + 1;
     }
 
     /**
@@ -518,6 +526,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
      * Internal functions
      */
 
+    /**
+        @notice Verifies and the correct amount of tokens needed for a swap is sent
+        @param inputAmount The amount of tokens to be sent
+     */
     function _validateTokenInput(
         uint256 inputAmount,
         bool isRouter,
@@ -525,33 +537,74 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         LSSVMPairFactoryLike _factory
     ) internal virtual;
 
+    /**
+        @notice Sends excess tokens back to the caller
+        @dev We send ETH back to the caller even when called from LSSVMRouter because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller) 
+        Excess ETH sent for one swap can then be used to help pay for the next swap.
+     */
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
 
+    /**
+        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory
+     */
     function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         virtual;
 
+    /**
+        @notice Sends tokens to a recipient
+        @param tokenRecipient The address receiving the tokens
+        @param outputAmount The amount of tokens to send
+     */
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
     ) internal virtual;
 
+    /**
+        @notice Sends some number of NFTs to a recipient address, ID agnostic
+        @dev Even though we specify the NFT address here, this internal function is only 
+        used to send NFTs associated with this specific pool.
+        @param _nft The address of the NFT to send
+        @param nftRecipient The receiving address for the NFTs
+        @param numNFTs The number of NFTs to send  
+     */
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
         uint256 numNFTs
     ) internal virtual;
 
+    /**
+        @notice Sends specific NFTs to a recipient address
+        @dev Even though we specify the NFT address here, this internal function is only 
+        used to send NFTs associated with this specific pool.
+        @param _nft The address of the NFT to send
+        @param nftRecipient The receiving address for the NFTs
+        @param nftIds The specific IDs of NFTs to send  
+     */
     function _sendSpecificNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
         uint256[] calldata nftIds
     ) internal virtual;
 
+    /**
+        @notice Takes NFTs from the caller and sends them into the pair's asset recipient
+        @dev This is used by the LSSVMPair's swapNFTForToken function. 
+        Practically, we expect most users to use the LSSVMRouter and
+        instead the routerSwapNFTsforToken function will be called
+        which will not use this function.
+        @param _nft The NFT collection to take from
+        @param nftIds The specific NFT IDs to take
+     */
     function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
         internal
         virtual;
 
+    /**
+        @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details
+     */
     function _immutableParamsLength() internal pure virtual returns (uint256);
 
     /**
