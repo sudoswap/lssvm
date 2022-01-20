@@ -474,6 +474,8 @@ contract LSSVMRouter {
         }
     }
 
+    event Foo(uint256 amount);
+
     function robustSwapNFTsForToken(
         PairSwapSpecific[] calldata swapList,
         uint256[] memory minOutputPerSwapPair,
@@ -507,6 +509,8 @@ contract LSSVMRouter {
                         swapList[i].nftIds[j]
                     );
                 }
+
+                emit Foo(nft.balanceOf(assetRecipient));
 
                 // Do the swap and update outputAmount with how many tokens we got
                 outputAmount += swapList[i].pair.routerSwapNFTsForToken(
