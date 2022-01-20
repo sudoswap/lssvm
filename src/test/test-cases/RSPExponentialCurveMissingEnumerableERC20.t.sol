@@ -7,4 +7,9 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract RSPExponentialCurveMissingEnumerableERC20Test is RouterSinglePool, UsingExponentialCurve, UsingMissingEnumerable, UsingERC20 {}
+contract RSPExponentialCurveMissingEnumerableERC20Test is
+    RouterSinglePool,
+    UsingExponentialCurve,
+    UsingMissingEnumerable,
+    UsingERC20
+{}

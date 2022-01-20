@@ -13,20 +13,24 @@ For the actual token, NFTs are paired either with an `ERC20` or `ETH`, so there 
 * Enumerable | ETH
 * Enumerable | ERC20
 
-The `LSSVMRouter` allows splitting swaps across multiple `LSSVMPair`s.
+The `LSSVMRouter` allows splitting swaps across multiple `LSSVMPair`s to purchase multiple NFTs.
 
 An `LSSVMPair` can be TOKEN, NFT, or TRADE. The type refers to what the pool holds--an ETH pool has tokens that it is willing to give to traders in exchange for NFTs, an NFT pool has NFTs that it is willing to give to traders in exchange for tokens, and TRADE pools allow for both TOKEN-->NFT and NFT-->TOKEN.
 
 The `LSSVMPair` `swap` functions are named from the perspective of the end user. EX: `swapTokenForAnyNFTs` means the caller is sending ETH and receiving NFTs.
 
-In order to determine how many NFTs or tokens to give or receive, each `LSSVMPair` calls a discrete bonding curve contract that conforms to the `ICurve` interface. Bonding curve contracts are pure; it is up to the `LSSVMPair` to update its state and perform input/output validation.
+In order to determine how many NFTs or tokens to give or receive, each `LSSVMPair` calls a discrete bonding curve contract that conforms to the `ICurve` interface. Bonding curve contracts are intended to be pure; it is up to the `LSSVMPair` to update its state and perform input/output validation.
 
 See inline comments for more on swap/bonding curve logic.
 
 ### Testing
-To help with code reuse, `base` contains actual swap logic to be tested in the form of abstract contracts, while actual test files inherit from various parent contracts found in `abstract` to implement the different choices of bonding curve, NFT, or token.
+To help with code reuse, `base` contains actual swap logic to be tested in the form of abstract contracts, while actual test files inherit from various parent contracts found in `mixins` to implement the different choices of bonding curve, NFT, or token.
+
+`testgen-scripts` contains a Python script used to generate all combinations of bonding curve, NFT, and token for each test in `base`. They are then placed into `test-cases`.
 
 Files are named with the convention of bonding curve type, then NFT type, then token type, e.g. `NoArbBondingCurveLinearMissingEnumerableETH`.
+
+We recommend using `forge` to run the tests, but `dapptools` also works.
 
 ---
 

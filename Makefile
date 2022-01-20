@@ -4,8 +4,8 @@
 
 install: update npm solc
 
-# dapp deps
-update:; dapp update
+# deps
+update:; forge update
 
 # npm deps for linting etc.
 npm:; yarn install
@@ -20,10 +20,10 @@ build  :; forge build --optimize --optimize-runs 1000000
 test   :; forge test --optimize --optimize-runs 1000000 # --ffi # enable if you need the `ffi` cheat code on HEVM
 fuzz   :; forge test -v --optimize --optimize-runs 1000000
 clean  :; forge clean
-lint   :; yarn run lintm
+lint   :; yarn run lint
 estimate :; ./scripts/estimate-gas.sh ${contract}
 size   :; ./scripts/contract-size.sh ${contract}
-snapshot :; dapp snapshot
+snapshot :; forge snapshot --optimize --optimize-runs 1000000
 test-deploy :; ./scripts/test-deploy.sh
 
 # Deployment helpers

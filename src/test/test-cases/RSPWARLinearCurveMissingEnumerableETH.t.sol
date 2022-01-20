@@ -7,4 +7,9 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RSPWARLinearCurveMissingEnumerableETHTest is RouterSinglePoolWithAssetRecipient, UsingLinearCurve, UsingMissingEnumerable, UsingETH {}
+contract RSPWARLinearCurveMissingEnumerableETHTest is
+    RouterSinglePoolWithAssetRecipient,
+    UsingLinearCurve,
+    UsingMissingEnumerable,
+    UsingETH
+{}
