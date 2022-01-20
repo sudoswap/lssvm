@@ -11,3 +11,6 @@
 [submodule "lib/prb-math"]
 	path = lib/prb-math
 	url = https://github.com/hifi-finance/prb-math.git
+[submodule "lib/solmate"]
+	path = lib/solmate
+	url = https://github.com/rari-capital/solmate

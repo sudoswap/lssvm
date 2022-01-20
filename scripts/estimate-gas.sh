@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
 . $(dirname $0)/common.sh
 
 if [[ -z $contract ]]; then
@@ -10,5 +14,3 @@ if [[ -z $contract ]]; then
 fi
 
 estimate_gas $contract
-
-

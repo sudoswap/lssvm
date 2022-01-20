@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eo pipefail
+
 # Utility for running a temporary dapp testnet w/ an ephemeral account
 # to be used for deployment tests
 
@@ -7,7 +9,7 @@
 export TMPDIR=$(mktemp -d)
 
 # clean up
-trap 'killall geth && rm -rf "$TMPDIR"' EXIT
+trap 'killall geth && sleep 3 && rm -rf "$TMPDIR"' EXIT
 trap "exit 1" SIGINT SIGTERM
 
 # test helper
@@ -22,5 +24,11 @@ dapp testnet --dir "$TMPDIR" &
 # wait for it to launch (can't go <3s)
 sleep 3
 
+# set the RPC URL to the local testnet
+export ETH_RPC_URL=http://127.0.0.1:8545
+
+export ETH_KEYSTORE=$TMPDIR/8545/keystore
+export ETH_PASSWORD=/dev/null
+
 # get the created account (it's unlocked so we only need to set the address)
-export ETH_FROM=$(seth ls --keystore $TMPDIR/8545/keystore | cut -f1)
+export ETH_FROM=$(seth ls --keystore $ETH_KEYSTORE | cut -f1)

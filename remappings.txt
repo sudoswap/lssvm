@@ -1,4 +1,4 @@
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 ds-test/=lib/ds-test/src/
-prb-math/=lib/prb-math/contracts/
+solmate/=lib/solmate/src/

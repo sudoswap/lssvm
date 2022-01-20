@@ -4,8 +4,8 @@
 
 install: update npm solc
 
-# dapp deps
-update:; dapp update
+# deps
+update:; forge update
 
 # npm deps for linting etc.
 npm:; yarn install
@@ -16,14 +16,15 @@ SOLC_VERSION := 0_8_10
 solc:; nix-env -f https://github.com/dapphub/dapptools/archive/master.tar.gz -iA solc-static-versions.solc_${SOLC_VERSION}
 
 # Build & test
-build  :; dapp build
-test   :; dapp test # --ffi # enable if you need the `ffi` cheat code on HEVM
-fuzz   :; dapp test -v
-clean  :; dapp clean
+build  :; forge build --optimize --optimize-runs 1000000
+test   :; forge test --optimize --optimize-runs 1000000 # --ffi # enable if you need the `ffi` cheat code on HEVM
+fuzz   :; forge test -v --optimize --optimize-runs 1000000
+clean  :; forge clean
 lint   :; yarn run lint
 estimate :; ./scripts/estimate-gas.sh ${contract}
 size   :; ./scripts/contract-size.sh ${contract}
-snapshot :; dapp snapshot
+snapshot :; forge snapshot --optimize --optimize-runs 1000000
+test-deploy :; ./scripts/test-deploy.sh
 
 # Deployment helpers
 deploy :; @./scripts/deploy.sh
@@ -45,5 +46,5 @@ endif
 # Requires the ALCHEMY_API_KEY env var to be set.
 # The first argument determines the network (mainnet / rinkeby / ropsten / kovan / goerli)
 define network
-	https://eth-$1.alchemyapi.io/v2/${ALCHEMY_API_KEY}
+https://eth-$1.alchemyapi.io/v2/${ALCHEMY_API_KEY}
 endef
