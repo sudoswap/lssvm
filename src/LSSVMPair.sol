@@ -11,6 +11,9 @@ import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
+/// @title The base contract for an NFT/TOKEN AMM pair
+/// @author boredGenius and 0xmons
+/// @notice This implements the core swap logic from NFT to TOKEN
 abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     enum PoolType {
         TOKEN,
@@ -18,16 +21,20 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         TRADE
     }
 
-    uint256 internal constant MAX_FEE = 9e17; // 90%, must <= 1 - MAX_PROTOCOL_FEE
+    // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
+    uint256 internal constant MAX_FEE = 9e17; 
 
     // Temporarily used during LSSVMRouter::_swapNFTsForToken to store the number of NFTs transferred
     // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForToken.
     uint256 internal assetRecipientNFTBalanceAtTransferStart;
 
+    // The current price of the NFT
     uint256 public spotPrice;
+
+    // The parameter for the pair's bonding curve
     uint256 public delta;
 
-    // Fee is only relevant for TRADE pools
+    // The spread between buy and sell prices. Fee is only relevant for TRADE pools
     uint256 public fee;
 
     // If set to 0, NFTs/tokens sent by traders during trades will be sent to the pair.
@@ -51,7 +58,15 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event DeltaUpdated(uint256 newDelta);
     event FeeUpdated(uint256 newFee);
 
-    // Only called once by factory to initialize
+    /**
+      @notice Called during pool creation to set initial parameters
+      @dev Only called once by factory to initialize
+      @param _owner The owner of the pair
+      @param _assetRecipient The address that will receive the TOKEN or NFT sent to this pair during swaps. NOTE: If set to address(0), they will go to the pair itself.
+      @param _delta The initial delta of the bonding curve
+      @param _spotPrice The initial price to sell an asset into the pair
+     */
+    // 
     function initialize(
         address _owner,
         address payable _assetRecipient,
@@ -358,6 +373,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     /**
         @dev Used as read function to query the bonding curve for buy pricing info
+        @param numNFTs The number of NFTs to buy from the pair
      */
     function getBuyNFTQuote(uint256 numNFTs)
         external
@@ -381,6 +397,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     /**
         @dev Used as read function to query the bonding curve for sell pricing info
+        @param numNFTs The number of NFTs to sell to the pair
      */
     function getSellNFTQuote(uint256 numNFTs)
         external
@@ -426,6 +443,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+        @notice Returns the type of bonding curve that parameterizes the pair
+     */
     function bondingCurve() public pure returns (ICurve _bondingCurve) {
         uint256 paramsLength = _immutableParamsLength();
         assembly {
@@ -436,6 +456,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+        @notice Returns the NFT collection that parameterizes the pair
+     */
     function nft() public pure returns (IERC721 _nft) {
         uint256 paramsLength = _immutableParamsLength();
         assembly {
@@ -446,6 +469,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+        @notice Returns the pair's type (TOKEN/NFT/TRADE)
+     */
     function poolType() public pure returns (PoolType _poolType) {
         uint256 paramsLength = _immutableParamsLength();
         assembly {
@@ -456,13 +482,17 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+        @notice Returns the address that assets that receives assets when a swap is done with this pair
+        Can be set to another address by the owner, if set to address(0), defaults to the pair's own address
+     */
     function getAssetRecipient()
         public
         view
         returns (address payable _assetRecipient)
     {
-        // If it's a TRADE pool, we know the recipient is 0
-        // So just return address(this)
+        // If it's a TRADE pool, we know the recipient is 0 (TRADE pools can't set asset recipients)
+        // so just return address(this)
         if (poolType() == PoolType.TRADE) {
             return payable(address(this));
         }
@@ -596,7 +626,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @notice Allows the pair to make arbitrary external calls to contracts
         whitelisted by the protocol. Only callable by the owner.
         @param target The contract to call
-        @param data The calldata
+        @param data The calldata to pass to the contract
      */
     function call(address payable target, bytes calldata data)
         external
@@ -609,16 +639,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     }
 
     /**
-        Black fucking magic shit
-
-        Including these decreases the gas cost of the swap functions
-        because they optimize the Solidity binary search for function
-        signatures (somehow) (maybe)
-
-        source: trust me bro
+        Including these decreases the gas cost of the swap functions.
+        We're not quite sure why.
      */
-
     uint256 public unlockTime;
-
     function lockPool(uint256) external {}
 }
