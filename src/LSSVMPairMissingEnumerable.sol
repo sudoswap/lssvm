@@ -7,12 +7,24 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 
+/**
+    @title An NFT/Token pair for an NFT that does not implement ERC721Enumerable
+    @author boredGenius and 0xmons
+ */
 abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     using EnumerableSet for EnumerableSet.UintSet;
 
-    // ID tracking
+    // Used for internal ID tracking
     EnumerableSet.UintSet private idSet;
 
+    /**
+        @notice Sends some number of NFTs to a recipient address, ID agnostic
+        @dev Even though we specify the NFT address here, this internal function is only 
+        used to send NFTs associated with this specific pool.
+        @param _nft The address of the NFT to send
+        @param nftRecipient The receiving address for the NFTs
+        @param numNFTs The number of NFTs to send  
+     */
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
@@ -27,6 +39,14 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         }
     }
 
+    /**
+        @notice Sends specific NFTs to a recipient address
+        @dev Even though we specify the NFT address here, this internal function is only 
+        used to send NFTs associated with this specific pool.
+        @param _nft The address of the NFT to send
+        @param nftRecipient The receiving address for the NFTs
+        @param nftIds The specific IDs of NFTs to send  
+     */
     function _sendSpecificNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
@@ -41,6 +61,15 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         }
     }
 
+    /**
+        @notice Takes NFTs from the caller and sends them into the pair's asset recipient
+        @dev This is used by the LSSVMPair's swapNFTForToken function. 
+        Practically, we expect most users to use the LSSVMRouter and
+        instead the routerSwapNFTsforToken function will be called
+        which will not use this function.
+        @param _nft The NFT collection to take from
+        @param nftIds The specific NFT IDs to take
+     */
     function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
         internal
         override
@@ -68,14 +97,14 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     }
 
     /**
-        @dev Callback when safeTransfering an ERC721 in, we add ID to the idSet
-        if it's the same collection used by pool (and doesn't auto-track via enumerable)
+        @dev When safeTransfering an ERC721 in, we add ID to the idSet
+        if it's the same collection used by pool. (As it doesn't auto-track because no ERC721Enumerable)
      */
     function onERC721Received(
         address,
         address,
         uint256 id,
-        bytes memory 
+        bytes memory
     ) public virtual returns (bytes4) {
         IERC721 _nft = nft();
         // If it's from the pair's NFT, add the ID to ID set
@@ -85,12 +114,20 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         return this.onERC721Received.selector;
     }
 
+    /**
+        @notice Withdraws ERC721s from the pair to the caller
+        @dev Only callable by the pair owner
+        @param a The NFT address
+        @param nftIds The NFT IDs to withdraw
+     */
     function withdrawERC721(address a, uint256[] calldata nftIds)
         external
         override
         onlyOwner
     {
         IERC721 _nft = nft();
+
+        // If it's not the pair's NFT, just withdraw normally
         if (a != address(_nft)) {
             for (uint256 i = 0; i < nftIds.length; i++) {
                 IERC721(a).safeTransferFrom(
@@ -99,7 +136,9 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
                     nftIds[i]
                 );
             }
-        } else {
+        }
+        // Otherwise, withdraw and also remove the ID from the ID set
+        else {
             for (uint256 i = 0; i < nftIds.length; i++) {
                 _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
                 idSet.remove(nftIds[i]);

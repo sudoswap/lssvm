@@ -171,8 +171,14 @@ abstract contract RouterRobustSwapWithAssetRecipient is
         nftIds1[0] = 1;
         uint256[] memory nftIds2 = new uint256[](1);
         nftIds2[0] = 2;
-        swapList[0] = LSSVMRouter.PairSwapSpecific({pair: sellPair1, nftIds: nftIds1});
-        swapList[1] = LSSVMRouter.PairSwapSpecific({pair: sellPair2, nftIds: nftIds2});
+        swapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: sellPair1,
+            nftIds: nftIds1
+        });
+        swapList[1] = LSSVMRouter.PairSwapSpecific({
+            pair: sellPair2,
+            nftIds: nftIds2
+        });
         uint256 sellPair1Price;
         (, , sellPair1Price, ) = sellPair2.getBuyNFTQuote(1);
         uint256[] memory maxCostPerNFTSwap = new uint256[](2);
@@ -200,7 +206,8 @@ abstract contract RouterRobustSwapWithAssetRecipient is
         nftIds1[0] = 5;
         uint256[] memory nftIds2 = new uint256[](1);
         nftIds2[0] = 6;
-        LSSVMRouter.PairSwapSpecific[] memory swapList = new LSSVMRouter.PairSwapSpecific[](2);
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](2);
         swapList[0] = LSSVMRouter.PairSwapSpecific({
             pair: buyPair1,
             nftIds: nftIds1

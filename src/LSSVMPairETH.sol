@@ -8,10 +8,18 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 
+/**
+    @title An NFT/Token pair where the token is ETH
+    @author boredGenius and 0xmons
+ */
 abstract contract LSSVMPairETH is LSSVMPair {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
+    /**
+        @notice Verifies and the correct amount of ETH needed for a swap is sent
+        @param inputAmount The amount of ETH to be sent
+     */
     function _validateTokenInput(
         uint256 inputAmount,
         bool, /*isRouter*/
@@ -27,6 +35,11 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
     }
 
+    /**
+        @notice Sends excess tokens back to the caller
+        @dev We send ETH back to the caller even when called from LSSVMRouter because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller) 
+        Excess ETH sent for one swap can then be used to help pay for the next swap.
+     */
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Give excess ETH back to caller
         if (msg.value > inputAmount) {
@@ -34,13 +47,16 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
     }
 
+    /**
+        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory
+     */
     function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         override
     {
         // Take protocol fee
         if (protocolFee > 0) {
-            // Round down to the actual ETH balance if there are numerical stability issues with the above calculations
+            // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
             uint256 pairETHBalance = address(this).balance;
             if (protocolFee > pairETHBalance) {
                 protocolFee = pairETHBalance;
@@ -49,6 +65,11 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
     }
 
+    /**
+        @notice Sends ETH to a recipient
+        @param tokenRecipient The address receiving the ETH
+        @param outputAmount The amount of ETH to send
+     */
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
@@ -59,13 +80,16 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
     }
 
+    /**
+        @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details
+     */
     function _immutableParamsLength() internal pure override returns (uint256) {
         return 61;
     }
 
     /**
         @notice Withdraws all token owned by the pair to the owner address.
-        Only callable by the owner.
+        @dev Only callable by the owner.
      */
     function withdrawAllETH() external onlyOwner nonReentrant {
         withdrawETH(address(this).balance);
@@ -73,7 +97,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
 
     /**
         @notice Withdraws a specified amount of token owned by the pair to the owner address.
-        Only callable by the owner.
+        @dev Only callable by the owner.
         @param amount The amount of token to send to the owner. If the pair's balance is less than
         this value, the transaction will be reverted.
      */
@@ -85,7 +109,8 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /**
-        @notice Withdraws ERC20 tokens from the pair to the owner. Only callable by the owner.
+        @notice Withdraws ERC20 tokens from the pair to the owner. 
+        @dev Only callable by the owner.
         @param a The address of the token to transfer
         @param amount The amount of tokens to send to the owner
      */
@@ -98,7 +123,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /**
-        @dev All token transfers into the pair are accepted. This is the main method
+        @dev All ETH transfers into the pair are accepted. This is the main method
         for the owner to top up the pair's token reserves.
      */
     receive() external payable {
@@ -106,7 +131,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /**
-        @dev All token transfers into the pair are accepted. This is the main method
+        @dev All ETH transfers into the pair are accepted. This is the main method
         for the owner to top up the pair's token reserves.
      */
     fallback() external payable {
