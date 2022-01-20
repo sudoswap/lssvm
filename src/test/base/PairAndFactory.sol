@@ -207,4 +207,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         pair.renounceOwnership();
         pair.changeFee(0.2 ether);
     }
+
+    function testFail_reInitPool() public {
+        pair.initialize(address(0), payable(address(0)), 0, 0, 0);
+    }
 }
