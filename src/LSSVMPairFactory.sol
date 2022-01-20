@@ -278,8 +278,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param token The token to transfer
      */
     function withdrawERC20ProtocolFees(ERC20 token) external onlyOwner {
-        token.safeTransferFrom(
-            address(this),
+        token.safeTransfer(
             protocolFeeRecipient,
             token.balanceOf(address(this))
         );

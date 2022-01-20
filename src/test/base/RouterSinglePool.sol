@@ -72,9 +72,10 @@ abstract contract RouterSinglePool is
             test721,
             bondingCurve,
             payable(address(0)),
-            modifyDelta(uint64(delta)),
-            spotPrice,
             LSSVMPair.PoolType.TRADE,
+            modifyDelta(uint64(delta)),
+            0,
+            spotPrice,
             idList,
             10 ether,
             address(router)
@@ -244,7 +245,10 @@ abstract contract RouterSinglePool is
         nftIds[2] = 3;
         nftIds[3] = 4;
         nftIds[4] = 5;
-        swapList[0] = LSSVMRouter.PairSwapSpecific({pair: pair, nftIds: nftIds});
+        swapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: nftIds
+        });
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
         (, , inputAmount, ) = pair.getBuyNFTQuote(5);
@@ -328,7 +332,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 sellAmount;
-        (, , sellAmount, )= pair.getSellNFTQuote(1);
+        (, , sellAmount, ) = pair.getSellNFTQuote(1);
         sellAmount = sellAmount + 1 wei;
         router.swapNFTsForToken(
             swapList,

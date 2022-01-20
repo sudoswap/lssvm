@@ -23,7 +23,7 @@ import {Test721} from "../../mocks/Test721.sol";
 abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     uint256 delta = 1.1 ether;
     uint256 spotPrice = 1 ether;
-    uint256 tokenAmount = 0.1 ether;
+    uint256 tokenAmount = 10 ether;
     uint256 numItems = 2;
     uint256[] idList;
     IERC721 test721;
@@ -61,9 +61,10 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             test721,
             bondingCurve,
             payable(address(0)),
-            delta,
-            spotPrice,
             LSSVMPair.PoolType.TRADE,
+            delta,
+            0,
+            spotPrice,
             idList,
             tokenAmount,
             address(0)
@@ -80,9 +81,10 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             test721,
             bondingCurve,
             payable(address(0)),
-            delta,
-            spotPrice,
             LSSVMPair.PoolType.TRADE,
+            delta,
+            0,
+            spotPrice,
             empty,
             tokenAmount,
             address(0)
@@ -221,4 +223,53 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     /**
      * Test Admin functions
      */
+
+    function test_changeFeeRecipient() public {
+        factory.changeProtocolFeeRecipient(payable(address(69)));
+        assertEq(factory.protocolFeeRecipient(), address(69));
+    }
+
+    function test_withdrawFees() public {
+        uint256 totalProtocolFee;
+        uint256 factoryEndBalance;
+        uint256 factoryStartBalance = getBalance(address(69));
+
+        test721.setApprovalForAll(address(pair), true);
+
+        // buy all NFTs
+        {
+            (
+                ,
+                uint256 newSpotPrice,
+                uint256 inputAmount,
+                uint256 protocolFee
+            ) = bondingCurve.getBuyInfo(
+                    spotPrice,
+                    delta,
+                    numItems,
+                    0,
+                    protocolFeeMultiplier
+                );
+            totalProtocolFee += protocolFee;
+
+            // buy NFTs
+            pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+                numItems,
+                address(this),
+                false,
+                address(0)
+            );
+            spotPrice = uint56(newSpotPrice);
+        }
+
+        this.withdrawProtocolFees(factory);
+
+        factoryEndBalance = getBalance(address(69));
+        assertEq(factoryEndBalance, factoryStartBalance + totalProtocolFee);
+    }
+
+    function test_changeFeeMultiplier() public {
+        factory.changeProtocolFeeMultiplier(5e15);
+        assertEq(factory.protocolFeeMultiplier(), 5e15);
+    }
 }

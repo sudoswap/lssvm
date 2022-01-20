@@ -73,65 +73,68 @@ abstract contract RouterRobustSwapWithAssetRecipient is
             test721.mint(address(this), i);
         }
         uint256 spotPrice = 1 ether;
-        uint256 inputAmount = 1 ether;
 
         uint256[] memory sellIDList1 = new uint256[](1);
         sellIDList1[0] = 1;
-        sellPair1 = this.setupPair{value: modifyInputAmount(inputAmount)}(
+        sellPair1 = this.setupPair{value: modifyInputAmount(1 ether)}(
             factory,
             test721,
             bondingCurve,
             sellPairRecipient,
-            modifyDelta(0),
-            spotPrice,
             LSSVMPair.PoolType.NFT,
+            modifyDelta(0),
+            0,
+            spotPrice,
             sellIDList1,
-            inputAmount,
+            1 ether,
             address(router)
         );
 
         uint256[] memory sellIDList2 = new uint256[](1);
         sellIDList2[0] = 2;
-        sellPair2 = this.setupPair{value: modifyInputAmount(inputAmount)}(
+        sellPair2 = this.setupPair{value: modifyInputAmount(1 ether)}(
             factory,
             test721,
             bondingCurve,
             sellPairRecipient,
-            modifyDelta(0),
-            spotPrice,
             LSSVMPair.PoolType.NFT,
+            modifyDelta(0),
+            0,
+            spotPrice,
             sellIDList2,
-            inputAmount,
+            1 ether,
             address(router)
         );
 
         uint256[] memory buyIDList1 = new uint256[](1);
         buyIDList1[0] = 3;
-        buyPair1 = this.setupPair{value: modifyInputAmount(inputAmount)}(
+        buyPair1 = this.setupPair{value: modifyInputAmount(1 ether)}(
             factory,
             test721,
             bondingCurve,
             buyPairRecipient,
-            modifyDelta(0),
-            spotPrice,
             LSSVMPair.PoolType.TOKEN,
+            modifyDelta(0),
+            0,
+            spotPrice,
             buyIDList1,
-            inputAmount,
+            1 ether,
             address(router)
         );
 
         uint256[] memory buyIDList2 = new uint256[](1);
         buyIDList2[0] = 4;
-        buyPair2 = this.setupPair{value: modifyInputAmount(inputAmount)}(
+        buyPair2 = this.setupPair{value: modifyInputAmount(1 ether)}(
             factory,
             test721,
             bondingCurve,
             buyPairRecipient,
-            modifyDelta(0),
-            spotPrice,
             LSSVMPair.PoolType.TOKEN,
+            modifyDelta(0),
+            0,
+            spotPrice,
             buyIDList2,
-            inputAmount,
+            1 ether,
             address(router)
         );
     }
@@ -147,9 +150,8 @@ abstract contract RouterRobustSwapWithAssetRecipient is
         uint256[] memory maxCostPerNFTSwap = new uint256[](2);
         maxCostPerNFTSwap[0] = sellPair1Price;
         maxCostPerNFTSwap[1] = 0 ether;
-        uint256 inputAmount = 2 ether;
         uint256 remainingValue = this.robustSwapTokenForAnyNFTs{
-            value: modifyInputAmount(inputAmount)
+            value: modifyInputAmount(2 ether)
         }(
             router,
             swapList,
@@ -157,9 +159,9 @@ abstract contract RouterRobustSwapWithAssetRecipient is
             payable(address(this)),
             address(this),
             block.timestamp,
-            inputAmount
+            2 ether
         );
-        assertEq(remainingValue + sellPair1Price, inputAmount);
+        assertEq(remainingValue + sellPair1Price, 2 ether);
         assertEq(getBalance(sellPairRecipient), sellPair1Price);
     }
 
@@ -184,9 +186,8 @@ abstract contract RouterRobustSwapWithAssetRecipient is
         uint256[] memory maxCostPerNFTSwap = new uint256[](2);
         maxCostPerNFTSwap[0] = 0 ether;
         maxCostPerNFTSwap[1] = sellPair1Price;
-        uint256 inputAmount = 2 ether;
         uint256 remainingValue = this.robustSwapTokenForSpecificNFTs{
-            value: modifyInputAmount(inputAmount)
+            value: modifyInputAmount(2 ether)
         }(
             router,
             swapList,
@@ -194,9 +195,9 @@ abstract contract RouterRobustSwapWithAssetRecipient is
             payable(address(this)),
             address(this),
             block.timestamp,
-            inputAmount
+            2 ether
         );
-        assertEq(remainingValue + sellPair1Price, inputAmount);
+        assertEq(remainingValue + sellPair1Price, 2 ether);
         assertEq(getBalance(sellPairRecipient), sellPair1Price);
     }
 

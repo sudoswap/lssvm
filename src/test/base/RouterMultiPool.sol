@@ -72,14 +72,15 @@ abstract contract RouterMultiPool is
         for (uint256 i = 1; i <= 5; i++) {
             uint256[] memory idList = new uint256[](1);
             idList[0] = i;
-            pairs[i] = this.setupPair{value: modifyInputAmount(i*1 ether)}(
+            pairs[i] = this.setupPair{value: modifyInputAmount(i * 1 ether)}(
                 factory,
                 test721,
                 bondingCurve,
                 payable(address(0)),
-                modifyDelta(0),
-                (i* 1 ether),
                 LSSVMPair.PoolType.TRADE,
+                modifyDelta(0),
+                0,
+                (i * 1 ether),
                 idList,
                 (i * 1 ether),
                 address(router)
@@ -89,13 +90,17 @@ abstract contract RouterMultiPool is
 
     function test_swapTokenForAny5NFTs() public {
         // Swap across all 5 pools
-        LSSVMRouter.PairSwapAny[] memory swapList = new LSSVMRouter.PairSwapAny[](5);
+        LSSVMRouter.PairSwapAny[]
+            memory swapList = new LSSVMRouter.PairSwapAny[](5);
         uint256 totalInputAmount = 0;
         for (uint256 i = 0; i < 5; i++) {
             uint256 inputAmount;
-            (, , inputAmount, ) = pairs[i+1].getBuyNFTQuote(1);
+            (, , inputAmount, ) = pairs[i + 1].getBuyNFTQuote(1);
             totalInputAmount += inputAmount;
-            swapList[i] = LSSVMRouter.PairSwapAny({pair: pairs[i+1], numItems: 1});
+            swapList[i] = LSSVMRouter.PairSwapAny({
+                pair: pairs[i + 1],
+                numItems: 1
+            });
         }
         uint256 startBalance = test721.balanceOf(address(this));
         this.swapTokenForAnyNFTs{value: modifyInputAmount(totalInputAmount)}(
@@ -112,18 +117,24 @@ abstract contract RouterMultiPool is
 
     function test_swapTokenForSpecific5NFTs() public {
         // Swap across all 5 pools
-        LSSVMRouter.PairSwapSpecific[] memory swapList = new LSSVMRouter.PairSwapSpecific[](5);
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](5);
         uint256 totalInputAmount = 0;
         for (uint256 i = 0; i < 5; i++) {
             uint256 inputAmount;
-            (, , inputAmount, ) = pairs[i+1].getBuyNFTQuote(1);
+            (, , inputAmount, ) = pairs[i + 1].getBuyNFTQuote(1);
             totalInputAmount += inputAmount;
             uint256[] memory nftIds = new uint256[](1);
-            nftIds[0] = i+1;
-            swapList[i] = LSSVMRouter.PairSwapSpecific({pair: pairs[i+1], nftIds: nftIds});
+            nftIds[0] = i + 1;
+            swapList[i] = LSSVMRouter.PairSwapSpecific({
+                pair: pairs[i + 1],
+                nftIds: nftIds
+            });
         }
         uint256 startBalance = test721.balanceOf(address(this));
-        this.swapTokenForSpecificNFTs{value: modifyInputAmount(totalInputAmount)}(
+        this.swapTokenForSpecificNFTs{
+            value: modifyInputAmount(totalInputAmount)
+        }(
             router,
             swapList,
             payable(address(this)),
@@ -137,23 +148,28 @@ abstract contract RouterMultiPool is
 
     function test_swap5NFTsForToken() public {
         // Swap across all 5 pools
-        LSSVMRouter.PairSwapSpecific[] memory swapList = new LSSVMRouter.PairSwapSpecific[](5);
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](5);
         uint256 totalOutputAmount = 0;
         for (uint256 i = 0; i < 5; i++) {
             uint256 outputAmount;
-            (, , outputAmount, ) = pairs[i+1].getSellNFTQuote(1);
+            (, , outputAmount, ) = pairs[i + 1].getSellNFTQuote(1);
             totalOutputAmount += outputAmount;
             uint256[] memory nftIds = new uint256[](1);
             // Set it to be an ID we own
-            nftIds[0] = i+6;
-            swapList[i] = LSSVMRouter.PairSwapSpecific({pair: pairs[i+1], nftIds: nftIds});
+            nftIds[0] = i + 6;
+            swapList[i] = LSSVMRouter.PairSwapSpecific({
+                pair: pairs[i + 1],
+                nftIds: nftIds
+            });
         }
         uint256 startBalance = test721.balanceOf(address(this));
         router.swapNFTsForToken(
-            swapList, 
-            totalOutputAmount, 
-            payable(address(this)), 
-            block.timestamp);
+            swapList,
+            totalOutputAmount,
+            payable(address(this)),
+            block.timestamp
+        );
         uint256 endBalance = test721.balanceOf(address(this));
         require((startBalance - endBalance) == 5, "Too few NFTs sold");
     }

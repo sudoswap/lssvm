@@ -65,16 +65,15 @@ abstract contract RouterSinglePoolWithAssetRecipient is
         uint256 spotPrice = 1 ether;
         uint256[] memory sellIDList = new uint256[](numInitialNFTs);
         uint256[] memory buyIDList = new uint256[](numInitialNFTs);
-        for (uint256 i = 1; i <= 2*numInitialNFTs; i++) {
+        for (uint256 i = 1; i <= 2 * numInitialNFTs; i++) {
             test721.mint(address(this), i);
             if (i <= numInitialNFTs) {
                 sellIDList[i - 1] = i;
-            }
-            else {
+            } else {
                 buyIDList[i - numInitialNFTs - 1] = i;
             }
         }
-        
+
         // Create a sell pool with a spot price of 1 eth, 10 NFTs, and no price increases
         // All stuff gets sent to assetRecipient
         sellPair = this.setupPair{value: modifyInputAmount(10 ether)}(
@@ -82,9 +81,10 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             test721,
             bondingCurve,
             sellPairRecipient,
-            modifyDelta(uint64(delta)),
-            spotPrice,
             LSSVMPair.PoolType.NFT,
+            modifyDelta(uint64(delta)),
+            0,
+            spotPrice,
             sellIDList,
             10 ether,
             address(router)
@@ -97,16 +97,17 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             test721,
             bondingCurve,
             buyPairRecipient,
-            modifyDelta(uint64(delta)),
-            spotPrice,
             LSSVMPair.PoolType.TOKEN,
+            modifyDelta(uint64(delta)),
+            0,
+            spotPrice,
             buyIDList,
             10 ether,
             address(router)
         );
 
         // mint extra NFTs to this contract (i.e. to be held by the caller)
-        for (uint256 i = 2*numInitialNFTs + 1; i <= 3 * numInitialNFTs; i++) {
+        for (uint256 i = 2 * numInitialNFTs + 1; i <= 3 * numInitialNFTs; i++) {
             test721.mint(address(this), i);
         }
     }
@@ -152,7 +153,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
 
     function test_swapSingleNFTForToken() public {
         uint256[] memory nftIds = new uint256[](1);
-        nftIds[0] = numInitialNFTs*2 + 1;
+        nftIds[0] = numInitialNFTs * 2 + 1;
         LSSVMRouter.PairSwapSpecific[]
             memory swapList = new LSSVMRouter.PairSwapSpecific[](1);
         swapList[0] = LSSVMRouter.PairSwapSpecific({
@@ -171,7 +172,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
     function test_swapSingleNFTForAnyNFT() public {
         // construct NFT to Token swap list
         uint256[] memory sellNFTIds = new uint256[](1);
-        sellNFTIds[0] = 2*numInitialNFTs + 1;
+        sellNFTIds[0] = 2 * numInitialNFTs + 1;
         LSSVMRouter.PairSwapSpecific[]
             memory nftToTokenSwapList = new LSSVMRouter.PairSwapSpecific[](1);
         nftToTokenSwapList[0] = LSSVMRouter.PairSwapSpecific({
@@ -210,7 +211,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
     function test_swapSingleNFTForSpecificNFT() public {
         // construct NFT to token swap list
         uint256[] memory sellNFTIds = new uint256[](1);
-        sellNFTIds[0] = 2*numInitialNFTs + 1;
+        sellNFTIds[0] = 2 * numInitialNFTs + 1;
         LSSVMRouter.PairSwapSpecific[]
             memory nftToTokenSwapList = new LSSVMRouter.PairSwapSpecific[](1);
         nftToTokenSwapList[0] = LSSVMRouter.PairSwapSpecific({
@@ -278,7 +279,10 @@ abstract contract RouterSinglePoolWithAssetRecipient is
         nftIds[2] = 3;
         nftIds[3] = 4;
         nftIds[4] = 5;
-        swapList[0] = LSSVMRouter.PairSwapSpecific({pair: sellPair, nftIds: nftIds});
+        swapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: sellPair,
+            nftIds: nftIds
+        });
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
         (, , inputAmount, ) = sellPair.getBuyNFTQuote(5);
@@ -298,7 +302,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
     function test_swap5NFTsForToken() public {
         uint256[] memory nftIds = new uint256[](5);
         for (uint256 i = 0; i < 5; i++) {
-            nftIds[i] = 2*numInitialNFTs + i + 1;
+            nftIds[i] = 2 * numInitialNFTs + i + 1;
         }
         LSSVMRouter.PairSwapSpecific[]
             memory swapList = new LSSVMRouter.PairSwapSpecific[](1);

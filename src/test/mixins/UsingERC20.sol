@@ -38,9 +38,10 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         IERC721 nft,
         ICurve bondingCurve,
         address payable assetRecipient,
-        uint256 delta,
-        uint256 spotPrice,
         LSSVMPair.PoolType poolType,
+        uint256 delta,
+        uint256 fee,
+        uint256 spotPrice,
         uint256[] memory _idList,
         uint256 initialTokenBalance,
         address routerAddress
@@ -66,7 +67,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
                 assetRecipient,
                 poolType,
                 delta,
-                0,
+                fee,
                 spotPrice,
                 _idList,
                 initialTokenBalance
@@ -82,6 +83,10 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     function withdrawTokens(LSSVMPair pair) public override {
         uint256 total = test20.balanceOf(address(pair));
         LSSVMPairERC20(address(pair)).withdrawERC20(address(test20), total);
+    }
+
+    function withdrawProtocolFees(LSSVMPairFactory factory) public override {
+        factory.withdrawERC20ProtocolFees(test20);
     }
 
     function swapTokenForAnyNFTs(
@@ -155,7 +160,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
                 deadline
             );
     }
-    
+
     function robustSwapTokenForAnyNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapAny[] calldata swapList,

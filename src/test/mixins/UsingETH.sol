@@ -33,9 +33,10 @@ abstract contract UsingETH is Configurable, RouterCaller {
         IERC721 nft,
         ICurve bondingCurve,
         address payable assetRecipient,
-        uint256 delta,
-        uint256 spotPrice,
         LSSVMPair.PoolType poolType,
+        uint256 delta,
+        uint256 fee,
+        uint256 spotPrice,
         uint256[] memory _idList,
         uint256,
         address
@@ -46,7 +47,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
             assetRecipient,
             poolType,
             delta,
-            0,
+            fee,
             spotPrice,
             _idList
         );
@@ -55,6 +56,10 @@ abstract contract UsingETH is Configurable, RouterCaller {
 
     function withdrawTokens(LSSVMPair pair) public override {
         LSSVMPairETH(payable(address(pair))).withdrawAllETH();
+    }
+
+    function withdrawProtocolFees(LSSVMPairFactory factory) public override {
+        factory.withdrawETHProtocolFees();
     }
 
     function swapTokenForAnyNFTs(
