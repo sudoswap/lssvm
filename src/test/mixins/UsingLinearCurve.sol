@@ -9,16 +9,20 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {Configurable} from "./Configurable.sol";
 
 abstract contract UsingLinearCurve is Configurable {
-
     function setupCurve() public override returns (ICurve) {
         return new LinearCurve();
     }
 
-    function modifyDelta(uint64 delta) public override pure returns (uint64) {
+    function modifyDelta(uint64 delta) public pure override returns (uint64) {
         return delta;
     }
 
-    function modifySpotPrice(uint56 spotPrice) public override pure returns (uint56) {
+    function modifySpotPrice(uint56 spotPrice)
+        public
+        pure
+        override
+        returns (uint56)
+    {
         return spotPrice;
     }
 }

@@ -9,26 +9,18 @@ name: Tests
 jobs:
   tests:
     runs-on: ubuntu-latest
-
-    env:
-      DEEP_FUZZ: true
-
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - uses: cachix/install-nix-action@v13
-      - uses: cachix/cachix-action@v10
         with:
-          name: dapp
+          submodules: recursive
 
-      - name: Install dependencies
-        run: nix-shell --run 'make'
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: nightly
 
       - name: Run tests
-        run: nix-shell --run 'make test'
-        # Enable this if using forking tests
-        # env:
-        #  ETH_RPC_URL: https://eth-mainnet.alchemyapi.io/v2/${{ secrets.ALCHEMY_API_KEY }}
+        run: make test
 
   deploy:
     runs-on: ubuntu-latest
@@ -42,10 +34,10 @@ jobs:
           name: dapp
 
       - name: Install dependencies
-        run: nix-shell --run 'make'
+        run: nix-shell --run 'dapp update'
 
       - name: Build the contracts
-        run: nix-shell --run 'make build'
+        run: nix-shell --run 'dapp build'
 
       - name: Deploy and run checks
         run: nix-shell --run './scripts/test-deploy.sh'

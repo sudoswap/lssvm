@@ -7,4 +7,9 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract PAFExponentialCurveMissingEnumerableERC20Test is PairAndFactory, UsingExponentialCurve, UsingMissingEnumerable, UsingERC20 {}
+contract PAFExponentialCurveMissingEnumerableERC20Test is
+    PairAndFactory,
+    UsingExponentialCurve,
+    UsingMissingEnumerable,
+    UsingERC20
+{}

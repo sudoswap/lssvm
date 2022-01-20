@@ -155,7 +155,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
                 deadline
             );
     }
-    
+
     function robustSwapTokenForAnyNFTs(
         LSSVMRouter router,
         LSSVMRouter.PairSwapAny[] calldata swapList,

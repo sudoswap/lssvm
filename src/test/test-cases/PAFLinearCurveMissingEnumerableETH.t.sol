@@ -7,4 +7,9 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract PAFLinearCurveMissingEnumerableETHTest is PairAndFactory, UsingLinearCurve, UsingMissingEnumerable, UsingETH {}
+contract PAFLinearCurveMissingEnumerableETHTest is
+    PairAndFactory,
+    UsingLinearCurve,
+    UsingMissingEnumerable,
+    UsingETH
+{}
