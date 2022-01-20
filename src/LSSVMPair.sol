@@ -306,8 +306,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
-        uint256 _assetRecipientNFTBalanceAtTransferStart = assetRecipientNFTBalanceAtTransferStart;
-        delete assetRecipientNFTBalanceAtTransferStart;
+        uint256 _assetRecipientNFTBalanceAtTransferStart = assetRecipientNFTBalanceAtTransferStart -
+                2;
+        assetRecipientNFTBalanceAtTransferStart = 1;
 
         // Input validation
         {
@@ -350,14 +351,14 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
       @notice Stores the assetRecipient's current NFT balance for use with routerSwapNFTForToken. Only callable by the router
      */
-    function cacheAssetRecipientNFTBalance() public {
+    function cacheAssetRecipientNFTBalance() external {
         require(
             factory().routerAllowed(LSSVMRouter(payable(msg.sender))),
             "Not router"
         );
-        assetRecipientNFTBalanceAtTransferStart = nft().balanceOf(
-            getAssetRecipient()
-        );
+        assetRecipientNFTBalanceAtTransferStart =
+            nft().balanceOf(getAssetRecipient()) +
+            2;
     }
 
     /**
