@@ -100,7 +100,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_transferOwnership() public {
-        pair.renounceOwnership();
+        pair.transferOwnership(address(1000));
         pair.transferOwnership(payable(address(2)));
     }
 
@@ -161,7 +161,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_withdraw() public {
-        pair.renounceOwnership();
+        pair.transferOwnership(address(1000));
         withdrawTokens(pair);
     }
 
@@ -200,7 +200,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_rescueTokensNotOwner() public {
-        pair.renounceOwnership();
+        pair.transferOwnership(address(1000));
         pair.withdrawERC721(address(test721), idList);
         pair.withdrawERC20(address(testERC20), 1 ether);
     }
@@ -214,17 +214,17 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_changeSpotNotOwner() public {
-        pair.renounceOwnership();
+        pair.transferOwnership(address(1000));
         pair.changeSpotPrice(2 ether);
     }
 
     function testFail_changeDeltaNotOwner() public {
-        pair.renounceOwnership();
+        pair.transferOwnership(address(1000));
         pair.changeDelta(2.2 ether);
     }
 
     function testFail_changeFeeNotOwner() public {
-        pair.renounceOwnership();
+        pair.transferOwnership(address(1000));
         pair.changeFee(0.2 ether);
     }
 
