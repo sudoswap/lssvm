@@ -325,7 +325,7 @@ contract LSSVMRouter {
 
     /**
         Robust Swaps
-        These are "robust" versions of the above swap functions which will never revert due to slippage
+        These are "robust" versions of the NFT<>Token swap functions which will never revert due to slippage
         Instead, users specify a per-swap max cost. If the price changes more than the user specifies, no swap is attempted. This allows users to specify a batch of swaps, and execute as many of them as possible.
      */
 
@@ -610,6 +610,7 @@ contract LSSVMRouter {
         @param inputAmount The total amount of ETH to send
         @param ethRecipient The address receiving excess ETH
         @param nftRecipient The address receiving the NFTs from the pairs
+        @return remainingValue The unspent token amount
      */
     function _swapETHForAnyNFTs(
         PairSwapAny[] calldata swapList,
@@ -646,6 +647,7 @@ contract LSSVMRouter {
         @param inputAmount The total amount of ETH to send
         @param ethRecipient The address receiving excess ETH
         @param nftRecipient The address receiving the NFTs from the pairs
+        @return remainingValue The unspent token amount
      */
     function _swapETHForSpecificNFTs(
         PairSwapSpecific[] calldata swapList,
@@ -685,6 +687,7 @@ contract LSSVMRouter {
         @param swapList The list of pairs and swap calldata
         @param inputAmount The total amount of ERC20 tokens to send
         @param nftRecipient The address receiving the NFTs from the pairs
+        @return remainingValue The unspent token amount
      */
     function _swapERC20ForAnyNFTs(
         PairSwapAny[] calldata swapList,
@@ -716,6 +719,7 @@ contract LSSVMRouter {
         @param swapList The list of pairs and swap calldata
         @param inputAmount The total amount of ERC20 tokens to send
         @param nftRecipient The address receiving the NFTs from the pairs
+        @return remainingValue The unspent token amount
      */
     function _swapERC20ForSpecificNFTs(
         PairSwapSpecific[] calldata swapList,
@@ -745,6 +749,7 @@ contract LSSVMRouter {
         @param swapList The list of pairs and swap calldata 
         @param minOutput The minimum number of tokens to be receieved frm the swaps 
         @param tokenRecipient The address that receives the tokens
+        @return outputAmount The number of tokens to be received
      */
     function _swapNFTsForToken(
         PairSwapSpecific[] calldata swapList,

@@ -60,13 +60,15 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     /**
       @notice Called during pool creation to set initial parameters
-      @dev Only called once by factory to initialize
+      @dev Only called once by factory to initialize.
+      We verify this by making sure that the current owner is address(0). 
+      The Ownable library we use disallows setting the owner to be address(0), so this condition
+      should only be valid before the first initialize call. 
       @param _owner The owner of the pair
       @param _assetRecipient The address that will receive the TOKEN or NFT sent to this pair during swaps. NOTE: If set to address(0), they will go to the pair itself.
       @param _delta The initial delta of the bonding curve
       @param _spotPrice The initial price to sell an asset into the pair
      */
-    //
     function initialize(
         address _owner,
         address payable _assetRecipient,
