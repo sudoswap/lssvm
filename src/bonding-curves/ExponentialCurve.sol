@@ -12,6 +12,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 contract ExponentialCurve is ICurve, CurveErrorCodes {
     using FixedPointMathLib for uint256;
 
+    // minimum price to prevent numerical issues 
     uint256 public constant MIN_PRICE = 1 gwei;
 
     /**

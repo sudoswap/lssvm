@@ -94,7 +94,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
         @param _fee The fee taken by the LP in each trade. Can only be non-zero if _poolType is Trade.
-        @param _spotPrice The initial selling spot price, in ETH
+        @param _spotPrice The initial selling spot price
         @param _initialNFTIDs The list of IDs of NFTs to transfer from the sender to the pair
         @return pair The new pair
      */

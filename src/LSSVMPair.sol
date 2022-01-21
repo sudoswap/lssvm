@@ -307,8 +307,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
     }
 
-    event CachedBalanceInPairContext(uint256 a);
-
     /**
         @notice Sells NFTs to the pair in exchange for token. Only intended to be callable by the LSSVMRouter.
         @dev To compute the amount of token to that will be received, we call bondingCurve.getSellInfo
