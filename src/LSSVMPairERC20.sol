@@ -56,7 +56,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
 
             // Call router to transfer tokens from user
             uint256 beforeBalance = _token.balanceOf(_assetRecipient);
-
+            uint256 beforeNFTBalance = nft().balanceOf(_assetRecipient);
             router.pairTransferERC20From(
                 _token,
                 routerCaller,
@@ -70,6 +70,10 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
                 _token.balanceOf(_assetRecipient) - beforeBalance ==
                     inputAmount,
                 "ERC20 not transferred in"
+            );
+            require(
+                beforeNFTBalance == nft().balanceOf(_assetRecipient),
+                "Reentrant call from router"
             );
         } else {
             // Transfer tokens directly
