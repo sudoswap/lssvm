@@ -364,7 +364,10 @@ contract LSSVMRouter {
             );
 
             // If within our maxCost and no error, proceed
-            if (pairCost <= maxCostPerPairSwap[i] && error == CurveErrorCodes.Error.OK) {
+            if (
+                pairCost <= maxCostPerPairSwap[i] &&
+                error == CurveErrorCodes.Error.OK
+            ) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
                 remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
@@ -412,7 +415,10 @@ contract LSSVMRouter {
             );
 
             // If within our maxCost and no error, proceed
-            if (pairCost <= maxCostPerPairSwap[i] && error == CurveErrorCodes.Error.OK) {
+            if (
+                pairCost <= maxCostPerPairSwap[i] &&
+                error == CurveErrorCodes.Error.OK
+            ) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
                 remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
@@ -456,7 +462,10 @@ contract LSSVMRouter {
             );
 
             // If within our maxCost and no error, proceed
-            if (pairCost <= maxCostPerPairSwap[i] && error == CurveErrorCodes.Error.OK) {
+            if (
+                pairCost <= maxCostPerPairSwap[i] &&
+                error == CurveErrorCodes.Error.OK
+            ) {
                 remainingValue -= swapList[i].pair.swapTokenForAnyNFTs(
                     swapList[i].numItems,
                     nftRecipient,
@@ -491,7 +500,7 @@ contract LSSVMRouter {
         remainingValue = inputAmount;
         uint256 pairCost;
         CurveErrorCodes.Error error;
-        
+
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
@@ -500,7 +509,10 @@ contract LSSVMRouter {
             );
 
             // If within our maxCost and no error, proceed
-            if (pairCost <= maxCostPerPairSwap[i] && error == CurveErrorCodes.Error.OK) {
+            if (
+                pairCost <= maxCostPerPairSwap[i] &&
+                error == CurveErrorCodes.Error.OK
+            ) {
                 remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs(
                     swapList[i].nftIds,
                     nftRecipient,
@@ -525,18 +537,24 @@ contract LSSVMRouter {
         address payable tokenRecipient,
         uint256 deadline
     ) external checkDeadline(deadline) returns (uint256 outputAmount) {
-        
-        uint256 pairOutput;
-        CurveErrorCodes.Error error;
 
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
-            (error, , pairOutput, ) = swapList[i].pair.getSellNFTQuote(
-                swapList[i].nftIds.length
-            );
+            uint256 pairOutput;
 
-            // If at least equal to our minOutput and no error, proceed
-            if (pairOutput >= minOutputPerSwapPair[i] && error == CurveErrorCodes.Error.OK) {
+            // Locally scoped to avoid stack too deep error
+            {
+                CurveErrorCodes.Error error;
+                (error, , pairOutput, ) = swapList[i].pair.getSellNFTQuote(
+                    swapList[i].nftIds.length
+                );
+                if (error != CurveErrorCodes.Error.OK) {
+                    continue;
+                }
+            }
+            
+            // If at least equal to our minOutput, proceed
+            if (pairOutput >= minOutputPerSwapPair[i]) {
                 IERC721 nft = swapList[i].pair.nft();
 
                 // Cache current asset recipient balance
