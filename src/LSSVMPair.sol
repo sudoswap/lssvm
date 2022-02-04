@@ -209,7 +209,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(
                 (nftIds.length > 0) &&
                     (nftIds.length <= _nft.balanceOf(address(this))),
-                "Must ask for > 0 and < balanceOf NFTs"
+                "Must ask for > 0 and <= balanceOf NFTs"
             );
         }
 
