@@ -295,11 +295,11 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             "Out too little tokens"
         );
 
-        _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
-
         _sendTokenOutput(tokenRecipient, outputAmount);
 
         _payProtocolFee(factory(), protocolFee);
+
+        _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
 
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
     }
