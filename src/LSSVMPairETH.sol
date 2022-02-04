@@ -135,6 +135,8 @@ abstract contract LSSVMPairETH is LSSVMPair {
         for the owner to top up the pair's token reserves.
      */
     fallback() external payable {
+        // Only allow calls without function selector
+        require (msg.data.length == _immutableParamsLength()); 
         emit TokenDeposited(msg.value);
     }
 }
