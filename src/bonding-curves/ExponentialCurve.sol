@@ -59,6 +59,12 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
+
+        // We only calculate changes for buying 1 or more NFTs
+        if (numItems == 0) {
+            return (Error.INVALID_NUMITEMS, 0, 0, 0);
+        }
+
         uint256 deltaPowN = delta.fpow(numItems, FixedPointMathLib.WAD);
 
         // For an exponential curve, the spot price is multiplied by delta for each item bought
@@ -122,6 +128,11 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
+        // We only calculate changes for buying 1 or more NFTs
+        if (numItems == 0) {
+            return (Error.INVALID_NUMITEMS, 0, 0, 0);
+        }
+
         uint256 invDelta = FixedPointMathLib.WAD.fdiv(
             delta,
             FixedPointMathLib.WAD
