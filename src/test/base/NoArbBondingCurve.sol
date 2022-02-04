@@ -116,7 +116,13 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             // sell NFTs
             test721.setApprovalForAll(address(pair), true);
             startBalance = getBalance(address(this));
-            pair.swapNFTsForToken(idList, 0, payable(address(this)));
+            pair.swapNFTsForToken(
+                idList,
+                0,
+                payable(address(this)),
+                false,
+                address(0)
+            );
             spotPrice = uint56(newSpotPrice);
         }
 
@@ -223,7 +229,13 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 0,
                 protocolFeeMultiplier
             );
-            pair.swapNFTsForToken(idList, 0, payable(address(this)));
+            pair.swapNFTsForToken(
+                idList,
+                0,
+                payable(address(this)),
+                false,
+                address(0)
+            );
             endBalance = getBalance(address(this));
         }
 

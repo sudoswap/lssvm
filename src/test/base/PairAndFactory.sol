@@ -195,10 +195,6 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         Test failure conditions
      */
 
-    function testFail_routerSwapNotFromRouter() public {
-        pair.routerSwapNFTsForToken(payable(address(this)));
-    }
-
     function testFail_rescueTokensNotOwner() public {
         pair.transferOwnership(address(1000));
         pair.withdrawERC721(address(test721), idList);

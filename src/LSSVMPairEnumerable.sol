@@ -12,14 +12,7 @@ import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
     @author boredGenius and 0xmons
  */
 abstract contract LSSVMPairEnumerable is LSSVMPair {
-    /**
-        @notice Sends some number of NFTs to a recipient address, ID agnostic
-        @dev Even though we specify the NFT address here, this internal function is only 
-        used to send NFTs associated with this specific pool.
-        @param _nft The address of the NFT to send
-        @param nftRecipient The receiving address for the NFTs
-        @param numNFTs The number of NFTs to send  
-     */
+    /// @inheritdoc LSSVMPair
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
@@ -34,14 +27,7 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         }
     }
 
-    /**
-        @notice Sends specific NFTs to a recipient address
-        @dev Even though we specify the NFT address here, this internal function is only 
-        used to send NFTs associated with this specific pool.
-        @param _nft The address of the NFT to send
-        @param nftRecipient The receiving address for the NFTs
-        @param nftIds The specific IDs of NFTs to send  
-     */
+    /// @inheritdoc LSSVMPair
     function _sendSpecificNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
@@ -53,30 +39,58 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         }
     }
 
-    /**
-        @notice Takes NFTs from the caller and sends them into the pair's asset recipient
-        @dev This is used by the LSSVMPair's swapNFTForToken function. 
-        Practically, we expect most users to use the LSSVMRouter and
-        instead the routerSwapNFTsforToken function will be called
-        which will not use this function.
-        @param _nft The NFT collection to take from
-        @param nftIds The specific NFT IDs to take
-     */
-    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
-        internal
-        override
-    {
+    /// @inheritdoc LSSVMPair
+    function _takeNFTsFromSender(
+        IERC721 _nft,
+        uint256[] calldata nftIds,
+        bool isRouter,
+        address routerCaller
+    ) internal override {
         address _assetRecipient = getAssetRecipient();
+        uint256 numNFTs = nftIds.length;
 
-        // Take in NFTs from caller
-        for (uint256 i = 0; i < nftIds.length; i++) {
-            _nft.safeTransferFrom(msg.sender, _assetRecipient, nftIds[i]);
+        if (isRouter) {
+            // Verify if router is allowed
+            LSSVMRouter router = LSSVMRouter(payable(msg.sender));
+            require(factory().routerAllowed(router), "Not router");
+
+            // Call router to pull NFTs
+            uint256 tokenId;
+            unchecked {
+                for (uint256 i = 0; i < numNFTs; i++) {
+                    tokenId = nftIds[i];
+                    require(
+                        _nft.ownerOf(tokenId) == routerCaller,
+                        "Caller doesn't own the NFT"
+                    );
+                    router.pairTransferNFTFrom(
+                        _nft,
+                        routerCaller,
+                        _assetRecipient,
+                        tokenId,
+                        pairVariant()
+                    );
+                    require(
+                        _nft.ownerOf(tokenId) == _assetRecipient,
+                        "NFT not transferred"
+                    );
+                }
+            }
+        } else {
+            // Pull NFTs directly from sender
+            unchecked {
+                for (uint256 i = 0; i < numNFTs; i++) {
+                    _nft.safeTransferFrom(
+                        msg.sender,
+                        _assetRecipient,
+                        nftIds[i]
+                    );
+                }
+            }
         }
     }
 
-    /**
-       @notice Returns all NFT IDs held by the pool
-     */
+    /// @inheritdoc LSSVMPair
     function getAllHeldIds() external view override returns (uint256[] memory) {
         IERC721 _nft = nft();
         uint256 numNFTs = _nft.balanceOf(address(this));
@@ -99,12 +113,7 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         return this.onERC721Received.selector;
     }
 
-    /**
-        @notice Withdraws ERC721s from the pair to the caller
-        @dev Only callable by the pair owner
-        @param a The NFT address
-        @param nftIds The NFT IDs to withdraw
-     */
+    /// @inheritdoc LSSVMPair
     function withdrawERC721(address a, uint256[] calldata nftIds)
         external
         override

@@ -24,10 +24,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
     uint256 internal constant MAX_FEE = 9e17;
 
-    // Temporarily used during LSSVMRouter::_swapNFTsForToken to store the number of NFTs transferred
-    // directly to the pair. Should be 0 outside of the execution of routerSwapAnyNFTsForToken.
-    uint256 internal assetRecipientNFTBalanceAtTransferStart;
-
     // The current price of the NFT
     uint256 public spotPrice;
 
@@ -247,24 +243,23 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Sends a set of NFTs to the pair in exchange for token
         @dev To compute the amount of token to that will be received, call bondingCurve.getSellInfo.
-        Note that in practice, routerSwapNFTsForToken will be typically used to avoid users having
-        to approve their NFTs for spending for each new pair.
         @param nftIds The list of IDs of the NFTs to sell to the pair
         @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
         @param tokenRecipient The recipient of the token output
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
+        ETH pairs.
+        @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
+        ETH pairs.
         @return outputAmount The amount of token received
      */
     function swapNFTsForToken(
-        //Red
         uint256[] calldata nftIds,
         uint256 minExpectedTokenOutput,
-        address payable tokenRecipient
+        address payable tokenRecipient,
+        bool isRouter,
+        address routerCaller
     ) external virtual returns (uint256 outputAmount) {
-        LSSVMPairFactoryLike _factory = factory();
-        ICurve _bondingCurve = bondingCurve();
-        IERC721 _nft = nft();
-
         // Input validation
         {
             PoolType _poolType = poolType();
@@ -279,13 +274,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         {
             uint256 newSpotPrice;
             CurveErrorCodes.Error error;
-            (error, newSpotPrice, outputAmount, protocolFee) = _bondingCurve
+            (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve()
                 .getSellInfo(
                     spotPrice,
                     delta,
                     nftIds.length,
                     fee,
-                    _factory.protocolFeeMultiplier()
+                    factory().protocolFeeMultiplier()
                 );
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
@@ -300,82 +295,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             "Out too little tokens"
         );
 
-        _takeNFTsFromSender(_nft, nftIds);
+        _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payProtocolFee(_factory, protocolFee);
+        _payProtocolFee(factory(), protocolFee);
 
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
-    }
-
-    /**
-        @notice Sells NFTs to the pair in exchange for token. Only intended to be callable by the LSSVMRouter.
-        @dev To compute the amount of token to that will be received, we call bondingCurve.getSellInfo
-        @param tokenRecipient The recipient of the token output
-        @return outputAmount The amount of token received
-     */
-    function routerSwapNFTsForToken(address payable tokenRecipient)
-        external
-        virtual
-        returns (uint256 outputAmount)
-    {
-        LSSVMPairFactoryLike _factory = factory();
-        ICurve _bondingCurve = bondingCurve();
-        IERC721 _nft = nft();
-        uint256 _assetRecipientNFTBalanceAtTransferStart = assetRecipientNFTBalanceAtTransferStart -
-                2;
-        assetRecipientNFTBalanceAtTransferStart = 1;
-
-        // Input validation
-        {
-            PoolType _poolType = poolType();
-            require(
-                _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
-                "Wrong Pool type"
-            );
-        }
-
-        // Call bonding curve for pricing information
-        uint256 protocolFee;
-        uint256 numNFTs = _nft.balanceOf(getAssetRecipient()) -
-            _assetRecipientNFTBalanceAtTransferStart;
-        {
-            uint256 newSpotPrice;
-            CurveErrorCodes.Error error;
-            (error, newSpotPrice, outputAmount, protocolFee) = _bondingCurve
-                .getSellInfo(
-                    spotPrice,
-                    delta,
-                    numNFTs,
-                    fee,
-                    _factory.protocolFeeMultiplier()
-                );
-            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
-
-            // Update spot price
-            spotPrice = newSpotPrice;
-            emit SpotPriceUpdated(newSpotPrice);
-        }
-
-        _sendTokenOutput(tokenRecipient, outputAmount);
-
-        _payProtocolFee(_factory, protocolFee);
-
-        emit SwapWithAnyNFTs(outputAmount, numNFTs, true);
-    }
-
-    /**
-      @notice Stores the assetRecipient's current NFT balance for use with routerSwapNFTForToken. Only callable by the router
-     */
-    function cacheAssetRecipientNFTBalance() external {
-        require(
-            factory().routerAllowed(LSSVMRouter(payable(msg.sender))),
-            "Not router"
-        );
-        assetRecipientNFTBalanceAtTransferStart =
-            nft().balanceOf(getAssetRecipient()) +
-            2;
     }
 
     /**
@@ -587,15 +513,19 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Takes NFTs from the caller and sends them into the pair's asset recipient
         @dev This is used by the LSSVMPair's swapNFTForToken function. 
-        Practically, we expect most users to use the LSSVMRouter and
-        instead the routerSwapNFTsforToken function will be called
-        which will not use this function.
         @param _nft The NFT collection to take from
         @param nftIds The specific NFT IDs to take
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
+        ETH pairs.
+        @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
+        ETH pairs.
      */
-    function _takeNFTsFromSender(IERC721 _nft, uint256[] calldata nftIds)
-        internal
-        virtual;
+    function _takeNFTsFromSender(
+        IERC721 _nft,
+        uint256[] calldata nftIds,
+        bool isRouter,
+        address routerCaller
+    ) internal virtual;
 
     /**
         @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details

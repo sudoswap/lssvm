@@ -529,28 +529,13 @@ contract LSSVMRouter {
 
             // If at least equal to our minOutput, proceed
             if (pairOutput >= minOutputPerSwapPair[i]) {
-                IERC721 nft = swapList[i].pair.nft();
-
-                // Cache current asset recipient balance
-                swapList[i].pair.cacheAssetRecipientNFTBalance();
-
-                // Get current asset recipient
-                address payable assetRecipient = swapList[i]
-                    .pair
-                    .getAssetRecipient();
-
-                // Transfer all the NFTs to asset recipient
-                for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
-                    nft.safeTransferFrom(
-                        msg.sender,
-                        assetRecipient,
-                        swapList[i].nftIds[j]
-                    );
-                }
-
                 // Do the swap and update outputAmount with how many tokens we got
-                outputAmount += swapList[i].pair.routerSwapNFTsForToken(
-                    tokenRecipient
+                outputAmount += swapList[i].pair.swapNFTsForToken(
+                    swapList[i].nftIds,
+                    0,
+                    tokenRecipient,
+                    true,
+                    msg.sender
                 );
             }
         }
@@ -591,6 +576,29 @@ contract LSSVMRouter {
 
         // transfer tokens to pair
         token.safeTransferFrom(from, to, amount);
+    }
+
+    /**
+        @dev Allows a pair contract to transfer ERC721 NFTs directly from
+        the sender, in order to minimize the number of token transfers. Only callable by a pair.
+        @param nft The ERC721 NFT to transfer
+        @param from The address to transfer tokens from
+        @param to The address to transfer tokens to
+        @param id The ID of the NFT to transfer
+        @param variant The pair variant of the pair contract
+     */
+    function pairTransferNFTFrom(
+        IERC721 nft,
+        address from,
+        address to,
+        uint256 id,
+        LSSVMPairFactoryLike.PairVariant variant
+    ) external {
+        // verify caller is a trusted pair contract
+        require(factory.isPair(msg.sender, variant), "Not pair");
+
+        // transfer NFTs to pair
+        nft.safeTransferFrom(from, to, id);
     }
 
     /**
@@ -758,29 +766,14 @@ contract LSSVMRouter {
     ) internal returns (uint256 outputAmount) {
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
-            IERC721 nft = swapList[i].pair.nft();
-
-            // Cache current asset recipient balance
-            swapList[i].pair.cacheAssetRecipientNFTBalance();
-
-            // Get current asset recipient
-            address payable assetRecipient = swapList[i]
-                .pair
-                .getAssetRecipient();
-
-            // Transfer all the NFTs to recipient
-            for (uint256 j = 0; j < swapList[i].nftIds.length; j++) {
-                nft.safeTransferFrom(
-                    msg.sender,
-                    assetRecipient,
-                    swapList[i].nftIds[j]
-                );
-            }
-
             // Do the swap for token and then update outputAmount
             // Note: minExpectedTokenOutput is set to 0 since we're doing an aggregate slippage check below
-            outputAmount += swapList[i].pair.routerSwapNFTsForToken(
-                tokenRecipient
+            outputAmount += swapList[i].pair.swapNFTsForToken(
+                swapList[i].nftIds,
+                0,
+                tokenRecipient,
+                true,
+                msg.sender
             );
         }
 
