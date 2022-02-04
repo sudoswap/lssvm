@@ -31,18 +31,13 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /**
-        @notice Verifies and takes the correct amount of tokens needed for a swap
-        @param inputAmount The amount of tokens to be sent in
-        @param isRouter Whether or not the caller is LSSVMRouter
-        @param routerCaller If called from LSSVMRouter, store the original caller
-        @param _factory The LSSVMPairFactory which stores LSSVMRouter allowlist info
-     */
-    function _validateTokenInput(
+    /// @inheritdoc LSSVMPair
+    function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        LSSVMPairFactoryLike _factory
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
@@ -61,32 +56,58 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
                 _token,
                 routerCaller,
                 _assetRecipient,
-                inputAmount,
+                inputAmount - protocolFee,
                 pairVariant()
             );
 
             // Verify token transfer (protect pair against malicious router)
             require(
                 _token.balanceOf(_assetRecipient) - beforeBalance ==
-                    inputAmount,
+                    inputAmount - protocolFee,
                 "ERC20 not transferred in"
+            );
+
+            beforeBalance = _token.balanceOf(address(_factory));
+
+            router.pairTransferERC20From(
+                _token,
+                routerCaller,
+                address(_factory),
+                protocolFee,
+                pairVariant()
+            );
+
+            // Verify token transfer (protect pair against malicious router)
+            require(
+                _token.balanceOf(address(_factory)) - beforeBalance ==
+                    protocolFee,
+                "Protocol fee not transferred to factory"
             );
         } else {
             // Transfer tokens directly
-            _token.safeTransferFrom(msg.sender, _assetRecipient, inputAmount);
+            _token.safeTransferFrom(
+                msg.sender,
+                _assetRecipient,
+                inputAmount - protocolFee
+            );
+
+            // Take protocol fee (if it exists)
+            if (protocolFee > 0) {
+                _token.safeTransferFrom(
+                    msg.sender,
+                    address(_factory),
+                    protocolFee
+                );
+            }
         }
     }
 
-    /**
-        @notice Sends excess tokens back to the caller
-     */
+    /// @inheritdoc LSSVMPair
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Do nothing since we transferred the exact input amount
     }
 
-    /**
-        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory
-     */
+    /// @inheritdoc LSSVMPair
     function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         override
@@ -104,11 +125,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /**
-        @notice Sends tokens to a recipient
-        @param tokenRecipient The address receiving the tokens
-        @param outputAmount The amount of tokens to send
-     */
+    /// @inheritdoc LSSVMPair
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
@@ -119,19 +136,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /**
-        @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details
-     */
+    /// @inheritdoc LSSVMPair
     function _immutableParamsLength() internal pure override returns (uint256) {
         return 81;
     }
 
-    /**
-        @notice Withdraws ERC20 tokens from the pair to the owner. 
-        @dev Only callable by the owner.
-        @param a The address of the token to transfer
-        @param amount The amount of tokens to send to the owner
-     */
+    /// @inheritdoc LSSVMPair
     function withdrawERC20(address a, uint256 amount)
         external
         override

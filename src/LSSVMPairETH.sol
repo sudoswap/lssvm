@@ -16,30 +16,33 @@ abstract contract LSSVMPairETH is LSSVMPair {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
-    /**
-        @notice Verifies and the correct amount of ETH needed for a swap is sent
-        @param inputAmount The amount of ETH to be sent
-     */
-    function _validateTokenInput(
+    /// @inheritdoc LSSVMPair
+    function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool, /*isRouter*/
         address, /*routerCaller*/
-        LSSVMPairFactoryLike /*_factory*/
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
         address payable _assetRecipient = getAssetRecipient();
         if (_assetRecipient != address(this)) {
-            _assetRecipient.safeTransferETH(inputAmount);
+            _assetRecipient.safeTransferETH(inputAmount - protocolFee);
+        }
+
+        // Take protocol fee
+        if (protocolFee > 0) {
+            // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
+            if (protocolFee > address(this).balance) {
+                protocolFee = address(this).balance;
+            }
+            payable(address(_factory)).safeTransferETH(protocolFee);
         }
     }
 
-    /**
-        @notice Sends excess tokens back to the caller
-        @dev We send ETH back to the caller even when called from LSSVMRouter because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller) 
-        Excess ETH sent for one swap can then be used to help pay for the next swap.
-     */
+    /// @inheritdoc LSSVMPair
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Give excess ETH back to caller
         if (msg.value > inputAmount) {
@@ -47,9 +50,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
     }
 
-    /**
-        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory
-     */
+    /// @inheritdoc LSSVMPair
     function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         override
@@ -57,19 +58,14 @@ abstract contract LSSVMPairETH is LSSVMPair {
         // Take protocol fee
         if (protocolFee > 0) {
             // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
-            uint256 pairETHBalance = address(this).balance;
-            if (protocolFee > pairETHBalance) {
-                protocolFee = pairETHBalance;
+            if (protocolFee > address(this).balance) {
+                protocolFee = address(this).balance;
             }
             payable(address(_factory)).safeTransferETH(protocolFee);
         }
     }
 
-    /**
-        @notice Sends ETH to a recipient
-        @param tokenRecipient The address receiving the ETH
-        @param outputAmount The amount of ETH to send
-     */
+    /// @inheritdoc LSSVMPair
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
@@ -80,9 +76,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
     }
 
-    /**
-        @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details
-     */
+    /// @inheritdoc LSSVMPair
     function _immutableParamsLength() internal pure override returns (uint256) {
         return 61;
     }
@@ -108,12 +102,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         emit TokenWithdrawn(amount);
     }
 
-    /**
-        @notice Withdraws ERC20 tokens from the pair to the owner. 
-        @dev Only callable by the owner.
-        @param a The address of the token to transfer
-        @param amount The amount of tokens to send to the owner
-     */
+    /// @inheritdoc LSSVMPair
     function withdrawERC20(address a, uint256 amount)
         external
         override
