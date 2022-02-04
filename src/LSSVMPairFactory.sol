@@ -229,24 +229,28 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         if (variant == PairVariant.ENUMERABLE_ERC20) {
             return
                 LSSVMPairCloner.isERC20PairClone(
+                    address(this),
                     address(enumerableERC20Template),
                     potentialPair
                 );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ERC20) {
             return
                 LSSVMPairCloner.isERC20PairClone(
+                    address(this),
                     address(missingEnumerableERC20Template),
                     potentialPair
                 );
         } else if (variant == PairVariant.ENUMERABLE_ETH) {
             return
                 LSSVMPairCloner.isETHPairClone(
+                    address(this),
                     address(enumerableETHTemplate),
                     potentialPair
                 );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ETH) {
             return
                 LSSVMPairCloner.isETHPairClone(
+                    address(this),
                     address(missingEnumerableETHTemplate),
                     potentialPair
                 );

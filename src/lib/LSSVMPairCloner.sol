@@ -199,15 +199,16 @@ library LSSVMPairCloner {
     /**
      * @notice Checks if a contract is a clone of a LSSVMPairETH.
      * @dev Only checks the runtime bytecode, does not check the extra data.
+     * @param factory the factory that deployed the clone
      * @param implementation the LSSVMPairETH implementation contract
      * @param query the contract to check
      * @return result True if the contract is a clone, false otherwise
      */
-    function isETHPairClone(address implementation, address query)
-        internal
-        view
-        returns (bool result)
-    {
+    function isETHPairClone(
+        address factory,
+        address implementation,
+        address query
+    ) internal view returns (bool result) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             let ptr := mload(0x40)
@@ -220,13 +221,17 @@ library LSSVMPairCloner {
                 add(ptr, 0x27),
                 0x5af43d82803e903d91603457fd5bf30000000000000000000000000000000000
             )
+            mstore(add(ptr, 0x36), shl(0x60, factory))
 
             // compare expected bytecode with that of the queried contract
-            let other := add(ptr, 0x40)
-            extcodecopy(query, other, 0, 0x36)
+            let other := add(ptr, 0x4a)
+            extcodecopy(query, other, 0, 0x4a)
             result := and(
                 eq(mload(ptr), mload(other)),
-                eq(mload(add(ptr, 0x16)), mload(add(other, 0x16)))
+                and(
+                    eq(mload(add(ptr, 0x20)), mload(add(other, 0x20))),
+                    eq(mload(add(ptr, 0x2a)), mload(add(other, 0x2a)))
+                )
             )
         }
     }
@@ -238,11 +243,11 @@ library LSSVMPairCloner {
      * @param query the contract to check
      * @return result True if the contract is a clone, false otherwise
      */
-    function isERC20PairClone(address implementation, address query)
-        internal
-        view
-        returns (bool result)
-    {
+    function isERC20PairClone(
+        address factory,
+        address implementation,
+        address query
+    ) internal view returns (bool result) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             let ptr := mload(0x40)
@@ -255,13 +260,17 @@ library LSSVMPairCloner {
                 add(ptr, 0x27),
                 0x5af43d82803e903d91603457fd5bf30000000000000000000000000000000000
             )
+            mstore(add(ptr, 0x36), shl(0x60, factory))
 
             // compare expected bytecode with that of the queried contract
-            let other := add(ptr, 0x40)
-            extcodecopy(query, other, 0, 0x36)
+            let other := add(ptr, 0x4a)
+            extcodecopy(query, other, 0, 0x4a)
             result := and(
                 eq(mload(ptr), mload(other)),
-                eq(mload(add(ptr, 0x16)), mload(add(other, 0x16)))
+                and(
+                    eq(mload(add(ptr, 0x20)), mload(add(other, 0x20))),
+                    eq(mload(add(ptr, 0x2a)), mload(add(other, 0x2a)))
+                )
             )
         }
     }
