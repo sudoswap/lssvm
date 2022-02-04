@@ -36,7 +36,11 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
 
     mapping(ICurve => bool) public bondingCurveAllowed;
     mapping(address => bool) public override callAllowed;
-    mapping(LSSVMRouter => bool) public override routerAllowed;
+    struct RouterStatus {
+        bool allowed;
+        bool wasEverAllowed;
+    }
+    mapping(LSSVMRouter => RouterStatus) public override routerStatus;
 
     event PairCreated(address poolAddress, address nft);
 
@@ -332,7 +336,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     {
         // ensure target is not a router
         if (isAllowed) {
-            require(!routerAllowed[LSSVMRouter(target)], "Can't call router");
+            require(
+                !routerStatus[LSSVMRouter(target)].wasEverAllowed,
+                "Can't call router"
+            );
         }
 
         callAllowed[target] = isAllowed;
@@ -352,7 +359,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         if (isAllowed) {
             require(!callAllowed[address(_router)], "Can't call router");
         }
-        routerAllowed[_router] = isAllowed;
+        routerStatus[_router] = RouterStatus({
+            allowed: isAllowed,
+            wasEverAllowed: true
+        });
     }
 
     /**

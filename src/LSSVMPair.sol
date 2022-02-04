@@ -369,10 +369,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
       @notice Stores the assetRecipient's current NFT balance for use with routerSwapNFTForToken. Only callable by the router
      */
     function cacheAssetRecipientNFTBalance() external {
-        require(
-            factory().routerAllowed(LSSVMRouter(payable(msg.sender))),
-            "Not router"
+        (bool routerAllowed, ) = factory().routerStatus(
+            LSSVMRouter(payable(msg.sender))
         );
+        require(routerAllowed, "Not router");
         assetRecipientNFTBalanceAtTransferStart =
             nft().balanceOf(getAssetRecipient()) +
             2;

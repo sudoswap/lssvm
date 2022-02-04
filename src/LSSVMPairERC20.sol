@@ -52,7 +52,8 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         if (isRouter) {
             // Verify if router is allowed
             LSSVMRouter router = LSSVMRouter(payable(msg.sender));
-            require(_factory.routerAllowed(router), "Not router");
+            (bool routerAllowed, ) = _factory.routerStatus(router);
+            require(routerAllowed, "Not router");
 
             // Call router to transfer tokens from user
             uint256 beforeBalance = _token.balanceOf(_assetRecipient);
