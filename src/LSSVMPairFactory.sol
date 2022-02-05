@@ -6,6 +6,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
+// Using Solmate ERC20 rather than OZ for gas savings on ERC20 transfer 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
@@ -25,7 +26,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
 
-    uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
+    uint256 internal constant MAX_PROTOCOL_FEE = 0.10e18; // 10%, must <= 1 - MAX_FEE
 
     LSSVMPairETH public immutable enumerableETHTemplate;
     LSSVMPairETH public immutable missingEnumerableETHTemplate;
@@ -347,7 +348,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         external
         onlyOwner
     {
-        require(address(_router) != address(0), "0 router address");
         // ensure target is not arbitrarily callable by pairs
         if (isAllowed) {
             require(!callAllowed[address(_router)], "Can't call router");
