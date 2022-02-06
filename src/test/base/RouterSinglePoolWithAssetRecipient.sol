@@ -152,6 +152,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
     }
 
     function test_swapSingleNFTForToken() public {
+        uint256 beforeBuyPairNFTBalance = test721.balanceOf(address(buyPair));
         uint256[] memory nftIds = new uint256[](1);
         nftIds[0] = numInitialNFTs * 2 + 1;
         LSSVMRouter.PairSwapSpecific[]
@@ -167,6 +168,10 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             block.timestamp
         );
         assertEq(test721.balanceOf(buyPairRecipient), 1);
+        // Pool should still keep track of the same number of NFTs prior to the swap 
+        // because we sent the NFT to the asset recipient (and not the pair)
+        uint256 afterBuyPairNFTBalance = (buyPair.getAllHeldIds()).length;
+        assertEq(beforeBuyPairNFTBalance, afterBuyPairNFTBalance);
     }
 
     function test_swapSingleNFTForAnyNFT() public {
@@ -300,6 +305,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
     }
 
     function test_swap5NFTsForToken() public {
+        uint256 beforeBuyPairNFTBalance = test721.balanceOf(address(buyPair));
         uint256[] memory nftIds = new uint256[](5);
         for (uint256 i = 0; i < 5; i++) {
             nftIds[i] = 2 * numInitialNFTs + i + 1;
@@ -317,5 +323,9 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             block.timestamp
         );
         assertEq(test721.balanceOf(buyPairRecipient), 5);
+        // Pool should still keep track of the same number of NFTs prior to the swap 
+        // because we sent the NFT to the asset recipient (and not the pair)
+        uint256 afterBuyPairNFTBalance = (buyPair.getAllHeldIds()).length;
+        assertEq(beforeBuyPairNFTBalance, afterBuyPairNFTBalance);
     }
 }
