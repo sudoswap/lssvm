@@ -525,7 +525,52 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256[] calldata nftIds,
         bool isRouter,
         address routerCaller
-    ) internal virtual;
+    ) internal virtual {
+        {
+            address _assetRecipient = getAssetRecipient();
+            uint256 numNFTs = nftIds.length;
+
+            if (isRouter) {
+                // Verify if router is allowed
+                LSSVMRouter router = LSSVMRouter(payable(msg.sender));
+                require(factory().routerAllowed(router), "Not router");
+
+                // Call router to pull NFTs
+                uint256 tokenId;
+                unchecked {
+                    for (uint256 i = 0; i < numNFTs; i++) {
+                        tokenId = nftIds[i];
+                        require(
+                            _nft.ownerOf(tokenId) == routerCaller,
+                            "Caller doesn't own the NFT"
+                        );
+                        router.pairTransferNFTFrom(
+                            _nft,
+                            routerCaller,
+                            _assetRecipient,
+                            tokenId,
+                            pairVariant()
+                        );
+                        require(
+                            _nft.ownerOf(tokenId) == _assetRecipient,
+                            "NFT not transferred"
+                        );
+                    }
+                }
+            } else {
+                // Pull NFTs directly from sender
+                unchecked {
+                    for (uint256 i = 0; i < numNFTs; i++) {
+                        _nft.safeTransferFrom(
+                            msg.sender,
+                            _assetRecipient,
+                            nftIds[i]
+                        );
+                    }
+                }
+            }
+        }
+    }
 
     /**
         @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details
