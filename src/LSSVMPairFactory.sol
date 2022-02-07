@@ -349,7 +349,6 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         external
         onlyOwner
     {
-        require(address(_router) != address(0), "0 router address");
         // ensure target is not arbitrarily callable by pairs
         if (isAllowed) {
             require(!callAllowed[address(_router)], "Can't call router");
