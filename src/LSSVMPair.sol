@@ -256,7 +256,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @return outputAmount The amount of token received
      */
     function swapNFTsForToken(
-        //Red
         uint256[] calldata nftIds,
         uint256 minExpectedTokenOutput,
         address payable tokenRecipient
@@ -272,6 +271,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
+            require(nftIds.length > 0, "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
