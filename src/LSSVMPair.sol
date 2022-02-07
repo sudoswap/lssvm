@@ -312,7 +312,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payProtocolFee(_factory, protocolFee);
+        _payProtocolFeeFromPair(_factory, protocolFee);
 
         emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
     }
@@ -368,7 +368,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payProtocolFee(_factory, protocolFee);
+        _payProtocolFeeFromPair(_factory, protocolFee);
 
         emit SwapWithAnyNFTs(outputAmount, numNFTs, true);
     }
@@ -553,9 +553,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
 
     /**
-        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory
+        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory from the pair
      */
-    function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
+    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         virtual;
 

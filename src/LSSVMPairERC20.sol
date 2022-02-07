@@ -108,7 +108,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
+    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         override
     {
