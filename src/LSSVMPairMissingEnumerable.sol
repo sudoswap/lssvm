@@ -32,10 +32,14 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     ) internal override {
         // Send NFTs to recipient
         // We're missing enumerable, so we also update the pair's own ID set
+        // NOTE: We start from last index to first index to save on gas
+        uint256 lastIndex = idSet.length() - 1;
         for (uint256 i = 0; i < numNFTs; i++) {
-            uint256 nftId = idSet.at(0);
-            _nft.safeTransferFrom(address(this), nftRecipient, nftId);
-            idSet.remove(nftId);
+            unchecked {
+                uint256 nftId = idSet.at(lastIndex--);
+                _nft.safeTransferFrom(address(this), nftRecipient, nftId);
+                idSet.remove(nftId); 
+            }
         }
     }
 
