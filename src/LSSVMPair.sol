@@ -161,13 +161,17 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             emit SpotPriceUpdated(newSpotPrice);
         }
 
-        _validateTokenInput(inputAmount, isRouter, routerCaller, _factory);
+        _pullTokenInputAndPayProtocolFee(
+            inputAmount,
+            isRouter,
+            routerCaller,
+            _factory,
+            protocolFee
+        );
 
         _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
 
         _refundTokenToSender(inputAmount);
-
-        _payProtocolFee(_factory, protocolFee);
 
         emit SwapWithAnyNFTs(inputAmount, numNFTs, false);
     }
@@ -229,13 +233,17 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             emit SpotPriceUpdated(newSpotPrice);
         }
 
-        _validateTokenInput(inputAmount, isRouter, routerCaller, _factory);
+        _pullTokenInputAndPayProtocolFee(
+            inputAmount,
+            isRouter,
+            routerCaller,
+            _factory,
+            protocolFee
+        );
 
         _sendSpecificNFTsToRecipient(_nft, nftRecipient, nftIds);
 
         _refundTokenToSender(inputAmount);
-
-        _payProtocolFee(_factory, protocolFee);
 
         emit SwapWithSpecificNFTs(inputAmount, nftIds, false);
     }
@@ -298,7 +306,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payProtocolFee(factory(), protocolFee);
+        _payProtocolFeeFromPair(factory(), protocolFee);
 
         _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
 
@@ -449,14 +457,19 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
      */
 
     /**
-        @notice Verifies and the correct amount of tokens needed for a swap is sent
+        @notice Pulls the token input of a trade from the trader and pays the protocol fee.
         @param inputAmount The amount of tokens to be sent
+        @param isRouter Whether or not the caller is LSSVMRouter
+        @param routerCaller If called from LSSVMRouter, store the original caller
+        @param _factory The LSSVMPairFactory which stores LSSVMRouter allowlist info
+        @param protocolFee The protocol fee to be paid
      */
-    function _validateTokenInput(
+    function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        LSSVMPairFactoryLike _factory
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
     ) internal virtual;
 
     /**
@@ -467,9 +480,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
 
     /**
-        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory
+        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory from the pair
      */
-    function _payProtocolFee(LSSVMPairFactoryLike _factory, uint256 protocolFee)
+    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         virtual;
 
