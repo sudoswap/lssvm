@@ -6,7 +6,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-// @dev Solmate's ERC20 is used instead of OZ's ERC20 so we can use safeTransferLib for cheaper safeTransfers for 
+// @dev Solmate's ERC20 is used instead of OZ's ERC20 so we can use safeTransferLib for cheaper safeTransfers for
 // ETH and ERC20 tokens
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
@@ -235,24 +235,28 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         if (variant == PairVariant.ENUMERABLE_ERC20) {
             return
                 LSSVMPairCloner.isERC20PairClone(
+                    address(this),
                     address(enumerableERC20Template),
                     potentialPair
                 );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ERC20) {
             return
                 LSSVMPairCloner.isERC20PairClone(
+                    address(this),
                     address(missingEnumerableERC20Template),
                     potentialPair
                 );
         } else if (variant == PairVariant.ENUMERABLE_ETH) {
             return
                 LSSVMPairCloner.isETHPairClone(
+                    address(this),
                     address(enumerableETHTemplate),
                     potentialPair
                 );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ETH) {
             return
                 LSSVMPairCloner.isETHPairClone(
+                    address(this),
                     address(missingEnumerableETHTemplate),
                     potentialPair
                 );
