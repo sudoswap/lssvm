@@ -49,9 +49,9 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             LSSVMRouter router = LSSVMRouter(payable(msg.sender));
             require(_factory.routerAllowed(router), "Not router");
 
-            // Call router to transfer tokens from user
+            // Cache state and then call router to transfer tokens from user
             uint256 beforeBalance = _token.balanceOf(_assetRecipient);
-
+            uint256 beforeNFTBalance = nft().balanceOf(_assetRecipient);
             router.pairTransferERC20From(
                 _token,
                 routerCaller,
@@ -77,6 +77,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
 
             // Note: no check for factory balance's because router is assumed to be set by factory owner
             // so there is no incentive to *not* pay protocol fee
+
+            // Check NFT balance again to prevent against reentrancy
+            require(
+                beforeNFTBalance == nft().balanceOf(_assetRecipient),
+                "Reentrant call from router"
+            );
         } else {
             // Transfer tokens directly
             _token.safeTransferFrom(
