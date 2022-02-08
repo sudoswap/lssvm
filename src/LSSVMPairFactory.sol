@@ -27,7 +27,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     bytes4 private constant INTERFACE_ID_ERC721_ENUMERABLE =
         type(IERC721Enumerable).interfaceId;
 
-    uint256 internal constant MAX_PROTOCOL_FEE = 1e17; // 10%, must <= 1 - MAX_FEE
+    uint256 internal constant MAX_PROTOCOL_FEE = 0.10e18; // 10%, must <= 1 - MAX_FEE
 
     LSSVMPairETH public immutable enumerableETHTemplate;
     LSSVMPairETH public immutable missingEnumerableETHTemplate;

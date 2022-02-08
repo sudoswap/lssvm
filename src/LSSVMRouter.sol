@@ -32,12 +32,6 @@ contract LSSVMRouter {
         PairSwapSpecific[] tokenToNFTTrades;
     }
 
-    // Used for arbitrage across several pools
-    struct TokenToTokenTrade {
-        PairSwapSpecific[] tokenToNFTTrades;
-        PairSwapSpecific[] nftToTokenTrades;
-    }
-
     modifier checkDeadline(uint256 deadline) {
         _checkDeadline(deadline);
         _;

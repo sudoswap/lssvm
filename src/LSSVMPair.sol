@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import {Ownable} from "./lib/Ownable.sol";
@@ -22,7 +21,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     }
 
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
-    uint256 internal constant MAX_FEE = 9e17;
+    uint256 internal constant MAX_FEE = 0.90e18;
 
     // The current price of the NFT
     uint256 public spotPrice;
@@ -84,7 +83,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             assetRecipient = _assetRecipient;
         }
         if (_poolType == PoolType.TRADE) {
-            require(_fee < MAX_FEE, "Trade fee must be less than 100%");
+            require(_fee < MAX_FEE, "Trade fee must be less than 90%");
             require(
                 _assetRecipient == address(0),
                 "Trade pools can't set asset recipient"
