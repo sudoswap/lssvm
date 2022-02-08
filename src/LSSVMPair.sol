@@ -267,6 +267,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
+            require(nftIds.length > 0, "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
