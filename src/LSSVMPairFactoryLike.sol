@@ -17,7 +17,10 @@ interface LSSVMPairFactoryLike {
 
     function callAllowed(address target) external view returns (bool);
 
-    function routerAllowed(LSSVMRouter router) external view returns (bool);
+    function routerStatus(LSSVMRouter router)
+        external
+        view
+        returns (bool allowed, bool wasEverAllowed);
 
     function isPair(address potentialPair, PairVariant variant)
         external

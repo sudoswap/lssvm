@@ -47,7 +47,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         if (isRouter) {
             // Verify if router is allowed
             LSSVMRouter router = LSSVMRouter(payable(msg.sender));
-            require(_factory.routerAllowed(router), "Not router");
+
+            // Locally scoped to avoid stack too deep
+            {
+                (bool routerAllowed, ) = _factory.routerStatus(router);
+                require(routerAllowed, "Not router");
+            }
 
             // Cache state and then call router to transfer tokens from user
             uint256 beforeBalance = _token.balanceOf(_assetRecipient);
@@ -108,10 +113,10 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
-        internal
-        override
-    {
+    function _payProtocolFeeFromPair(
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
+    ) internal override {
         // Take protocol fee (if it exists)
         if (protocolFee > 0) {
             ERC20 _token = token();

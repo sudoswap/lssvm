@@ -544,7 +544,8 @@ abstract contract LSSVMPair is Ownable {
             if (isRouter) {
                 // Verify if router is allowed
                 LSSVMRouter router = LSSVMRouter(payable(msg.sender));
-                require(factory().routerAllowed(router), "Not router");
+                (bool routerAllowed, ) = factory().routerStatus(router);
+                require(routerAllowed, "Not router");
 
                 // Call router to pull NFTs
                 uint256 tokenId;
