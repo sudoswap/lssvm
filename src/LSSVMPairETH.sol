@@ -85,7 +85,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         @notice Withdraws all token owned by the pair to the owner address.
         @dev Only callable by the owner.
      */
-    function withdrawAllETH() external onlyOwner nonReentrant {
+    function withdrawAllETH() external onlyOwner {
         withdrawETH(address(this).balance);
     }
 

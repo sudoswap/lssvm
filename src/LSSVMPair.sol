@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 import {Ownable} from "./lib/Ownable.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
@@ -13,7 +11,7 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 /// @title The base contract for an NFT/TOKEN AMM pair
 /// @author boredGenius and 0xmons
 /// @notice This implements the core swap logic from NFT to TOKEN
-abstract contract LSSVMPair is Ownable, ReentrancyGuard {
+abstract contract LSSVMPair is Ownable {
     enum PoolType {
         TOKEN,
         NFT,
