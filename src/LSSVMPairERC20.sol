@@ -67,8 +67,6 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
                 "ERC20 not transferred in"
             );
 
-            beforeBalance = _token.balanceOf(address(_factory));
-
             router.pairTransferERC20From(
                 _token,
                 routerCaller,
@@ -77,12 +75,8 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
                 pairVariant()
             );
 
-            // Verify token transfer (protect pair against malicious router)
-            require(
-                _token.balanceOf(address(_factory)) - beforeBalance ==
-                    protocolFee,
-                "Protocol fee not transferred to factory"
-            );
+            // Note: no check for factory balance's because router is assumed to be set by factory owner
+            // so there is no incentive to *not* pay protocol fee
         } else {
             // Transfer tokens directly
             _token.safeTransferFrom(
