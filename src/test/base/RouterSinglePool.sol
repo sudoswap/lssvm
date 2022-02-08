@@ -360,4 +360,23 @@ abstract contract RouterSinglePool is
             block.timestamp
         );
     }
+
+    function testFail_swapSingleNFTForTokenWithEmptyList() public {
+        uint256[] memory nftIds = new uint256[](0);
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](1);
+        swapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair,
+            nftIds: nftIds
+        });
+        uint256 sellAmount;
+        (, , sellAmount, ) = pair.getSellNFTQuote(1);
+        sellAmount = sellAmount + 1 wei;
+        router.swapNFTsForToken(
+            swapList,
+            sellAmount,
+            payable(address(this)),
+            block.timestamp
+        );
+    }
 }

@@ -53,7 +53,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
 
     /// @inheritdoc LSSVMPair
     function getAllHeldIds() external view override returns (uint256[] memory) {
-        uint256 numNFTs = nft().balanceOf(address(this));
+        uint256 numNFTs = idSet.length();
         uint256[] memory ids = new uint256[](numNFTs);
         for (uint256 i; i < numNFTs; i++) {
             ids[i] = idSet.at(i);

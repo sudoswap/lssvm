@@ -298,4 +298,61 @@ abstract contract RouterRobustSwap is
         );
         require(remainingValue == 0.9 ether, "Incorrect ETH received");
     }
+
+    // Test where selling to pair 2 succeeds, 
+    // but selling to pair 1 fails due to slippage
+    // and selling to pair 3 fails due to a bonding curve error
+    function test_robustSwapNFTsForTokenWithBondingCurveError() public {
+        uint256[] memory nftIds1 = new uint256[](2);
+        nftIds1[0] = 30;
+        nftIds1[1] = 31;
+
+        uint256[] memory nftIds2 = new uint256[](2);
+        nftIds2[0] = 32;
+        nftIds2[1] = 33;
+
+        uint256[] memory nftIds3 = new uint256[](0);
+
+        LSSVMRouter.PairSwapSpecific[]
+            memory swapList = new LSSVMRouter.PairSwapSpecific[](3);
+        swapList[0] = LSSVMRouter.PairSwapSpecific({
+            pair: pair1,
+            nftIds: nftIds1
+        });
+        swapList[1] = LSSVMRouter.PairSwapSpecific({
+            pair: pair2,
+            nftIds: nftIds2
+        });
+        swapList[2] = LSSVMRouter.PairSwapSpecific({
+            pair: pair3,
+            nftIds: nftIds3
+        });
+
+        uint256 beforeNFTBalance = test721.balanceOf(address(this));
+
+        uint256[] memory minOutputPerSwapPair = new uint256[](3);
+        minOutputPerSwapPair[0] = 0.3 ether;
+        minOutputPerSwapPair[1] = 0.3 ether;
+        minOutputPerSwapPair[2] = 0.3 ether;
+
+        // Expect to have the last two swapPairs succeed, and the first one silently fail
+        // with 10% protocol fee:
+        // the first swapPair gives 0.18 ETH
+        // the second swapPair gives 0.36 ETH
+        // the third swapPair gives 0.54 ETH
+        uint256 remainingValue = router.robustSwapNFTsForToken(
+            swapList,
+            minOutputPerSwapPair,
+            payable(address(this)),
+            block.timestamp
+        );
+
+        uint256 afterNFTBalance = test721.balanceOf(address(this));
+
+        require(
+            (beforeNFTBalance - afterNFTBalance) == 2,
+            "Incorrect NFT swap"
+        );
+        require(remainingValue == 0.36 ether, "Incorrect ETH received");
+    }
 }
