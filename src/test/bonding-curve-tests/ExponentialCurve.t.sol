@@ -54,7 +54,8 @@ contract ExponentialCurveTest is DSTest {
         if (
             delta < FixedPointMathLib.WAD ||
             numItems > 10 ||
-            spotPrice < MIN_PRICE
+            spotPrice < MIN_PRICE ||
+            numItems == 0
         ) {
             return;
         }
@@ -120,7 +121,7 @@ contract ExponentialCurveTest is DSTest {
         uint128 delta,
         uint8 numItems
     ) public {
-        if (delta < FixedPointMathLib.WAD || spotPrice < MIN_PRICE) {
+        if (delta < FixedPointMathLib.WAD || spotPrice < MIN_PRICE || numItems == 0) {
             return;
         }
 

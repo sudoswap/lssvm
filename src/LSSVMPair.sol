@@ -21,14 +21,18 @@ abstract contract LSSVMPair is Ownable {
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
     uint256 internal constant MAX_FEE = 0.90e18;
 
+    // NOTE: We use uint128 here to pack spot price and delta into one storage slot, but 
+    // treat them as uint256 during math calculations. LPs should be aware of potential
+    // overflow when setting very large spot price and/or delta. 
+
     // The current price of the NFT
-    uint256 public spotPrice;
+    uint128 public spotPrice;
 
     // The parameter for the pair's bonding curve
-    uint256 public delta;
+    uint128 public delta;
 
     // The spread between buy and sell prices. Fee is only relevant for TRADE pools
-    uint256 public fee;
+    uint96 public fee;
 
     // If set to 0, NFTs/tokens sent by traders during trades will be sent to the pair.
     // Otherwise, assets will be sent to the set address. Not available for TRADE pools.
@@ -45,11 +49,11 @@ abstract contract LSSVMPair is Ownable {
         uint256[] nftIds,
         bool nftsIntoPool
     );
-    event SpotPriceUpdated(uint256 newSpotPrice);
+    event SpotPriceUpdated(uint128 newSpotPrice);
     event TokenDeposited(uint256 amount);
     event TokenWithdrawn(uint256 amount);
-    event DeltaUpdated(uint256 newDelta);
-    event FeeUpdated(uint256 newFee);
+    event DeltaUpdated(uint128 newDelta);
+    event FeeUpdated(uint96 newFee);
 
     /**
       @notice Called during pool creation to set initial parameters
@@ -87,7 +91,7 @@ abstract contract LSSVMPair is Ownable {
                 "Trade pools can't set asset recipient"
             );
 
-            fee = _fee;
+            fee = uint96(_fee);
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
         require(
@@ -95,8 +99,8 @@ abstract contract LSSVMPair is Ownable {
             "Invalid new spot price for curve"
         );
 
-        delta = _delta;
-        spotPrice = _spotPrice;
+        delta = uint128(_delta);
+        spotPrice = uint128(_spotPrice);
     }
 
     /**
@@ -154,8 +158,8 @@ abstract contract LSSVMPair is Ownable {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = newSpotPrice;
-            emit SpotPriceUpdated(newSpotPrice);
+            spotPrice = uint128(newSpotPrice);
+            emit SpotPriceUpdated(uint128(newSpotPrice));
         }
 
         _pullTokenInputAndPayProtocolFee(
@@ -226,8 +230,8 @@ abstract contract LSSVMPair is Ownable {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = newSpotPrice;
-            emit SpotPriceUpdated(newSpotPrice);
+            spotPrice = uint128(newSpotPrice);
+            emit SpotPriceUpdated(uint128(newSpotPrice));
         }
 
         _pullTokenInputAndPayProtocolFee(
@@ -291,8 +295,8 @@ abstract contract LSSVMPair is Ownable {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = newSpotPrice;
-            emit SpotPriceUpdated(newSpotPrice);
+            spotPrice = uint128(newSpotPrice);
+            emit SpotPriceUpdated(uint128(newSpotPrice));
         }
 
         // Pricing-dependent validation
@@ -614,7 +618,7 @@ abstract contract LSSVMPair is Ownable {
         @notice Updates the selling spot price. Only callable by the owner.
         @param newSpotPrice The new selling spot price value, in Token
      */
-    function changeSpotPrice(uint256 newSpotPrice) external onlyOwner {
+    function changeSpotPrice(uint128 newSpotPrice) external onlyOwner {
         ICurve _bondingCurve = bondingCurve();
         require(
             _bondingCurve.validateSpotPrice(newSpotPrice),
@@ -628,7 +632,7 @@ abstract contract LSSVMPair is Ownable {
         @notice Updates the delta parameter. Only callable by the owner.
         @param newDelta The new delta parameter
      */
-    function changeDelta(uint256 newDelta) external onlyOwner {
+    function changeDelta(uint128 newDelta) external onlyOwner {
         ICurve _bondingCurve = bondingCurve();
         require(
             _bondingCurve.validateDelta(newDelta),
@@ -644,7 +648,7 @@ abstract contract LSSVMPair is Ownable {
         MAX_FEE.
         @param newFee The new LP fee percentage, 18 decimals
      */
-    function changeFee(uint256 newFee) external onlyOwner {
+    function changeFee(uint96 newFee) external onlyOwner {
         PoolType _poolType = poolType();
         require(_poolType == PoolType.TRADE, "Only for Trade pools");
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");
