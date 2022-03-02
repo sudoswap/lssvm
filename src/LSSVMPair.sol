@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Ownable} from "./lib/Ownable.sol";
+import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
@@ -11,7 +12,7 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 /// @title The base contract for an NFT/TOKEN AMM pair
 /// @author boredGenius and 0xmons
 /// @notice This implements the core swap logic from NFT to TOKEN
-abstract contract LSSVMPair is Ownable {
+abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     enum PoolType {
         TOKEN,
         NFT,
@@ -75,6 +76,7 @@ abstract contract LSSVMPair is Ownable {
     ) external payable {
         require(owner() == address(0), "Initialized");
         __Ownable_init(_owner);
+        __ReentrancyGuard_init();
 
         ICurve _bondingCurve = bondingCurve();
         PoolType _poolType = poolType();
@@ -124,7 +126,7 @@ abstract contract LSSVMPair is Ownable {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) external payable virtual returns (uint256 inputAmount) {
+    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -195,7 +197,7 @@ abstract contract LSSVMPair is Ownable {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) external payable virtual returns (uint256 inputAmount) {
+    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -268,7 +270,7 @@ abstract contract LSSVMPair is Ownable {
         address payable tokenRecipient,
         bool isRouter,
         address routerCaller
-    ) external virtual returns (uint256 outputAmount) {
+    ) nonReentrant external virtual returns (uint256 outputAmount) {
         // Input validation
         {
             PoolType _poolType = poolType();
@@ -687,7 +689,6 @@ abstract contract LSSVMPair is Ownable {
 
     /**
         Including these decreases the gas cost of the swap functions.
-        We're not quite sure why.
      */
     uint256 public unlockTime;
 
