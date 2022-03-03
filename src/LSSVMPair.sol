@@ -558,10 +558,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 unchecked {
                     for (uint256 i = 0; i < numNFTs; i++) {
                         tokenId = nftIds[i];
-                        require(
-                            _nft.ownerOf(tokenId) == routerCaller,
-                            "Caller doesn't own the NFT"
-                        );
                         router.pairTransferNFTFrom(
                             _nft,
                             routerCaller,
