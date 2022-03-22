@@ -40,10 +40,10 @@ abstract contract RouterSinglePoolWithAssetRecipient is
     function setUp() public {
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
-        LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
-        LSSVMPairERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
-        LSSVMPairERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
+        LSSVMPairEnumerableETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        LSSVMPairEnumerableERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
         factory = new LSSVMPairFactory(
             enumerableETHTemplate,
             missingEnumerableETHTemplate,
@@ -168,7 +168,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             block.timestamp
         );
         assertEq(test721.balanceOf(buyPairRecipient), 1);
-        // Pool should still keep track of the same number of NFTs prior to the swap 
+        // Pool should still keep track of the same number of NFTs prior to the swap
         // because we sent the NFT to the asset recipient (and not the pair)
         uint256 afterBuyPairNFTBalance = (buyPair.getAllHeldIds()).length;
         assertEq(beforeBuyPairNFTBalance, afterBuyPairNFTBalance);
@@ -323,7 +323,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             block.timestamp
         );
         assertEq(test721.balanceOf(buyPairRecipient), 5);
-        // Pool should still keep track of the same number of NFTs prior to the swap 
+        // Pool should still keep track of the same number of NFTs prior to the swap
         // because we sent the NFT to the asset recipient (and not the pair)
         uint256 afterBuyPairNFTBalance = (buyPair.getAllHeldIds()).length;
         assertEq(beforeBuyPairNFTBalance, afterBuyPairNFTBalance);
@@ -347,7 +347,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             block.timestamp
         );
         // User gets 90% of the tokens (which is output) and the other 10% goes to the factory
-        assertEq(getBalance(address(factory)), output/9);
+        assertEq(getBalance(address(factory)), output / 9);
     }
 
     function test_swapTokenForSingleSpecificNFTWithProtocolFee() public {
@@ -372,8 +372,11 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             inputAmount
         );
         // Assert 90% and 10% split of the buy amount between sellPairRecipient and the factory
-        assertEq(getBalance(address(factory)), inputAmount/11);
-        assertEq(getBalance(sellPairRecipient)+getBalance(address(factory)), inputAmount);
+        assertEq(getBalance(address(factory)), inputAmount / 11);
+        assertEq(
+            getBalance(sellPairRecipient) + getBalance(address(factory)),
+            inputAmount
+        );
     }
 
     function test_swapTokenForSingleAnyNFTWithProtocolFee() public {
@@ -393,7 +396,10 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             inputAmount
         );
         // Assert 90% and 10% split of the buy amount between sellPairRecipient and the factory
-        assertEq(getBalance(address(factory)), inputAmount/11);
-        assertEq(getBalance(sellPairRecipient)+getBalance(address(factory)), inputAmount);
+        assertEq(getBalance(address(factory)), inputAmount / 11);
+        assertEq(
+            getBalance(sellPairRecipient) + getBalance(address(factory)),
+            inputAmount
+        );
     }
 }

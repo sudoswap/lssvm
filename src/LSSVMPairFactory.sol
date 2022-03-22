@@ -18,6 +18,10 @@ import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
 import {LSSVMPairCloner} from "./lib/LSSVMPairCloner.sol";
 import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {LSSVMPairEnumerableETH} from "./LSSVMPairEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "./LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableETH} from "./LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableERC20} from "./LSSVMPairMissingEnumerableERC20.sol";
 
 contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     using LSSVMPairCloner for address;
@@ -29,10 +33,11 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
 
     uint256 internal constant MAX_PROTOCOL_FEE = 0.10e18; // 10%, must <= 1 - MAX_FEE
 
-    LSSVMPairETH public immutable enumerableETHTemplate;
-    LSSVMPairETH public immutable missingEnumerableETHTemplate;
-    LSSVMPairERC20 public immutable enumerableERC20Template;
-    LSSVMPairERC20 public immutable missingEnumerableERC20Template;
+    LSSVMPairEnumerableETH public immutable enumerableETHTemplate;
+    LSSVMPairMissingEnumerableETH public immutable missingEnumerableETHTemplate;
+    LSSVMPairEnumerableERC20 public immutable enumerableERC20Template;
+    LSSVMPairMissingEnumerableERC20
+        public immutable missingEnumerableERC20Template;
     address payable public override protocolFeeRecipient;
     uint256 public override protocolFeeMultiplier;
 
@@ -47,10 +52,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     event PairCreated(address poolAddress, address nft);
 
     constructor(
-        LSSVMPairETH _enumerableETHTemplate,
-        LSSVMPairETH _missingEnumerableETHTemplate,
-        LSSVMPairERC20 _enumerableERC20Template,
-        LSSVMPairERC20 _missingEnumerableERC20Template,
+        LSSVMPairEnumerableETH _enumerableETHTemplate,
+        LSSVMPairMissingEnumerableETH _missingEnumerableETHTemplate,
+        LSSVMPairEnumerableERC20 _enumerableERC20Template,
+        LSSVMPairMissingEnumerableERC20 _missingEnumerableERC20Template,
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {

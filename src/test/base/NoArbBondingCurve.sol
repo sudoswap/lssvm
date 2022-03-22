@@ -30,10 +30,10 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
     function setUp() public {
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
-        LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
-        LSSVMPairERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
-        LSSVMPairERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
+        LSSVMPairEnumerableETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        LSSVMPairEnumerableERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
         factory = new LSSVMPairFactory(
             enumerableETHTemplate,
             missingEnumerableETHTemplate,

@@ -46,10 +46,10 @@ abstract contract RouterRobustSwap is
         // Create contracts
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPairETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
-        LSSVMPairETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
-        LSSVMPairERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
-        LSSVMPairERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
+        LSSVMPairEnumerableETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        LSSVMPairEnumerableERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
         factory = new LSSVMPairFactory(
             enumerableETHTemplate,
             missingEnumerableETHTemplate,
@@ -299,7 +299,7 @@ abstract contract RouterRobustSwap is
         require(remainingValue == 0.9 ether, "Incorrect ETH received");
     }
 
-    // Test where selling to pair 2 succeeds, 
+    // Test where selling to pair 2 succeeds,
     // but selling to pair 1 fails due to slippage
     // and selling to pair 3 fails due to a bonding curve error
     function test_robustSwapNFTsForTokenWithBondingCurveError() public {
