@@ -7,7 +7,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {ICurve} from "../bonding-curves/ICurve.sol";
-import {LSSVMPairFactoryLike} from "../LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "../ILSSVMPairFactoryLike.sol";
 
 library LSSVMPairCloner {
     /**
@@ -20,7 +20,7 @@ library LSSVMPairCloner {
      */
     function cloneETHPair(
         address implementation,
-        LSSVMPairFactoryLike factory,
+        ILSSVMPairFactoryLike factory,
         ICurve bondingCurve,
         IERC721 nft,
         uint8 poolType
@@ -110,7 +110,7 @@ library LSSVMPairCloner {
      */
     function cloneERC20Pair(
         address implementation,
-        LSSVMPairFactoryLike factory,
+        ILSSVMPairFactoryLike factory,
         ICurve bondingCurve,
         IERC721 nft,
         uint8 poolType,

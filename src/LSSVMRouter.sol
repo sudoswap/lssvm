@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
 contract LSSVMRouter {
@@ -37,9 +37,9 @@ contract LSSVMRouter {
         _;
     }
 
-    LSSVMPairFactoryLike public immutable factory;
+    ILSSVMPairFactoryLike public immutable factory;
 
-    constructor(LSSVMPairFactoryLike _factory) {
+    constructor(ILSSVMPairFactoryLike _factory) {
         factory = _factory;
     }
 
@@ -581,16 +581,16 @@ contract LSSVMRouter {
         address from,
         address to,
         uint256 amount,
-        LSSVMPairFactoryLike.PairVariant variant
+        ILSSVMPairFactoryLike.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");
 
         // verify caller is an ERC20 pair
         require(
-            variant == LSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
+            variant == ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
                 variant ==
-                LSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
+                ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
             "Not ERC20 pair"
         );
 
@@ -612,7 +612,7 @@ contract LSSVMRouter {
         address from,
         address to,
         uint256 id,
-        LSSVMPairFactoryLike.PairVariant variant
+        ILSSVMPairFactoryLike.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");

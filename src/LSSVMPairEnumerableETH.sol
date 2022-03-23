@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {LSSVMPairETH} from "./LSSVMPairETH.sol";
 import {LSSVMPairEnumerable} from "./LSSVMPairEnumerable.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 
 /**
     @title An NFT/Token pair where the NFT implements ERC721Enumerable, and the token is ETH
@@ -17,8 +17,8 @@ contract LSSVMPairEnumerableETH is LSSVMPairEnumerable, LSSVMPairETH {
         public
         pure
         override
-        returns (LSSVMPairFactoryLike.PairVariant)
+        returns (ILSSVMPairFactoryLike.PairVariant)
     {
-        return LSSVMPairFactoryLike.PairVariant.ENUMERABLE_ETH;
+        return ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ETH;
     }
 }

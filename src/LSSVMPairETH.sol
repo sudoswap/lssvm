@@ -5,7 +5,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 
 /**
@@ -21,7 +21,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         uint256 inputAmount,
         bool, /*isRouter*/
         address, /*routerCaller*/
-        LSSVMPairFactoryLike _factory,
+        ILSSVMPairFactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
@@ -51,7 +51,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
+    function _payProtocolFeeFromPair(ILSSVMPairFactoryLike _factory, uint256 protocolFee)
         internal
         override
     {
@@ -77,6 +77,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
+    // @dev see LSSVMPairCloner for params length calculation
     function _immutableParamsLength() internal pure override returns (uint256) {
         return 61;
     }
@@ -99,7 +100,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         payable(owner()).safeTransferETH(amount);
 
         // emit event since ETH is the pair token
-        emit TokenWithdrawn(amount);
+        emit TokenWithdrawal(amount);
     }
 
     /// @inheritdoc LSSVMPair
@@ -116,7 +117,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         for the owner to top up the pair's token reserves.
      */
     receive() external payable {
-        emit TokenDeposited(msg.value);
+        emit TokenDeposit(msg.value);
     }
 
     /**
@@ -126,6 +127,6 @@ abstract contract LSSVMPairETH is LSSVMPair {
     fallback() external payable {
         // Only allow calls without function selector
         require (msg.data.length == _immutableParamsLength()); 
-        emit TokenDeposited(msg.value);
+        emit TokenDeposit(msg.value);
     }
 }

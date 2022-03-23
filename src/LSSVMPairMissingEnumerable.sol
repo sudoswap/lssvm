@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 
 /**
     @title An NFT/Token pair for an NFT that does not implement ERC721Enumerable

@@ -14,7 +14,7 @@ interface ICurve {
     function validateDelta(uint256 delta) external pure returns (bool valid);
 
     /**
-        @notice Validates if a new spot price is valid for the curve.
+        @notice Validates if a new spot price is valid for the curve. Spot price is generally assumed to be the immediate sell price of 1 NFT to the pool, in units of the pool's paired token.
         @param newSpotPrice The new spot price to be set
         @return valid True if the new spot price is valid, false otherwise
      */
