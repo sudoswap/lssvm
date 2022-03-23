@@ -140,14 +140,14 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function withdrawERC20(address a, uint256 amount)
+    function withdrawERC20(ERC20 a, uint256 amount)
         external
         override
         onlyOwner
     {
-        ERC20(a).safeTransfer(msg.sender, amount);
+        a.safeTransfer(msg.sender, amount);
 
-        if (a == address(token())) {
+        if (a == token()) {
             // emit event since it is the pair token
             emit TokenWithdrawn(amount);
         }

@@ -51,10 +51,10 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
-        internal
-        override
-    {
+    function _payProtocolFeeFromPair(
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
+    ) internal override {
         // Take protocol fee
         if (protocolFee > 0) {
             // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
@@ -103,12 +103,12 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function withdrawERC20(address a, uint256 amount)
+    function withdrawERC20(ERC20 a, uint256 amount)
         external
         override
         onlyOwner
     {
-        ERC20(a).safeTransfer(msg.sender, amount);
+        a.safeTransfer(msg.sender, amount);
     }
 
     /**
@@ -125,7 +125,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
      */
     fallback() external payable {
         // Only allow calls without function selector
-        require (msg.data.length == _immutableParamsLength()); 
+        require(msg.data.length == _immutableParamsLength());
         emit TokenDeposited(msg.value);
     }
 }

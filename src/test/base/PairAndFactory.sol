@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {DSTest} from "ds-test/test.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
@@ -27,7 +27,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     uint256 numItems = 2;
     uint256[] idList;
     IERC721 test721;
-    IERC20 testERC20;
+    ERC20 testERC20;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
     address payable constant feeRecipient = payable(address(69));
@@ -70,7 +70,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             address(0)
         );
 
-        testERC20 = IERC20(address(new Test20()));
+        testERC20 = ERC20(address(new Test20()));
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
     }
 
@@ -105,8 +105,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function test_rescueTokens() public {
-        pair.withdrawERC721(address(test721), idList);
-        pair.withdrawERC20(address(testERC20), 1 ether);
+        pair.withdrawERC721(test721, idList);
+        pair.withdrawERC20(testERC20, 1 ether);
     }
 
     function testFail_tradePoolChangeAssetRecipient() public {
@@ -197,8 +197,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
     function testFail_rescueTokensNotOwner() public {
         pair.transferOwnership(address(1000));
-        pair.withdrawERC721(address(test721), idList);
-        pair.withdrawERC20(address(testERC20), 1 ether);
+        pair.withdrawERC721(test721, idList);
+        pair.withdrawERC20(testERC20, 1 ether);
     }
 
     function testFail_changeAssetRecipientForTrade() public {
