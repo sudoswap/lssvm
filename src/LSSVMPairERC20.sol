@@ -17,6 +17,8 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 abstract contract LSSVMPairERC20 is LSSVMPair {
     using SafeTransferLib for ERC20;
 
+    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 81;
+
     /**
         @notice Returns the ERC20 token associated with the pair
         @dev See LSSVMPairCloner for an explanation on how this works
@@ -136,7 +138,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
 
     /// @inheritdoc LSSVMPair
     function _immutableParamsLength() internal pure override returns (uint256) {
-        return 81;
+        return IMMUTABLE_PARAMS_LENGTH;
     }
 
     /// @inheritdoc LSSVMPair
