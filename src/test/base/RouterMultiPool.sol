@@ -80,7 +80,7 @@ abstract contract RouterMultiPool is
                 LSSVMPair.PoolType.TRADE,
                 modifyDelta(0),
                 0,
-                (i * 1 ether),
+                uint128(i * 1 ether),
                 idList,
                 (i * 1 ether),
                 address(router)

@@ -22,9 +22,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
     uint256 internal constant MAX_FEE = 0.90e18;
 
-    // NOTE: We use uint128 here to pack spot price and delta into one storage slot, but 
+    // NOTE: We use uint128 here to pack spot price and delta into one storage slot, but
     // treat them as uint256 during math calculations. LPs should be aware of potential
-    // overflow when setting very large spot price and/or delta. 
+    // overflow when setting very large spot price and/or delta.
 
     // The current price of the NFT
     uint128 public spotPrice;
@@ -70,9 +70,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function initialize(
         address _owner,
         address payable _assetRecipient,
-        uint256 _delta,
+        uint128 _delta,
         uint256 _fee,
-        uint256 _spotPrice
+        uint128 _spotPrice
     ) external payable {
         require(owner() == address(0), "Initialized");
         __Ownable_init(_owner);
@@ -101,8 +101,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             "Invalid new spot price for curve"
         );
 
-        delta = uint128(_delta);
-        spotPrice = uint128(_spotPrice);
+        delta = _delta;
+        spotPrice = _spotPrice;
     }
 
     /**
@@ -126,7 +126,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -148,7 +148,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256 protocolFee;
         {
             CurveErrorCodes.Error error;
-            uint256 newSpotPrice;
+            uint128 newSpotPrice;
             (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
                 .getBuyInfo(
                     spotPrice,
@@ -160,8 +160,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = uint128(newSpotPrice);
-            emit SpotPriceUpdated(uint128(newSpotPrice));
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
         }
 
         _pullTokenInputAndPayProtocolFee(
@@ -197,7 +197,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -220,7 +220,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256 protocolFee;
         {
             CurveErrorCodes.Error error;
-            uint256 newSpotPrice;
+            uint128 newSpotPrice;
             (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
                 .getBuyInfo(
                     spotPrice,
@@ -232,8 +232,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = uint128(newSpotPrice);
-            emit SpotPriceUpdated(uint128(newSpotPrice));
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
         }
 
         _pullTokenInputAndPayProtocolFee(
@@ -270,7 +270,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address payable tokenRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external virtual returns (uint256 outputAmount) {
+    ) external virtual nonReentrant returns (uint256 outputAmount) {
         // Input validation
         {
             PoolType _poolType = poolType();
@@ -284,7 +284,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         // Call bonding curve for pricing information
         uint256 protocolFee;
         {
-            uint256 newSpotPrice;
+            uint128 newSpotPrice;
             CurveErrorCodes.Error error;
             (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve()
                 .getSellInfo(
@@ -297,8 +297,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = uint128(newSpotPrice);
-            emit SpotPriceUpdated(uint128(newSpotPrice));
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
         }
 
         // Pricing-dependent validation
@@ -485,9 +485,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory from the pair
      */
-    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
-        internal
-        virtual;
+    function _payProtocolFeeFromPair(
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
+    ) internal virtual;
 
     /**
         @notice Sends tokens to a recipient
