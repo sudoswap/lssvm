@@ -22,6 +22,21 @@ contract LSSVMRouter {
         uint256[] nftIds;
     }
 
+    struct RobustPairSwapAny {
+      PairSwapAny swapInfo;
+      uint256 maxCost;
+    }
+
+    struct RobustPairSwapSpecific {
+      PairSwapSpecific swapInfo;
+      uint256 maxCost;
+    }
+
+    struct RobustPairSwapSpecificForToken {
+      PairSwapSpecific swapInfo;
+      uint256 minOutput;
+    }
+
     struct NFTsForAnyNFTsTrade {
         PairSwapSpecific[] nftToTokenTrades;
         PairSwapAny[] tokenToNFTTrades;
@@ -328,15 +343,13 @@ contract LSSVMRouter {
         @dev We assume msg.value >= sum of values in maxCostPerPair
         @notice Swaps as much ETH for any NFTs as possible, respecting the per-swap max cost.
         @param swapList The list of pairs to trade with and the number of NFTs to buy from each.
-        @param maxCostPerPairSwap The per-swap max cost; if the swap exceeds this amount, it will not be attempted
         @param ethRecipient The address that will receive the unspent ETH input
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return remainingValue The unspent token amount
      */
     function robustSwapETHForAnyNFTs(
-        PairSwapAny[] calldata swapList,
-        uint256[] memory maxCostPerPairSwap,
+        RobustPairSwapAny[] calldata swapList,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
@@ -353,20 +366,20 @@ contract LSSVMRouter {
         CurveErrorCodes.Error error;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
-                swapList[i].numItems
+            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+                swapList[i].swapInfo.numItems
             );
 
             // If within our maxCost and no error, proceed
             if (
-                pairCost <= maxCostPerPairSwap[i] &&
+                pairCost <= swapList[i].maxCost &&
                 error == CurveErrorCodes.Error.OK
             ) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
-                remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
+                remainingValue -= swapList[i].swapInfo.pair.swapTokenForAnyNFTs{
                     value: pairCost
-                }(swapList[i].numItems, nftRecipient, true, msg.sender);
+                }(swapList[i].swapInfo.numItems, nftRecipient, true, msg.sender);
             }
         }
 
@@ -379,15 +392,13 @@ contract LSSVMRouter {
     /**
         @dev We assume msg.value >= sum of values in maxCostPerPair
         @param swapList The list of pairs to trade with and the IDs of the NFTs to buy from each.
-        @param maxCostPerPairSwap The per-swap max cost; if the swap exceeds this amount, it will not be attempted
         @param ethRecipient The address that will receive the unspent ETH input
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return remainingValue The unspent token amount
      */
     function robustSwapETHForSpecificNFTs(
-        PairSwapSpecific[] calldata swapList,
-        uint256[] memory maxCostPerPairSwap,
+        RobustPairSwapSpecific[] calldata swapList,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
@@ -404,20 +415,20 @@ contract LSSVMRouter {
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
-                swapList[i].nftIds.length
+            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+                swapList[i].swapInfo.nftIds.length
             );
 
             // If within our maxCost and no error, proceed
             if (
-                pairCost <= maxCostPerPairSwap[i] &&
+                pairCost <= swapList[i].maxCost &&
                 error == CurveErrorCodes.Error.OK
             ) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
-                remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
+                remainingValue -= swapList[i].swapInfo.pair.swapTokenForSpecificNFTs{
                     value: pairCost
-                }(swapList[i].nftIds, nftRecipient, true, msg.sender);
+                }(swapList[i].swapInfo.nftIds, nftRecipient, true, msg.sender);
             }
         }
 
@@ -431,16 +442,14 @@ contract LSSVMRouter {
         @notice Swaps as many ERC20 tokens for any NFTs as possible, respecting the per-swap max cost.
         @param swapList The list of pairs to trade with and the number of NFTs to buy from each.
         @param inputAmount The amount of ERC20 tokens to add to the ERC20-to-NFT swaps
-        @param maxCostPerPairSwap The per-swap max cost; if the swap exceeds this amount, it will not be attempted
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return remainingValue The unspent token amount
         
      */
     function robustSwapERC20ForAnyNFTs(
-        PairSwapAny[] calldata swapList,
+        RobustPairSwapAny[] calldata swapList,
         uint256 inputAmount,
-        uint256[] memory maxCostPerPairSwap,
         address nftRecipient,
         uint256 deadline
     ) external checkDeadline(deadline) returns (uint256 remainingValue) {
@@ -451,17 +460,17 @@ contract LSSVMRouter {
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
-                swapList[i].numItems
+            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+                swapList[i].swapInfo.numItems
             );
 
             // If within our maxCost and no error, proceed
             if (
-                pairCost <= maxCostPerPairSwap[i] &&
+                pairCost <= swapList[i].maxCost &&
                 error == CurveErrorCodes.Error.OK
             ) {
-                remainingValue -= swapList[i].pair.swapTokenForAnyNFTs(
-                    swapList[i].numItems,
+                remainingValue -= swapList[i].swapInfo.pair.swapTokenForAnyNFTs(
+                    swapList[i].swapInfo.numItems,
                     nftRecipient,
                     true,
                     msg.sender
@@ -474,15 +483,14 @@ contract LSSVMRouter {
         @notice Swaps as many ERC20 tokens for specific NFTs as possible, respecting the per-swap max cost.
         @param swapList The list of pairs to trade with and the IDs of the NFTs to buy from each.
         @param inputAmount The amount of ERC20 tokens to add to the ERC20-to-NFT swaps
-        @param maxCostPerPairSwap The per-swap max cost; if the swap exceeds this amount, it will not be attempted
+
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return remainingValue The unspent token amount
      */
     function robustSwapERC20ForSpecificNFTs(
-        PairSwapSpecific[] calldata swapList,
+        RobustPairSwapSpecific[] calldata swapList,
         uint256 inputAmount,
-        uint256[] memory maxCostPerPairSwap,
         address nftRecipient,
         uint256 deadline
     )
@@ -498,17 +506,17 @@ contract LSSVMRouter {
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
-                swapList[i].nftIds.length
+            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+                swapList[i].swapInfo.nftIds.length
             );
 
             // If within our maxCost and no error, proceed
             if (
-                pairCost <= maxCostPerPairSwap[i] &&
+                pairCost <= swapList[i].maxCost &&
                 error == CurveErrorCodes.Error.OK
             ) {
-                remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs(
-                    swapList[i].nftIds,
+                remainingValue -= swapList[i].swapInfo.pair.swapTokenForSpecificNFTs(
+                    swapList[i].swapInfo.nftIds,
                     nftRecipient,
                     true,
                     msg.sender
@@ -520,14 +528,12 @@ contract LSSVMRouter {
     /**
         @notice Swaps as many NFTs for tokens as possible, respecting the per-swap min output
         @param swapList The list of pairs to trade with and the IDs of the NFTs to sell to each.
-        @param minOutputPerSwapPair The minimum acceptable total tokens received per swap pair
         @param tokenRecipient The address that will receive the token output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return outputAmount The total ETH/ERC20 received
      */
     function robustSwapNFTsForToken(
-        PairSwapSpecific[] calldata swapList,
-        uint256[] memory minOutputPerSwapPair,
+        RobustPairSwapSpecificForToken[] calldata swapList,
         address payable tokenRecipient,
         uint256 deadline
     ) external checkDeadline(deadline) returns (uint256 outputAmount) {
@@ -539,8 +545,8 @@ contract LSSVMRouter {
             // Locally scoped to avoid stack too deep error
             {
                 CurveErrorCodes.Error error;
-                (error, , pairOutput, ) = swapList[i].pair.getSellNFTQuote(
-                    swapList[i].nftIds.length
+                (error, , pairOutput, ) = swapList[i].swapInfo.pair.getSellNFTQuote(
+                    swapList[i].swapInfo.nftIds.length
                 );
                 if (error != CurveErrorCodes.Error.OK) {
                     continue;
@@ -548,10 +554,10 @@ contract LSSVMRouter {
             }
             
             // If at least equal to our minOutput, proceed
-            if (pairOutput >= minOutputPerSwapPair[i]) {
+            if (pairOutput >= swapList[i].minOutput) {
                 // Do the swap and update outputAmount with how many tokens we got
-                outputAmount += swapList[i].pair.swapNFTsForToken(
-                    swapList[i].nftIds,
+                outputAmount += swapList[i].swapInfo.pair.swapNFTsForToken(
+                    swapList[i].swapInfo.nftIds,
                     0,
                     tokenRecipient,
                     true,

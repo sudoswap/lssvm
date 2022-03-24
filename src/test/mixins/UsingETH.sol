@@ -136,8 +136,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
 
     function robustSwapTokenForAnyNFTs(
         LSSVMRouter router,
-        LSSVMRouter.PairSwapAny[] calldata swapList,
-        uint256[] memory maxCostPerPairSwap,
+        LSSVMRouter.RobustPairSwapAny[] calldata swapList,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
@@ -146,7 +145,6 @@ abstract contract UsingETH is Configurable, RouterCaller {
         return
             router.robustSwapETHForAnyNFTs{value: msg.value}(
                 swapList,
-                maxCostPerPairSwap,
                 ethRecipient,
                 nftRecipient,
                 deadline
@@ -155,8 +153,7 @@ abstract contract UsingETH is Configurable, RouterCaller {
 
     function robustSwapTokenForSpecificNFTs(
         LSSVMRouter router,
-        LSSVMRouter.PairSwapSpecific[] calldata swapList,
-        uint256[] memory maxCostPerPairSwap,
+        LSSVMRouter.RobustPairSwapSpecific[] calldata swapList,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
@@ -165,7 +162,6 @@ abstract contract UsingETH is Configurable, RouterCaller {
         return
             router.robustSwapETHForSpecificNFTs{value: msg.value}(
                 swapList,
-                maxCostPerPairSwap,
                 ethRecipient,
                 nftRecipient,
                 deadline
