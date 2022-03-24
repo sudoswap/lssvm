@@ -272,11 +272,13 @@ contract LSSVMRouter {
         // Swap ERC20 for any NFTs
         // cost <= maxCost = outputAmount - minOutput, so outputAmount' = outputAmount - cost >= minOutput
         // input tokens are taken directly from msg.sender
-        outputAmount = _swapERC20ForAnyNFTs(
-            trade.tokenToNFTTrades,
-            outputAmount - minOutput,
-            nftRecipient
-        );
+        outputAmount =
+            _swapERC20ForAnyNFTs(
+                trade.tokenToNFTTrades,
+                outputAmount - minOutput,
+                nftRecipient
+            ) +
+            minOutput;
     }
 
     /**
@@ -311,11 +313,13 @@ contract LSSVMRouter {
         // Swap ERC20 for specific NFTs
         // cost <= maxCost = outputAmount - minOutput, so outputAmount' = outputAmount - cost >= minOutput
         // input tokens are taken directly from msg.sender
-        outputAmount = _swapERC20ForSpecificNFTs(
-            trade.tokenToNFTTrades,
-            outputAmount - minOutput,
-            nftRecipient
-        );
+        outputAmount =
+            _swapERC20ForSpecificNFTs(
+                trade.tokenToNFTTrades,
+                outputAmount - minOutput,
+                nftRecipient
+            ) +
+            minOutput;
     }
 
     /**
@@ -531,7 +535,6 @@ contract LSSVMRouter {
         address payable tokenRecipient,
         uint256 deadline
     ) external checkDeadline(deadline) returns (uint256 outputAmount) {
-
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             uint256 pairOutput;
@@ -546,7 +549,7 @@ contract LSSVMRouter {
                     continue;
                 }
             }
-            
+
             // If at least equal to our minOutput, proceed
             if (pairOutput >= minOutputPerSwapPair[i]) {
                 // Do the swap and update outputAmount with how many tokens we got
