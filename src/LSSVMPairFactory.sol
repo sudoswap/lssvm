@@ -54,31 +54,10 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
-        require(
-            address(_enumerableETHTemplate) != address(0),
-            "0 template address"
-        );
         enumerableETHTemplate = _enumerableETHTemplate;
-
-        require(
-            address(_missingEnumerableETHTemplate) != address(0),
-            "0 template address"
-        );
         missingEnumerableETHTemplate = _missingEnumerableETHTemplate;
-
-        require(
-            address(_enumerableERC20Template) != address(0),
-            "0 template address"
-        );
         enumerableERC20Template = _enumerableERC20Template;
-
-        require(
-            address(_missingEnumerableERC20Template) != address(0),
-            "0 template address"
-        );
         missingEnumerableERC20Template = _missingEnumerableERC20Template;
-
-        require(_protocolFeeRecipient != address(0), "0 recipient address");
         protocolFeeRecipient = _protocolFeeRecipient;
 
         require(_protocolFeeMultiplier <= MAX_PROTOCOL_FEE, "Fee too large");
