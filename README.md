@@ -31,7 +31,7 @@ See inline comments for more on swap/bonding curve logic.
 
 See the diagram below for a high-level overview, credits go to IT DAO:
 
-![overview of lssvm architecture]("./sudo-diagram.png")
+![overview of lssvm architecture](./sudo-diagram.png)
 
 ### Testing
 To help with code reuse, `base` contains actual swap logic to be tested in the form of abstract contracts, while actual test files inherit from various parent contracts found in `mixins` to implement the different choices of bonding curve, NFT, or token.
