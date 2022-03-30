@@ -29,7 +29,7 @@ See inline comments for more on swap/bonding curve logic.
 
 ### Architecture
 
-See the diagram below for a high-level overview, credits go to IT DAO:
+See the diagram below for a high-level overview, credits go to [IT DAO](https://twitter.com/InfoTokenDAO):
 
 ![overview of lssvm architecture](./sudo-diagram.png)
 
