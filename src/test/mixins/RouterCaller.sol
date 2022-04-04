@@ -44,8 +44,7 @@ abstract contract RouterCaller {
 
     function robustSwapTokenForAnyNFTs(
         LSSVMRouter router,
-        LSSVMRouter.PairSwapAny[] calldata swapList,
-        uint256[] memory maxCostPerPairSwapPair,
+        LSSVMRouter.RobustPairSwapAny[] calldata swapList,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,
@@ -54,8 +53,7 @@ abstract contract RouterCaller {
 
     function robustSwapTokenForSpecificNFTs(
         LSSVMRouter router,
-        LSSVMRouter.PairSwapSpecific[] calldata swapList,
-        uint256[] memory maxCostPerPairSwapPair,
+        LSSVMRouter.RobustPairSwapSpecific[] calldata swapList,
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline,

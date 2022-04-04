@@ -141,21 +141,23 @@ abstract contract RouterRobustSwapWithAssetRecipient is
 
     // Swapping tokens for any NFT on sellPair1 works, but fails silently on sellPair2 if slippage is too tight
     function test_robustSwapTokenForAnyNFTs() public {
-        LSSVMRouter.PairSwapAny[]
-            memory swapList = new LSSVMRouter.PairSwapAny[](2);
-        swapList[0] = LSSVMRouter.PairSwapAny({pair: sellPair1, numItems: 1});
-        swapList[1] = LSSVMRouter.PairSwapAny({pair: sellPair2, numItems: 1});
         uint256 sellPair1Price;
         (, , sellPair1Price, ) = sellPair1.getBuyNFTQuote(1);
-        uint256[] memory maxCostPerNFTSwap = new uint256[](2);
-        maxCostPerNFTSwap[0] = sellPair1Price;
-        maxCostPerNFTSwap[1] = 0 ether;
+        LSSVMRouter.RobustPairSwapAny[]
+            memory swapList = new LSSVMRouter.RobustPairSwapAny[](2);
+        swapList[0] = LSSVMRouter.RobustPairSwapAny({
+            swapInfo: LSSVMRouter.PairSwapAny({pair: sellPair1, numItems: 1}),
+            maxCost: sellPair1Price
+        });
+        swapList[1] = LSSVMRouter.RobustPairSwapAny({
+            swapInfo: LSSVMRouter.PairSwapAny({pair: sellPair2, numItems: 1}),
+            maxCost: 0 ether
+        });
         uint256 remainingValue = this.robustSwapTokenForAnyNFTs{
             value: modifyInputAmount(2 ether)
         }(
             router,
             swapList,
-            maxCostPerNFTSwap,
             payable(address(this)),
             address(this),
             block.timestamp,
@@ -167,31 +169,33 @@ abstract contract RouterRobustSwapWithAssetRecipient is
 
     // Swapping tokens to a specific NFT with sellPair2 works, but fails silently on sellPair1 if slippage is too tight
     function test_robustSwapTokenForSpecificNFTs() public {
-        LSSVMRouter.PairSwapSpecific[]
-            memory swapList = new LSSVMRouter.PairSwapSpecific[](2);
+        uint256 sellPair1Price;
+        (, , sellPair1Price, ) = sellPair2.getBuyNFTQuote(1);
+        LSSVMRouter.RobustPairSwapSpecific[]
+            memory swapList = new LSSVMRouter.RobustPairSwapSpecific[](2);
         uint256[] memory nftIds1 = new uint256[](1);
         nftIds1[0] = 1;
         uint256[] memory nftIds2 = new uint256[](1);
         nftIds2[0] = 2;
-        swapList[0] = LSSVMRouter.PairSwapSpecific({
-            pair: sellPair1,
-            nftIds: nftIds1
+        swapList[0] = LSSVMRouter.RobustPairSwapSpecific({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: sellPair1,
+                nftIds: nftIds1
+            }),
+            maxCost: 0 ether
         });
-        swapList[1] = LSSVMRouter.PairSwapSpecific({
-            pair: sellPair2,
-            nftIds: nftIds2
+        swapList[1] = LSSVMRouter.RobustPairSwapSpecific({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: sellPair2,
+                nftIds: nftIds2
+            }),
+            maxCost: sellPair1Price
         });
-        uint256 sellPair1Price;
-        (, , sellPair1Price, ) = sellPair2.getBuyNFTQuote(1);
-        uint256[] memory maxCostPerNFTSwap = new uint256[](2);
-        maxCostPerNFTSwap[0] = 0 ether;
-        maxCostPerNFTSwap[1] = sellPair1Price;
         uint256 remainingValue = this.robustSwapTokenForSpecificNFTs{
             value: modifyInputAmount(2 ether)
         }(
             router,
             swapList,
-            maxCostPerNFTSwap,
             payable(address(this)),
             address(this),
             block.timestamp,
@@ -203,28 +207,32 @@ abstract contract RouterRobustSwapWithAssetRecipient is
 
     // Swapping NFTs to tokens with buyPair1 works, but buyPair2 silently fails due to slippage
     function test_robustSwapNFTsForToken() public {
+        uint256 buyPair1Price;
+        (, , buyPair1Price, ) = buyPair1.getSellNFTQuote(1);
         uint256[] memory nftIds1 = new uint256[](1);
         nftIds1[0] = 5;
         uint256[] memory nftIds2 = new uint256[](1);
         nftIds2[0] = 6;
-        LSSVMRouter.PairSwapSpecific[]
-            memory swapList = new LSSVMRouter.PairSwapSpecific[](2);
-        swapList[0] = LSSVMRouter.PairSwapSpecific({
-            pair: buyPair1,
-            nftIds: nftIds1
+        LSSVMRouter.RobustPairSwapSpecificForToken[]
+            memory swapList = new LSSVMRouter.RobustPairSwapSpecificForToken[](
+                2
+            );
+        swapList[0] = LSSVMRouter.RobustPairSwapSpecificForToken({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: buyPair1,
+                nftIds: nftIds1
+            }),
+            minOutput: buyPair1Price
         });
-        swapList[1] = LSSVMRouter.PairSwapSpecific({
-            pair: buyPair2,
-            nftIds: nftIds2
+        swapList[1] = LSSVMRouter.RobustPairSwapSpecificForToken({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: buyPair2,
+                nftIds: nftIds2
+            }),
+            minOutput: 2 ether
         });
-        uint256 buyPair1Price;
-        (, , buyPair1Price, ) = buyPair1.getSellNFTQuote(1);
-        uint256[] memory minOutput = new uint256[](2);
-        minOutput[0] = buyPair1Price;
-        minOutput[1] = 2 ether;
         router.robustSwapNFTsForToken(
             swapList,
-            minOutput,
             payable(address(this)),
             block.timestamp
         );
