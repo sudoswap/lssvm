@@ -24,7 +24,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     uint256 internal constant MAX_FEE = 0.90e18;
 
     // The current price of the NFT
-    // @dev This is generally used to mean the immediate sell price for the next marginal NFT. 
+    // @dev This is generally used to mean the immediate sell price for the next marginal NFT.
     // However, this should NOT be assumed! Use getBuyNFTQuote and getSellNFTQuote for accurate pricing info.
     uint128 public spotPrice;
 
@@ -49,9 +49,11 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event TokenWithdrawal(uint256 amount);
     event DeltaUpdate(uint128 newDelta);
     event FeeUpdate(uint96 newFee);
+    event AssetRecipientChange(address a);
 
     // Parameterized Errors
     error BondingCurveError(CurveErrorCodes.Error error);
+    error MulticallError(uint256 callIndex);
 
     /**
       @notice Called during pair creation to set initial parameters
@@ -120,7 +122,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -195,7 +197,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -487,9 +489,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory from the pair
      */
-    function _payProtocolFeeFromPair(ILSSVMPairFactoryLike _factory, uint256 protocolFee)
-        internal
-        virtual;
+    function _payProtocolFeeFromPair(
+        ILSSVMPairFactoryLike _factory,
+        uint256 protocolFee
+    ) internal virtual;
 
     /**
         @notice Sends tokens to a recipient
@@ -673,7 +676,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     {
         PoolType _poolType = poolType();
         require(_poolType != PoolType.TRADE, "Not for Trade pools");
-        assetRecipient = newRecipient;
+        if (assetRecipient != newRecipient) {
+            assetRecipient = newRecipient;
+            emit AssetRecipientChange(newRecipient);
+        }
     }
 
     /**
@@ -690,5 +696,23 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         require(_factory.callAllowed(target), "Target must be whitelisted");
         (bool result, ) = target.call{value: 0}(data);
         require(result, "Call failed");
+    }
+
+    /**
+        @notice Allows owner to batch multiple calls, forked from: https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/BoringBatchable.sol 
+        @dev Intended for withdrawing/altering pool pricing in one tx, only callable by owner
+        @param calls The calldata for each call to make
+        @param revertOnFail Whether or not to revert the entire tx if any of the calls fail
+     */
+    function multicall(bytes[] calldata calls, bool revertOnFail)
+        external
+        onlyOwner
+    {
+        for (uint256 i = 0; i < calls.length; i++) {
+            (bool success, ) = address(this).delegatecall(calls[i]);
+            if (!success && revertOnFail) {
+                revert MulticallError(i);
+            }
+        }
     }
 }
