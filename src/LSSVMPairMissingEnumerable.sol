@@ -31,7 +31,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
             unchecked {
                 uint256 nftId = idSet.at(lastIndex--);
                 _nft.safeTransferFrom(address(this), nftRecipient, nftId);
-                idSet.remove(nftId); 
+                idSet.remove(nftId);
             }
         }
     }
@@ -80,7 +80,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function withdrawERC721(address a, uint256[] calldata nftIds)
+    function withdrawERC721(IERC721 a, uint256[] calldata nftIds)
         external
         override
         onlyOwner
@@ -88,13 +88,9 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         IERC721 _nft = nft();
 
         // If it's not the pair's NFT, just withdraw normally
-        if (a != address(_nft)) {
+        if (a != _nft) {
             for (uint256 i = 0; i < nftIds.length; i++) {
-                IERC721(a).safeTransferFrom(
-                    address(this),
-                    msg.sender,
-                    nftIds[i]
-                );
+                a.safeTransferFrom(address(this), msg.sender, nftIds[i]);
             }
         }
         // Otherwise, withdraw and also remove the ID from the ID set

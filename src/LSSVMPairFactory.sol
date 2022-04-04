@@ -18,6 +18,10 @@ import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
 import {LSSVMPairCloner} from "./lib/LSSVMPairCloner.sol";
 import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
+import {LSSVMPairEnumerableETH} from "./LSSVMPairEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "./LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableETH} from "./LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableERC20} from "./LSSVMPairMissingEnumerableERC20.sol";
 
 contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
     using LSSVMPairCloner for address;
@@ -29,10 +33,11 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
 
     uint256 internal constant MAX_PROTOCOL_FEE = 0.10e18; // 10%, must <= 1 - MAX_FEE
 
-    LSSVMPairETH public immutable enumerableETHTemplate;
-    LSSVMPairETH public immutable missingEnumerableETHTemplate;
-    LSSVMPairERC20 public immutable enumerableERC20Template;
-    LSSVMPairERC20 public immutable missingEnumerableERC20Template;
+    LSSVMPairEnumerableETH public immutable enumerableETHTemplate;
+    LSSVMPairMissingEnumerableETH public immutable missingEnumerableETHTemplate;
+    LSSVMPairEnumerableERC20 public immutable enumerableERC20Template;
+    LSSVMPairMissingEnumerableERC20
+        public immutable missingEnumerableERC20Template;
     address payable public override protocolFeeRecipient;
 
     // Units are in base 1e18
@@ -56,10 +61,10 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
     event RouterStatusUpdate(LSSVMRouter router, bool isAllowed);
 
     constructor(
-        LSSVMPairETH _enumerableETHTemplate,
-        LSSVMPairETH _missingEnumerableETHTemplate,
-        LSSVMPairERC20 _enumerableERC20Template,
-        LSSVMPairERC20 _missingEnumerableERC20Template,
+        LSSVMPairEnumerableETH _enumerableETHTemplate,
+        LSSVMPairMissingEnumerableETH _missingEnumerableETHTemplate,
+        LSSVMPairEnumerableERC20 _enumerableERC20Template,
+        LSSVMPairMissingEnumerableERC20 _missingEnumerableERC20Template,
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
@@ -98,7 +103,7 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
         uint128 _delta,
-        uint256 _fee,
+        uint96 _fee,
         uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPairETH pair) {
@@ -160,7 +165,7 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         address payable assetRecipient;
         LSSVMPair.PoolType poolType;
         uint128 delta;
-        uint256 fee;
+        uint96 fee;
         uint128 spotPrice;
         uint256[] initialNFTIDs;
         uint256 initialTokenBalance;
@@ -374,7 +379,7 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         IERC721 _nft,
         address payable _assetRecipient,
         uint128 _delta,
-        uint256 _fee,
+        uint96 _fee,
         uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) internal {
@@ -400,7 +405,7 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         IERC721 _nft,
         address payable _assetRecipient,
         uint128 _delta,
-        uint256 _fee,
+        uint96 _fee,
         uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs,
         uint256 _initialTokenBalance

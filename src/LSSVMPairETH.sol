@@ -16,6 +16,8 @@ abstract contract LSSVMPairETH is LSSVMPair {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
+    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 61;
+
     /// @inheritdoc LSSVMPair
     function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
@@ -85,7 +87,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
     /// @inheritdoc LSSVMPair
     // @dev see LSSVMPairCloner for params length calculation
     function _immutableParamsLength() internal pure override returns (uint256) {
-        return 61;
+        return IMMUTABLE_PARAMS_LENGTH;
     }
 
     /**
@@ -110,12 +112,12 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function withdrawERC20(address a, uint256 amount)
+    function withdrawERC20(ERC20 a, uint256 amount)
         external
         override
         onlyOwner
     {
-        ERC20(a).safeTransfer(owner(), amount);
+        a.safeTransfer(msg.sender, amount);
     }
 
     /**

@@ -40,7 +40,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         address payable assetRecipient,
         LSSVMPair.PoolType poolType,
         uint128 delta,
-        uint256 fee,
+        uint96 fee,
         uint128 spotPrice,
         uint256[] memory _idList,
         uint256 initialTokenBalance,
@@ -82,7 +82,7 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
 
     function withdrawTokens(LSSVMPair pair) public override {
         uint256 total = test20.balanceOf(address(pair));
-        LSSVMPairERC20(address(pair)).withdrawERC20(address(test20), total);
+        LSSVMPairERC20(address(pair)).withdrawERC20(test20, total);
     }
 
     function withdrawProtocolFees(LSSVMPairFactory factory) public override {

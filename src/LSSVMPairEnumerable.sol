@@ -63,13 +63,13 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function withdrawERC721(address a, uint256[] calldata nftIds)
+    function withdrawERC721(IERC721 a, uint256[] calldata nftIds)
         external
         override
         onlyOwner
     {
         for (uint256 i = 0; i < nftIds.length; i++) {
-            IERC721(a).safeTransferFrom(address(this), msg.sender, nftIds[i]);
+            a.safeTransferFrom(address(this), msg.sender, nftIds[i]);
         }
     }
 }

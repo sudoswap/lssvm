@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
+import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Ownable} from "./lib/Ownable.sol";
 import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
@@ -21,10 +22,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
     uint256 internal constant MAX_FEE = 0.90e18;
-
-    // NOTE: We use uint128 here for spotPrice and delta to pack them into one storage slot, but 
-    // treat them as uint256 during math calculations. LPs should be aware of potential
-    // overflow when setting very large spot price and/or delta!
 
     // The current price of the NFT
     // @dev This is generally used to mean the immediate sell price for the next marginal NFT. 
@@ -72,7 +69,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address _owner,
         address payable _assetRecipient,
         uint128 _delta,
-        uint256 _fee,
+        uint96 _fee,
         uint128 _spotPrice
     ) external payable {
         require(owner() == address(0), "Initialized");
@@ -91,7 +88,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 _assetRecipient == address(0),
                 "Trade pools can't set asset recipient"
             );
-            fee = uint96(_fee);
+            fee = _fee;
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
         require(
@@ -606,7 +603,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param a The address of the NFT to transfer
         @param nftIds The list of IDs of the NFTs to send to the owner
      */
-    function withdrawERC721(address a, uint256[] calldata nftIds)
+    function withdrawERC721(IERC721 a, uint256[] calldata nftIds)
         external
         virtual;
 
@@ -615,7 +612,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param a The address of the token to transfer
         @param amount The amount of tokens to send to the owner
      */
-    function withdrawERC20(address a, uint256 amount) external virtual;
+    function withdrawERC20(ERC20 a, uint256 amount) external virtual;
 
     /**
         @notice Updates the selling spot price. Only callable by the owner.
