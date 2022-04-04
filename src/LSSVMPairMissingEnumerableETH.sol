@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {LSSVMPairETH} from "./LSSVMPairETH.sol";
 import {LSSVMPairMissingEnumerable} from "./LSSVMPairMissingEnumerable.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 
 contract LSSVMPairMissingEnumerableETH is
     LSSVMPairMissingEnumerable,
@@ -13,8 +13,8 @@ contract LSSVMPairMissingEnumerableETH is
         public
         pure
         override
-        returns (LSSVMPairFactoryLike.PairVariant)
+        returns (ILSSVMPairFactoryLike.PairVariant)
     {
-        return LSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ETH;
+        return ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ETH;
     }
 }

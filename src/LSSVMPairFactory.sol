@@ -17,9 +17,9 @@ import {LSSVMPairETH} from "./LSSVMPairETH.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
 import {LSSVMPairCloner} from "./lib/LSSVMPairCloner.sol";
-import {LSSVMPairFactoryLike} from "./LSSVMPairFactoryLike.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 
-contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
+contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
     using LSSVMPairCloner for address;
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
@@ -34,6 +34,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     LSSVMPairERC20 public immutable enumerableERC20Template;
     LSSVMPairERC20 public immutable missingEnumerableERC20Template;
     address payable public override protocolFeeRecipient;
+
+    // Units are in base 1e18
     uint256 public override protocolFeeMultiplier;
 
     mapping(ICurve => bool) public bondingCurveAllowed;
@@ -44,7 +46,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
     mapping(LSSVMRouter => RouterStatus) public override routerStatus;
 
-    event PairCreated(address poolAddress);
+    event NewPair(address poolAddress);
     event TokenDeposit(address poolAddress);
     event NFTDeposit(address poolAddress);
     event ProtocolFeeRecipientUpdate(address recipientAddress);
@@ -132,7 +134,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _spotPrice,
             _initialNFTIDs
         );
-        emit PairCreated(address(pair));
+        emit NewPair(address(pair));
     }
 
     /**
@@ -203,7 +205,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             params.initialNFTIDs,
             params.initialTokenBalance
         );
-        emit PairCreated(address(pair));
+        emit NewPair(address(pair));
     }
 
     /**
@@ -431,7 +433,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         uint256[] calldata ids,
         address recipient
     ) external {
-        // transfer initial NFTs from caller to recipient
+        // transfer NFTs from caller to recipient
         for (uint256 i = 0; i < ids.length; i++) {
             _nft.safeTransferFrom(msg.sender, recipient, ids[i]);
         }

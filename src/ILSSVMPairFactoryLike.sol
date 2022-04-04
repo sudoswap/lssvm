@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 
-interface LSSVMPairFactoryLike {
+interface ILSSVMPairFactoryLike {
     enum PairVariant {
         ENUMERABLE_ETH,
         MISSING_ENUMERABLE_ETH,
