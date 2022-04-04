@@ -21,8 +21,8 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 import {Test721} from "../../mocks/Test721.sol";
 
 abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
-    uint256 delta = 1.1 ether;
-    uint256 spotPrice = 1 ether;
+    uint128 delta = 1.1 ether;
+    uint128 spotPrice = 1 ether;
     uint256 tokenAmount = 10 ether;
     uint256 numItems = 2;
     uint256[] idList;
@@ -248,7 +248,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         {
             (
                 ,
-                uint256 newSpotPrice,
+                uint128 newSpotPrice,
                 uint256 inputAmount,
                 uint256 protocolFee
             ) = bondingCurve.getBuyInfo(

@@ -12,13 +12,13 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 contract ExponentialCurve is ICurve, CurveErrorCodes {
     using FixedPointMathLib for uint256;
 
-    // minimum price to prevent numerical issues 
+    // minimum price to prevent numerical issues
     uint256 public constant MIN_PRICE = 1 gwei;
 
     /**
         @dev See {ICurve-validateDelta}
      */
-    function validateDelta(uint256 delta)
+    function validateDelta(uint128 delta)
         external
         pure
         override
@@ -30,7 +30,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
     /**
         @dev See {ICurve-validateSpotPrice}
      */
-    function validateSpotPrice(uint256 newSpotPrice)
+    function validateSpotPrice(uint128 newSpotPrice)
         external
         pure
         override
@@ -43,8 +43,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         @dev See {ICurve-getBuyInfo}
      */
     function getBuyInfo(
-        uint256 spotPrice,
-        uint256 delta,
+        uint128 spotPrice,
+        uint128 delta,
         uint256 numItems,
         uint256 feeMultiplier,
         uint256 protocolFeeMultiplier
@@ -54,21 +54,30 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         override
         returns (
             Error error,
-            uint256 newSpotPrice,
+            uint128 newSpotPrice,
             uint256 inputValue,
             uint256 protocolFee
         )
     {
-
         // We only calculate changes for buying 1 or more NFTs
         if (numItems == 0) {
             return (Error.INVALID_NUMITEMS, 0, 0, 0);
         }
 
-        uint256 deltaPowN = delta.fpow(numItems, FixedPointMathLib.WAD);
+        uint256 deltaPowN = uint256(delta).fpow(
+            numItems,
+            FixedPointMathLib.WAD
+        );
 
         // For an exponential curve, the spot price is multiplied by delta for each item bought
-        newSpotPrice = spotPrice.fmul(deltaPowN, FixedPointMathLib.WAD);
+        uint256 newSpotPrice_ = uint256(spotPrice).fmul(
+            deltaPowN,
+            FixedPointMathLib.WAD
+        );
+        if (newSpotPrice_ > type(uint128).max) {
+            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0);
+        }
+        newSpotPrice = uint128(newSpotPrice_);
 
         // Spot price is assumed to be the instant sell price. To avoid arbitraging LPs, we adjust the buy price upwards.
         // If spot price for buy and sell were the same, then someone could buy 1 NFT and then sell for immediate profit.
@@ -76,7 +85,10 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         // The same person could then sell for (S * delta) ETH, netting them delta ETH profit.
         // If spot price for buy and sell differ by delta, then buying costs (S * delta) ETH.
         // The new spot price would become (S * delta), so selling would also yield (S * delta) ETH.
-        uint256 buySpotPrice = spotPrice.fmul(delta, FixedPointMathLib.WAD);
+        uint256 buySpotPrice = uint256(spotPrice).fmul(
+            delta,
+            FixedPointMathLib.WAD
+        );
 
         // If the user buys n items, then the total cost is equal to:
         // buySpotPrice + (delta * buySpotPrice) + (delta^2 * buySpotPrice) + ... (delta^(numItems - 1) * buySpotPrice)
@@ -112,8 +124,8 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         from the bonding curve (since 0 * delta is still 0)
      */
     function getSellInfo(
-        uint256 spotPrice,
-        uint256 delta,
+        uint128 spotPrice,
+        uint128 delta,
         uint256 numItems,
         uint256 feeMultiplier,
         uint256 protocolFeeMultiplier
@@ -123,7 +135,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         override
         returns (
             Error error,
-            uint256 newSpotPrice,
+            uint128 newSpotPrice,
             uint256 outputValue,
             uint256 protocolFee
         )
@@ -140,15 +152,19 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         uint256 invDeltaPowN = invDelta.fpow(numItems, FixedPointMathLib.WAD);
 
         // For an exponential curve, the spot price is divided by delta for each item sold
-        newSpotPrice = spotPrice.fmul(invDeltaPowN, FixedPointMathLib.WAD);
+        // safe to convert newSpotPrice directly into uint128 since we know newSpotPrice <= spotPrice
+        // and spotPrice <= type(uint128).max
+        newSpotPrice = uint128(
+            uint256(spotPrice).fmul(invDeltaPowN, FixedPointMathLib.WAD)
+        );
         if (newSpotPrice < MIN_PRICE) {
-            newSpotPrice = MIN_PRICE;
+            newSpotPrice = uint128(MIN_PRICE);
         }
 
         // If the user sells n items, then the total revenue is equal to:
         // spotPrice + ((1 / delta) * spotPrice) + ((1 / delta)^2 * spotPrice) + ... ((1 / delta)^(numItems - 1) * spotPrice)
         // This is equal to spotPrice * (1 - (1 / delta^n)) / (1 - (1 / delta))
-        outputValue = spotPrice.fmul(
+        outputValue = uint256(spotPrice).fmul(
             (FixedPointMathLib.WAD - invDeltaPowN).fdiv(
                 FixedPointMathLib.WAD - invDelta,
                 FixedPointMathLib.WAD

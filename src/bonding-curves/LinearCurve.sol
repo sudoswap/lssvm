@@ -16,7 +16,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         @dev See {ICurve-validateDelta}
      */
     function validateDelta(
-        uint256 /*delta*/
+        uint128 /*delta*/
     ) external pure override returns (bool valid) {
         // For a linear curve, all values of delta are valid
         return true;
@@ -26,7 +26,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         @dev See {ICurve-validateSpotPrice}
      */
     function validateSpotPrice(
-        uint256 /* newSpotPrice */
+        uint128 /* newSpotPrice */
     ) external pure override returns (bool) {
         // For a linear curve, all values of spot price are valid
         return true;
@@ -36,8 +36,8 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         @dev See {ICurve-getBuyInfo}
      */
     function getBuyInfo(
-        uint256 spotPrice,
-        uint256 delta,
+        uint128 spotPrice,
+        uint128 delta,
         uint256 numItems,
         uint256 feeMultiplier,
         uint256 protocolFeeMultiplier
@@ -47,7 +47,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         override
         returns (
             Error error,
-            uint256 newSpotPrice,
+            uint128 newSpotPrice,
             uint256 inputValue,
             uint256 protocolFee
         )
@@ -58,7 +58,11 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         }
 
         // For a linear curve, the spot price increases by delta for each item bought
-        newSpotPrice = spotPrice + delta * numItems;
+        uint256 newSpotPrice_ = spotPrice + delta * numItems;
+        if (newSpotPrice_ > type(uint128).max) {
+            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0);
+        }
+        newSpotPrice = uint128(newSpotPrice_);
 
         // Spot price is assumed to be the instant sell price. To avoid arbitraging LPs, we adjust the buy price upwards.
         // If spot price for buy and sell were the same, then someone could buy 1 NFT and then sell for immediate profit.
@@ -98,8 +102,8 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         @dev See {ICurve-getSellInfo}
      */
     function getSellInfo(
-        uint256 spotPrice,
-        uint256 delta,
+        uint128 spotPrice,
+        uint128 delta,
         uint256 numItems,
         uint256 feeMultiplier,
         uint256 protocolFeeMultiplier
@@ -109,7 +113,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         override
         returns (
             Error error,
-            uint256 newSpotPrice,
+            uint128 newSpotPrice,
             uint256 outputValue,
             uint256 protocolFee
         )
@@ -135,7 +139,7 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         // Thus we don't need to calculate the maximum number of items until we reach zero spot price, so we don't modify numItems
         else {
             // The new spot price is just the change between spot price and the total price change
-            newSpotPrice = spotPrice - totalPriceDecrease;
+            newSpotPrice = spotPrice - uint128(totalPriceDecrease);
         }
 
         // If we sell n items, then the total sale amount is:

@@ -72,7 +72,7 @@ abstract contract RouterRobustSwapWithAssetRecipient is
         for (uint256 i = 1; i <= numInitialNFTs; i++) {
             test721.mint(address(this), i);
         }
-        uint256 spotPrice = 1 ether;
+        uint128 spotPrice = 1 ether;
 
         uint256[] memory sellIDList1 = new uint256[](1);
         sellIDList1[0] = 1;

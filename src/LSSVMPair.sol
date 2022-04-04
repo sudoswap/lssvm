@@ -74,9 +74,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function initialize(
         address _owner,
         address payable _assetRecipient,
-        uint256 _delta,
+        uint128 _delta,
         uint256 _fee,
-        uint256 _spotPrice
+        uint128 _spotPrice
     ) external payable {
         require(owner() == address(0), "Initialized");
         __Ownable_init(_owner);
@@ -104,8 +104,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             "Invalid new spot price for curve"
         );
 
-        delta = uint128(_delta);
-        spotPrice = uint128(_spotPrice);
+        delta = _delta;
+        spotPrice = _spotPrice;
     }
 
     /**
@@ -151,7 +151,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256 protocolFee;
         {
             CurveErrorCodes.Error error;
-            uint256 newSpotPrice;
+            uint128 newSpotPrice;
             (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
                 .getBuyInfo(
                     spotPrice,
@@ -166,8 +166,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
             // Update spot price
             if (spotPrice != newSpotPrice) {
-                spotPrice = uint128(newSpotPrice);
-                emit SpotPriceUpdated(uint128(newSpotPrice));
+                spotPrice = newSpotPrice;
+                emit SpotPriceUpdated(newSpotPrice);
             }
         }
 
@@ -223,7 +223,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         uint256 protocolFee;
         {
             CurveErrorCodes.Error error;
-            uint256 newSpotPrice;
+            uint128 newSpotPrice;
             (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
                 .getBuyInfo(
                     spotPrice,
@@ -238,8 +238,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
             // Update spot price
             if (spotPrice != newSpotPrice) {
-                spotPrice = uint128(newSpotPrice);
-                emit SpotPriceUpdated(uint128(newSpotPrice));
+                spotPrice = newSpotPrice;
+                emit SpotPriceUpdated(newSpotPrice);
             }
         }
 
@@ -291,7 +291,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         // Call bonding curve for pricing information
         uint256 protocolFee;
         {
-            uint256 newSpotPrice;
+            uint128 newSpotPrice;
             CurveErrorCodes.Error error;
             (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve()
                 .getSellInfo(
@@ -307,8 +307,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
             // Update spot price
             if (spotPrice != newSpotPrice) {
-                spotPrice = uint128(newSpotPrice);
-                emit SpotPriceUpdated(uint128(newSpotPrice));
+                spotPrice = newSpotPrice;
+                emit SpotPriceUpdated(newSpotPrice);
             }
         }
 

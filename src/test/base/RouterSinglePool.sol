@@ -58,8 +58,8 @@ abstract contract RouterSinglePool is
         test721.setApprovalForAll(address(router), true);
 
         // Setup pair parameters
-        uint256 delta = 0 ether;
-        uint256 spotPrice = 1 ether;
+        uint128 delta = 0 ether;
+        uint128 spotPrice = 1 ether;
         uint256[] memory idList = new uint256[](numInitialNFTs);
         for (uint256 i = 1; i <= numInitialNFTs; i++) {
             test721.mint(address(this), i);

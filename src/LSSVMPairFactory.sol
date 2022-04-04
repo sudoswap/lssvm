@@ -95,9 +95,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ICurve _bondingCurve,
         address payable _assetRecipient,
         LSSVMPair.PoolType _poolType,
-        uint256 _delta,
+        uint128 _delta,
         uint256 _fee,
-        uint256 _spotPrice,
+        uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) external payable returns (LSSVMPairETH pair) {
         require(
@@ -157,9 +157,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ICurve bondingCurve;
         address payable assetRecipient;
         LSSVMPair.PoolType poolType;
-        uint256 delta;
+        uint128 delta;
         uint256 fee;
-        uint256 spotPrice;
+        uint128 spotPrice;
         uint256[] initialNFTIDs;
         uint256 initialTokenBalance;
     }
@@ -370,9 +370,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         LSSVMPairETH _pair,
         IERC721 _nft,
         address payable _assetRecipient,
-        uint256 _delta,
+        uint128 _delta,
         uint256 _fee,
-        uint256 _spotPrice,
+        uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs
     ) internal {
         // initialize pair
@@ -396,9 +396,9 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         ERC20 _token,
         IERC721 _nft,
         address payable _assetRecipient,
-        uint256 _delta,
+        uint128 _delta,
         uint256 _fee,
-        uint256 _spotPrice,
+        uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs,
         uint256 _initialTokenBalance
     ) internal {

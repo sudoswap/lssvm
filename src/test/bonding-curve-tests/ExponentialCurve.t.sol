@@ -10,6 +10,8 @@ import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
 import {Hevm} from "../utils/Hevm.sol";
 
 contract ExponentialCurveTest is DSTest {
+    using FixedPointMathLib for uint256;
+
     uint256 constant MIN_PRICE = 1 gwei;
 
     ExponentialCurve curve;
@@ -19,8 +21,8 @@ contract ExponentialCurveTest is DSTest {
     }
 
     function test_getBuyInfoExample() public {
-        uint256 spotPrice = 3 ether;
-        uint256 delta = 2 * FixedPointMathLib.WAD; // 2
+        uint128 spotPrice = 3 ether;
+        uint128 delta = 2 ether; // 2
         uint256 numItems = 5;
         uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
         uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
@@ -62,35 +64,52 @@ contract ExponentialCurveTest is DSTest {
 
         (
             CurveErrorCodes.Error error,
-            uint256 newSpotPrice,
+            uint128 newSpotPrice,
             uint256 inputValue,
 
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
-        assertEq(
-            uint256(error),
-            uint256(CurveErrorCodes.Error.OK),
-            "Error code not OK"
+        uint256 deltaPowN = uint256(delta).fpow(
+            numItems,
+            FixedPointMathLib.WAD
         );
+        uint256 fullWidthNewSpotPrice = uint256(spotPrice).fmul(
+            deltaPowN,
+            FixedPointMathLib.WAD
+        );
+        if (fullWidthNewSpotPrice > type(uint128).max) {
+            assertEq(
+                uint256(error),
+                uint256(CurveErrorCodes.Error.SPOT_PRICE_OVERFLOW),
+                "Error code not SPOT_PRICE_OVERFLOW"
+            );
+        } else {
+            assertEq(
+                uint256(error),
+                uint256(CurveErrorCodes.Error.OK),
+                "Error code not OK"
+            );
 
-        if (spotPrice > 0 && numItems > 0) {
-            assertTrue(
-                (newSpotPrice > spotPrice && delta > FixedPointMathLib.WAD) ||
-                    (newSpotPrice == spotPrice &&
-                        delta == FixedPointMathLib.WAD),
-                "Price update incorrect"
+            if (spotPrice > 0 && numItems > 0) {
+                assertTrue(
+                    (newSpotPrice > spotPrice &&
+                        delta > FixedPointMathLib.WAD) ||
+                        (newSpotPrice == spotPrice &&
+                            delta == FixedPointMathLib.WAD),
+                    "Price update incorrect"
+                );
+            }
+
+            assertGe(
+                inputValue,
+                numItems * uint256(spotPrice),
+                "Input value incorrect"
             );
         }
-
-        assertGe(
-            inputValue,
-            numItems * uint256(spotPrice),
-            "Input value incorrect"
-        );
     }
 
     function test_getSellInfoExample() public {
-        uint256 spotPrice = 3 ether;
-        uint256 delta = 2 * FixedPointMathLib.WAD; // 2
+        uint128 spotPrice = 3 ether;
+        uint128 delta = 2 ether; // 2
         uint256 numItems = 5;
         uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
         uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
@@ -121,7 +140,11 @@ contract ExponentialCurveTest is DSTest {
         uint128 delta,
         uint8 numItems
     ) public {
-        if (delta < FixedPointMathLib.WAD || spotPrice < MIN_PRICE || numItems == 0) {
+        if (
+            delta < FixedPointMathLib.WAD ||
+            spotPrice < MIN_PRICE ||
+            numItems == 0
+        ) {
             return;
         }
 
