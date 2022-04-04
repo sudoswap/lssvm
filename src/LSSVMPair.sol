@@ -40,16 +40,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     address payable public assetRecipient;
 
     // Events
-    event SwapWithAnyNFTs(
-        uint256 tokenAmount,
-        uint256 numNFTs,
-        bool nftsIntoPool
-    );
-    event SwapWithSpecificNFTs(
-        uint256 tokenAmount,
-        uint256[] nftIds,
-        bool nftsIntoPool
-    );
+    event SwapNFTInPair(uint256 tokenAmount, uint256 numNFTs);
+    event SwapNFTOutPair(uint256 tokenAmount, uint256 numNFTs);
     event SpotPriceUpdated(uint128 newSpotPrice);
     event TokenDeposited(uint256 amount);
     event TokenWithdrawn(uint256 amount);
@@ -87,7 +79,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
             require(_fee == 0, "Only Trade Pools can have nonzero fee");
-
             assetRecipient = _assetRecipient;
         } else if (_poolType == PoolType.TRADE) {
             require(_fee < MAX_FEE, "Trade fee must be less than 90%");
@@ -95,7 +86,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 _assetRecipient == address(0),
                 "Trade pools can't set asset recipient"
             );
-
             fee = uint96(_fee);
         }
         require(_bondingCurve.validateDelta(_delta), "Invalid delta for curve");
@@ -103,7 +93,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             _bondingCurve.validateSpotPrice(_spotPrice),
             "Invalid new spot price for curve"
         );
-
         delta = _delta;
         spotPrice = _spotPrice;
     }
@@ -183,7 +172,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapWithAnyNFTs(inputAmount, numNFTs, false);
+        emit SwapNFTOutPair(inputAmount, numNFTs);
     }
 
     /**
@@ -255,7 +244,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapWithSpecificNFTs(inputAmount, nftIds, false);
+        emit SwapNFTOutPair(inputAmount, nftIds.length);
     }
 
     /**
@@ -324,7 +313,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
 
-        emit SwapWithSpecificNFTs(outputAmount, nftIds, true);
+        emit SwapNFTInPair(outputAmount, nftIds.length);
     }
 
     /**
@@ -677,9 +666,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         trades. Only callable by the owner.
         @param newRecipient The new asset recipient
      */
-    function changeAssetRecipient(
-        address payable newRecipient
-    ) external onlyOwner {
+    function changeAssetRecipient(address payable newRecipient)
+        external
+        onlyOwner
+    {
         PoolType _poolType = poolType();
         require(_poolType != PoolType.TRADE, "Not for Trade pools");
         assetRecipient = newRecipient;

@@ -44,7 +44,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
     mapping(LSSVMRouter => RouterStatus) public override routerStatus;
 
-    event PairCreated(address poolAddress, address nft);
+    event PairCreated(address poolAddress);
     event TokenDeposit(address poolAddress);
     event NFTDeposit(address poolAddress);
     event ProtocolFeeRecipientUpdate(address recipientAddress);
@@ -132,7 +132,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             _spotPrice,
             _initialNFTIDs
         );
-        emit PairCreated(address(pair), address(_nft));
+        emit PairCreated(address(pair));
     }
 
     /**
@@ -203,7 +203,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             params.initialNFTIDs,
             params.initialTokenBalance
         );
-        emit PairCreated(address(pair), address(params.nft));
+        emit PairCreated(address(pair));
     }
 
     /**
@@ -272,12 +272,13 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     /**
         @notice Withdraws ERC20 tokens to the protocol fee recipient. Only callable by the owner.
         @param token The token to transfer
+        @param amount The amount of tokens to transfer
      */
-    function withdrawERC20ProtocolFees(ERC20 token) external onlyOwner {
-        token.safeTransfer(
-            protocolFeeRecipient,
-            token.balanceOf(address(this))
-        );
+    function withdrawERC20ProtocolFees(ERC20 token, uint256 amount)
+        external
+        onlyOwner
+    {
+        token.safeTransfer(protocolFeeRecipient, amount);
     }
 
     /**

@@ -86,7 +86,10 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function withdrawProtocolFees(LSSVMPairFactory factory) public override {
-        factory.withdrawERC20ProtocolFees(test20);
+        factory.withdrawERC20ProtocolFees(
+            test20,
+            test20.balanceOf(address(factory))
+        );
     }
 
     function swapTokenForAnyNFTs(
