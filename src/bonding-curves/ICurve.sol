@@ -6,8 +6,8 @@ import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 interface ICurve {
     /**
         @notice Validates if a delta value is valid for the curve. The criteria for
-        validity is can be different for each type of curve, for instance ExponentialCurve
-        requires delta to be at least 1.
+        validity can be different for each type of curve, for instance ExponentialCurve
+        requires delta to be greater than 1.
         @param delta The delta value to be validated
         @return valid True if delta is valid, false otherwise
      */

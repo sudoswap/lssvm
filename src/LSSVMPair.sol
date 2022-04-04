@@ -56,8 +56,11 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     event DeltaUpdated(uint128 newDelta);
     event FeeUpdated(uint96 newFee);
 
+    // Parameterized Errors
+    error BondingCurveError(CurveErrorCodes.Error error);
+
     /**
-      @notice Called during pool creation to set initial parameters
+      @notice Called during pair creation to set initial parameters
       @dev Only called once by factory to initialize.
       We verify this by making sure that the current owner is address(0). 
       The Ownable library we use disallows setting the owner to be address(0), so this condition
@@ -65,6 +68,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
       @param _owner The owner of the pair
       @param _assetRecipient The address that will receive the TOKEN or NFT sent to this pair during swaps. NOTE: If set to address(0), they will go to the pair itself.
       @param _delta The initial delta of the bonding curve
+      @param _fee The initial % fee taken, if this is a trade pair 
       @param _spotPrice The initial price to sell an asset into the pair
      */
     function initialize(
@@ -156,7 +160,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                     fee,
                     _factory.protocolFeeMultiplier()
                 );
-            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+            if (error != CurveErrorCodes.Error.OK) {
+                revert BondingCurveError(error);
+            }
 
             // Update spot price
             if (spotPrice != newSpotPrice) {
@@ -210,11 +216,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
-            require(
-                (nftIds.length > 0) &&
-                    (nftIds.length <= _nft.balanceOf(address(this))),
-                "Must ask for > 0 and <= balanceOf NFTs"
-            );
+            require((nftIds.length > 0), "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
@@ -230,7 +232,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                     fee,
                     _factory.protocolFeeMultiplier()
                 );
-            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+            if (error != CurveErrorCodes.Error.OK) {
+                revert BondingCurveError(error);
+            }
 
             // Update spot price
             if (spotPrice != newSpotPrice) {
@@ -297,7 +301,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                     fee,
                     factory().protocolFeeMultiplier()
                 );
-            require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
+            if (error != CurveErrorCodes.Error.OK) {
+                revert BondingCurveError(error);
+            }
 
             // Update spot price
             if (spotPrice != newSpotPrice) {
