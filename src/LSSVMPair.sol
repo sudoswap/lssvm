@@ -22,9 +22,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
     uint256 internal constant MAX_FEE = 0.90e18;
 
-    // NOTE: We use uint128 here to pack spot price and delta into one storage slot, but 
+    // NOTE: We use uint128 here to pack spot price and delta into one storage slot, but
     // treat them as uint256 during math calculations. LPs should be aware of potential
-    // overflow when setting very large spot price and/or delta. 
+    // overflow when setting very large spot price and/or delta.
 
     // The current price of the NFT
     uint128 public spotPrice;
@@ -85,8 +85,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(_fee == 0, "Only Trade Pools can have nonzero fee");
 
             assetRecipient = _assetRecipient;
-        }
-        if (_poolType == PoolType.TRADE) {
+        } else if (_poolType == PoolType.TRADE) {
             require(_fee < MAX_FEE, "Trade fee must be less than 90%");
             require(
                 _assetRecipient == address(0),
@@ -126,7 +125,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -160,8 +159,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = uint128(newSpotPrice);
-            emit SpotPriceUpdated(uint128(newSpotPrice));
+            if (spotPrice != newSpotPrice) {
+                spotPrice = uint128(newSpotPrice);
+                emit SpotPriceUpdated(uint128(newSpotPrice));
+            }
         }
 
         _pullTokenInputAndPayProtocolFee(
@@ -197,7 +198,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external payable virtual returns (uint256 inputAmount) {
+    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         LSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -232,8 +233,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = uint128(newSpotPrice);
-            emit SpotPriceUpdated(uint128(newSpotPrice));
+            if (spotPrice != newSpotPrice) {
+                spotPrice = uint128(newSpotPrice);
+                emit SpotPriceUpdated(uint128(newSpotPrice));
+            }
         }
 
         _pullTokenInputAndPayProtocolFee(
@@ -270,7 +273,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         address payable tokenRecipient,
         bool isRouter,
         address routerCaller
-    ) nonReentrant external virtual returns (uint256 outputAmount) {
+    ) external virtual nonReentrant returns (uint256 outputAmount) {
         // Input validation
         {
             PoolType _poolType = poolType();
@@ -297,8 +300,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
             // Update spot price
-            spotPrice = uint128(newSpotPrice);
-            emit SpotPriceUpdated(uint128(newSpotPrice));
+            if (spotPrice != newSpotPrice) {
+                spotPrice = uint128(newSpotPrice);
+                emit SpotPriceUpdated(uint128(newSpotPrice));
+            }
         }
 
         // Pricing-dependent validation
@@ -485,9 +490,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory from the pair
      */
-    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
-        internal
-        virtual;
+    function _payProtocolFeeFromPair(
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
+    ) internal virtual;
 
     /**
         @notice Sends tokens to a recipient
@@ -622,8 +628,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             _bondingCurve.validateSpotPrice(newSpotPrice),
             "Invalid new spot price for curve"
         );
-        spotPrice = newSpotPrice;
-        emit SpotPriceUpdated(newSpotPrice);
+        if (spotPrice != newSpotPrice) {
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdated(newSpotPrice);
+        }
     }
 
     /**
@@ -636,8 +644,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             _bondingCurve.validateDelta(newDelta),
             "Invalid delta for curve"
         );
-        delta = newDelta;
-        emit DeltaUpdated(newDelta);
+        if (delta != newDelta) {
+            delta = newDelta;
+            emit DeltaUpdated(newDelta);
+        }
     }
 
     /**
@@ -650,8 +660,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         PoolType _poolType = poolType();
         require(_poolType == PoolType.TRADE, "Only for Trade pools");
         require(newFee < MAX_FEE, "Trade fee must be less than 90%");
-        fee = newFee;
-        emit FeeUpdated(newFee);
+        if (fee != newFee) {
+            fee = newFee;
+            emit FeeUpdated(newFee);
+        }
     }
 
     /**
@@ -660,7 +672,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @param newRecipient The new asset recipient
      */
     function changeAssetRecipient(
-        address payable newRecipient //Red
+        address payable newRecipient
     ) external onlyOwner {
         PoolType _poolType = poolType();
         require(_poolType != PoolType.TRADE, "Not for Trade pools");
@@ -682,11 +694,4 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         (bool result, ) = target.call{value: 0}(data);
         require(result, "Call failed");
     }
-
-    /**
-        Including these decreases the gas cost of the swap functions.
-     */
-    uint256 public unlockTime;
-
-    function lockPool(uint256) external {}
 }

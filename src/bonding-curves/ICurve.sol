@@ -11,7 +11,7 @@ interface ICurve {
         @param delta The delta value to be validated
         @return valid True if delta is valid, false otherwise
      */
-    function validateDelta(uint256 delta) external pure returns (bool valid);
+    function validateDelta(uint256 delta) external view returns (bool valid);
 
     /**
         @notice Validates if a new spot price is valid for the curve.
@@ -20,7 +20,7 @@ interface ICurve {
      */
     function validateSpotPrice(uint256 newSpotPrice)
         external
-        pure
+        view
         returns (bool valid);
 
     /**
@@ -44,7 +44,7 @@ interface ICurve {
         uint256 protocolFeeMultiplier
     )
         external
-        pure
+        view
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
@@ -73,7 +73,7 @@ interface ICurve {
         uint256 protocolFeeMultiplier
     )
         external
-        pure
+        view
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,

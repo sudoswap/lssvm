@@ -122,42 +122,30 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         // We first calculate the change in spot price after selling all of the items
         uint256 totalPriceDecrease = delta * numItems;
 
-        // If the current spot price is less than the total amount that the spot price changes...
+        // If the current spot price is less than the total amount that the spot price should change by...
         if (spotPrice < totalPriceDecrease) {
             // Then we set the new spot price to be 0. (Spot price is never negative)
             newSpotPrice = 0;
 
             // We calculate how many items we can sell into the linear curve until the spot price reaches 0, rounding up
-            // See below for how this is handled
             uint256 numItemsTillZeroPrice = spotPrice / delta + 1;
-
-            // If we sell numItemsTillZeroPrice items, then the total sale amount is:
-            // (spot price) + (spot price - 1*delta) + (spot price - 2*delta) + ... + (spot price - (numItemsTillZeroPrice-1)*delta)
-            // This is equal to numItemsTillZeroPrice*spotPrice - (delta)*(numItemsTillZeroPrice*(numItemsTillZeroPrice-1))/2
-            // To those worried about edge cases, notice that:
-            // If spot price is less than delta, then we will only sell 1 item, so we charge spotPrice + (delta)*(numItemsTillZeroPrice*(numItemsTillZeroPrice-1))/2 = spotPrice
-            // If spot price is greater than delta, then we will sell at least 2 items, so we charge spot price for each item. Then we subtract delta (cumulatively) for each item past the first.
-            outputValue =
-                numItemsTillZeroPrice *
-                spotPrice -
-                (numItemsTillZeroPrice * (numItemsTillZeroPrice - 1) * delta) /
-                2;
-        } else {
-            // Otherwise, the current spot price is greater than or equal to the total amount that the spot price changes
-            // Thus we don't need to calculate the maximum number of items until we reach zero spot price
-
+            numItems = numItemsTillZeroPrice;
+        }
+        // Otherwise, the current spot price is greater than or equal to the total amount that the spot price changes
+        // Thus we don't need to calculate the maximum number of items until we reach zero spot price, so we don't modify numItems
+        else {
             // The new spot price is just the change between spot price and the total price change
             newSpotPrice = spotPrice - totalPriceDecrease;
-
-            // If we sell n items, then the total sale amount is:
-            // (spot price) + (spot price - 1*delta) + (spot price - 2*delta) + ... + (spot price - (n-1)*delta)
-            // This is equal to n*(spot price) - (delta)*(n*(n-1))/2
-            outputValue =
-                numItems *
-                spotPrice -
-                (numItems * (numItems - 1) * delta) /
-                2;
         }
+
+        // If we sell n items, then the total sale amount is:
+        // (spot price) + (spot price - 1*delta) + (spot price - 2*delta) + ... + (spot price - (n-1)*delta)
+        // This is equal to n*(spot price) - (delta)*(n*(n-1))/2
+        outputValue =
+            numItems *
+            spotPrice -
+            (numItems * (numItems - 1) * delta) /
+            2;
 
         // Account for the protocol fee, a flat percentage of the sell amount
         protocolFee = outputValue.fmul(

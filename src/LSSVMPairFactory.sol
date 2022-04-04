@@ -45,6 +45,13 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     mapping(LSSVMRouter => RouterStatus) public override routerStatus;
 
     event PairCreated(address poolAddress, address nft);
+    event TokenDeposit(address poolAddress);
+    event NFTDeposit(address poolAddress);
+    event ProtocolFeeRecipientUpdate(address recipientAddress);
+    event ProtocolFeeMultiplierUpdate(uint256 newMultiplier);
+    event BondingCurveStatusUpdate(ICurve bondingCurve, bool isAllowed);
+    event CallTargetStatusUpdate(address target, bool isAllowed);
+    event RouterStatusUpdate(LSSVMRouter router, bool isAllowed);
 
     constructor(
         LSSVMPairETH _enumerableETHTemplate,
@@ -227,7 +234,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         @return True if the address is the specified pair variant, false otherwise
      */
     function isPair(address potentialPair, PairVariant variant)
-        external
+        public
         view
         override
         returns (bool)
@@ -304,6 +311,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     {
         require(_protocolFeeRecipient != address(0), "0 address");
         protocolFeeRecipient = _protocolFeeRecipient;
+        emit ProtocolFeeRecipientUpdate(_protocolFeeRecipient);
     }
 
     /**
@@ -316,6 +324,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     {
         require(_protocolFeeMultiplier <= MAX_PROTOCOL_FEE, "Fee too large");
         protocolFeeMultiplier = _protocolFeeMultiplier;
+        emit ProtocolFeeMultiplierUpdate(_protocolFeeMultiplier);
     }
 
     /**
@@ -328,6 +337,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         onlyOwner
     {
         bondingCurveAllowed[bondingCurve] = isAllowed;
+        emit BondingCurveStatusUpdate(bondingCurve, isAllowed);
     }
 
     /**
@@ -340,7 +350,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         external
         onlyOwner
     {
-        // ensure target is not a router
+        // ensure target is not / was not ever a router
         if (isAllowed) {
             require(
                 !routerStatus[LSSVMRouter(target)].wasEverAllowed,
@@ -349,6 +359,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         }
 
         callAllowed[target] = isAllowed;
+        emit CallTargetStatusUpdate(target, isAllowed);
     }
 
     /**
@@ -368,6 +379,8 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
             allowed: isAllowed,
             wasEverAllowed: true
         });
+
+        emit RouterStatusUpdate(_router, isAllowed);
     }
 
     /**
@@ -431,7 +444,7 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
     }
 
     /** 
-      @dev Used to deposit NFTs into a pair after creation
+      @dev Used to deposit NFTs into a pair after creation and emit an event for indexing (if recipient is indeed a pair)
     */
     function depositNFTs(
         IERC721 _nft,
@@ -441,6 +454,33 @@ contract LSSVMPairFactory is Ownable, LSSVMPairFactoryLike {
         // transfer initial NFTs from caller to recipient
         for (uint256 i = 0; i < ids.length; i++) {
             _nft.safeTransferFrom(msg.sender, recipient, ids[i]);
+        }
+        if (
+            isPair(recipient, PairVariant.ENUMERABLE_ERC20) ||
+            isPair(recipient, PairVariant.ENUMERABLE_ETH) ||
+            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ERC20) ||
+            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ETH)
+        ) {
+            emit NFTDeposit(recipient);
+        }
+    }
+
+    /**
+      @dev Used to deposit ERC20s into a pair after creation and emit an event for indexing (if recipient is indeed a pair)
+     */
+    function depositERC20(
+        ERC20 token,
+        address recipient,
+        uint256 amount
+    ) external {
+        token.safeTransferFrom(msg.sender, recipient, amount);
+        if (
+            isPair(recipient, PairVariant.ENUMERABLE_ERC20) ||
+            isPair(recipient, PairVariant.ENUMERABLE_ETH) ||
+            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ERC20) ||
+            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ETH)
+        ) {
+            emit TokenDeposit(recipient);
         }
     }
 }

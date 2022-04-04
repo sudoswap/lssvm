@@ -38,7 +38,10 @@ abstract contract LSSVMPairETH is LSSVMPair {
             if (protocolFee > address(this).balance) {
                 protocolFee = address(this).balance;
             }
-            payable(address(_factory)).safeTransferETH(protocolFee);
+
+            if (protocolFee > 0) {
+                payable(address(_factory)).safeTransferETH(protocolFee);
+            }
         }
     }
 
@@ -51,17 +54,20 @@ abstract contract LSSVMPairETH is LSSVMPair {
     }
 
     /// @inheritdoc LSSVMPair
-    function _payProtocolFeeFromPair(LSSVMPairFactoryLike _factory, uint256 protocolFee)
-        internal
-        override
-    {
+    function _payProtocolFeeFromPair(
+        LSSVMPairFactoryLike _factory,
+        uint256 protocolFee
+    ) internal override {
         // Take protocol fee
         if (protocolFee > 0) {
             // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
             if (protocolFee > address(this).balance) {
                 protocolFee = address(this).balance;
             }
-            payable(address(_factory)).safeTransferETH(protocolFee);
+
+            if (protocolFee > 0) {
+                payable(address(_factory)).safeTransferETH(protocolFee);
+            }
         }
     }
 
@@ -125,7 +131,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
      */
     fallback() external payable {
         // Only allow calls without function selector
-        require (msg.data.length == _immutableParamsLength()); 
+        require(msg.data.length == _immutableParamsLength());
         emit TokenDeposited(msg.value);
     }
 }
