@@ -148,6 +148,24 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         assertEq(pair.fee(), 0.2 ether);
     }
 
+    function test_multicallModifyPairParams() public {
+        bytes[] memory calls = new bytes[](3);
+        calls[0] = abi.encodeCall(pair.changeSpotPrice, (1 ether));
+        calls[1] = abi.encodeCall(pair.changeDelta, (2 ether));
+        calls[2] = abi.encodeCall(pair.changeFee, (0.3 ether));
+        pair.multicall(calls, true);
+        assertEq(pair.spotPrice(), 1 ether);
+        assertEq(pair.delta(), 2 ether);
+        assertEq(pair.fee(), 0.3 ether);
+    }
+
+    function testFail_multicallChangeOwnership() public {
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeCall(pair.transferOwnership, (address(69)));
+        calls[1] = abi.encodeCall(pair.changeDelta, (2 ether));
+        pair.multicall(calls, true);
+    }
+
     function test_getAllHeldNFTs() public {
         uint256[] memory allIds = pair.getAllHeldIds();
         for (uint256 i = 0; i < allIds.length; ++i) {
