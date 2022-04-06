@@ -259,7 +259,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _payProtocolFeeFromPair(_factory, protocolFee);
 
-        _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
+        _takeNFTsFromSender(nft(), nftIds, _factory, isRouter, routerCaller);
 
         emit SwapNFTInPair(outputAmount, nftIds.length);
     }
@@ -563,6 +563,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     function _takeNFTsFromSender(
         IERC721 _nft,
         uint256[] calldata nftIds,
+        ILSSVMPairFactoryLike _factory,
         bool isRouter,
         address routerCaller
     ) internal virtual {
@@ -573,7 +574,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             if (isRouter) {
                 // Verify if router is allowed
                 LSSVMRouter router = LSSVMRouter(payable(msg.sender));
-                (bool routerAllowed, ) = factory().routerStatus(router);
+                (bool routerAllowed, ) = _factory.routerStatus(router);
                 require(routerAllowed, "Not router");
 
                 // Call router to pull NFTs
