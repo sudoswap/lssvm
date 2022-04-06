@@ -122,6 +122,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         bool isRouter,
         address routerCaller
     ) external payable virtual nonReentrant returns (uint256 inputAmount) {
+        // Store locally to remove extra calls
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
@@ -141,27 +142,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        {
-            CurveErrorCodes.Error error;
-            uint128 newSpotPrice;
-            (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
-                .getBuyInfo(
-                    spotPrice,
-                    delta,
-                    numNFTs,
-                    fee,
-                    _factory.protocolFeeMultiplier()
-                );
-            if (error != CurveErrorCodes.Error.OK) {
-                revert BondingCurveError(error);
-            }
-
-            // Update spot price
-            if (spotPrice != newSpotPrice) {
-                spotPrice = newSpotPrice;
-                emit SpotPriceUpdate(newSpotPrice);
-            }
-        }
+        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(numNFTs, _bondingCurve, _factory);
 
         _pullTokenInputAndPayProtocolFee(
             inputAmount,
@@ -197,9 +178,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         bool isRouter,
         address routerCaller
     ) external payable virtual nonReentrant returns (uint256 inputAmount) {
+        // Store locally to remove extra calls
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
-        IERC721 _nft = nft();
 
         // Input validation
         {
@@ -213,27 +194,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        {
-            CurveErrorCodes.Error error;
-            uint128 newSpotPrice;
-            (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
-                .getBuyInfo(
-                    spotPrice,
-                    delta,
-                    nftIds.length,
-                    fee,
-                    _factory.protocolFeeMultiplier()
-                );
-            if (error != CurveErrorCodes.Error.OK) {
-                revert BondingCurveError(error);
-            }
-
-            // Update spot price
-            if (spotPrice != newSpotPrice) {
-                spotPrice = newSpotPrice;
-                emit SpotPriceUpdate(newSpotPrice);
-            }
-        }
+        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(nftIds.length, _bondingCurve, _factory);
 
         _pullTokenInputAndPayProtocolFee(
             inputAmount,
@@ -243,7 +204,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             protocolFee
         );
 
-        _sendSpecificNFTsToRecipient(_nft, nftRecipient, nftIds);
+        _sendSpecificNFTsToRecipient(nft(), nftRecipient, nftIds);
 
         _refundTokenToSender(inputAmount);
 
@@ -270,6 +231,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         bool isRouter,
         address routerCaller
     ) external virtual nonReentrant returns (uint256 outputAmount) {
+        // Store locally to remove extra calls
+        ILSSVMPairFactoryLike _factory = factory();
+        ICurve _bondingCurve = bondingCurve();
+
         // Input validation
         {
             PoolType _poolType = poolType();
@@ -282,27 +247,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        {
-            uint128 newSpotPrice;
-            CurveErrorCodes.Error error;
-            (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve()
-                .getSellInfo(
-                    spotPrice,
-                    delta,
-                    nftIds.length,
-                    fee,
-                    factory().protocolFeeMultiplier()
-                );
-            if (error != CurveErrorCodes.Error.OK) {
-                revert BondingCurveError(error);
-            }
-
-            // Update spot price
-            if (spotPrice != newSpotPrice) {
-                spotPrice = newSpotPrice;
-                emit SpotPriceUpdate(newSpotPrice);
-            }
-        }
+        (protocolFee, outputAmount) = _calculateSellInfoAndUpdatePoolParams(nftIds.length, _bondingCurve, _factory);
 
         // Pricing-dependent validation
         require(
@@ -312,7 +257,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payProtocolFeeFromPair(factory(), protocolFee);
+        _payProtocolFeeFromPair(_factory, protocolFee);
 
         _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
 
@@ -461,6 +406,80 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
      * Internal functions
      */
+
+    /**
+        @notice Calculates the amount needed to be sent into the pair for a buy and adjusts spot price or delta if necessary
+        @param numNFTs The amount of NFTs to purchase from the pair
+        @param protocolFee The percentage of protocol fee to be taken, as a percentage
+        @return protocolFee The amount of tokens to send as protocol fee
+        @return inputAmount The amount of tokens total tokens receive
+     */
+    function _calculateBuyInfoAndUpdatePoolParams(
+        uint256 numNFTs,
+        ICurve _bondingCurve,
+        ILSSVMPairFactoryLike _factory
+    ) internal returns (uint256 protocolFee, uint256 inputAmount) {
+        CurveErrorCodes.Error error;
+        // Store spotPrice locally to reduce 1 SLOAD
+        uint128 currentSpotPrice = spotPrice;
+        uint128 newSpotPrice;
+        (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
+            .getBuyInfo(
+                currentSpotPrice,
+                delta,
+                numNFTs,
+                fee,
+                _factory.protocolFeeMultiplier()
+            );
+
+        // Revert if bonding curve had an error
+        if (error != CurveErrorCodes.Error.OK) {
+            revert BondingCurveError(error);
+        }
+
+        // Update spot price if it has been updated
+        if (currentSpotPrice != newSpotPrice) {
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdate(newSpotPrice);
+        }
+    }
+
+    /**
+        @notice Calculates the amount needed to be sent by the pair for a sell and adjusts spot price or delta if necessary
+        @param numNFTs The amount of NFTs to send to the the pair
+        @param protocolFee The percentage of protocol fee to be taken, as a percentage
+        @return protocolFee The amount of tokens to send as protocol fee
+        @return outputAmount The amount of tokens total tokens receive
+     */
+    function _calculateSellInfoAndUpdatePoolParams(
+        uint256 numNFTs,
+        ICurve _bondingCurve,
+        ILSSVMPairFactoryLike _factory
+    ) internal returns (uint256 protocolFee, uint256 outputAmount) {
+        CurveErrorCodes.Error error;
+        // Store spotPrice locally to reduce 1 SLOAD
+        uint128 currentSpotPrice = spotPrice;
+        uint128 newSpotPrice;
+        (error, newSpotPrice, outputAmount, protocolFee) = _bondingCurve
+            .getSellInfo(
+                currentSpotPrice,
+                delta,
+                numNFTs,
+                fee,
+                _factory.protocolFeeMultiplier()
+            );
+
+        // Revert if bonding curve had an error
+        if (error != CurveErrorCodes.Error.OK) {
+            revert BondingCurveError(error);
+        }
+
+        // Update spot price if it has been updated
+        if (currentSpotPrice != newSpotPrice) {
+            spotPrice = newSpotPrice;
+            emit SpotPriceUpdate(newSpotPrice);
+        }
+    }
 
     /**
         @notice Pulls the token input of a trade from the trader and pays the protocol fee.
@@ -708,7 +727,9 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         onlyOwner
     {
         for (uint256 i = 0; i < calls.length; i++) {
-            (bool success, bytes memory result) = address(this).delegatecall(calls[i]);
+            (bool success, bytes memory result) = address(this).delegatecall(
+                calls[i]
+            );
             if (!success && revertOnFail) {
                 revert(_getRevertMsg(result));
             }
