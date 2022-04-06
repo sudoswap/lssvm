@@ -138,7 +138,7 @@ abstract contract RouterRobustSwap is
     }
 
     // Test where pair 1 and pair 2 swap tokens for NFT succeed but pair 3 fails
-    function test_robustSwapTokenForAnyNFTs() public {
+    function test_robustSwapTokenForAny2NFTs() public {
         LSSVMRouter.RobustPairSwapAny[]
             memory swapList = new LSSVMRouter.RobustPairSwapAny[](3);
         swapList[0] = LSSVMRouter.RobustPairSwapAny({
@@ -183,7 +183,7 @@ abstract contract RouterRobustSwap is
     }
 
     // Test where pair 1 and pair 2 swap tokens for NFT succeed but pair 3 fails
-    function test_robustSwapTokenForSpecificNFTs() public {
+    function test_robustSwapTokenFor2SpecificNFTs() public {
         uint256[] memory nftIds1 = new uint256[](2);
         nftIds1[0] = 0;
         nftIds1[1] = 1;
@@ -249,7 +249,7 @@ abstract contract RouterRobustSwap is
     }
 
     // Test where selling to pair 2 and pair 3 succeeds, but selling to pair 1 fails
-    function test_robustSwapNFTsForToken() public {
+    function test_robustSwap2NFTsForToken() public {
         uint256[] memory nftIds1 = new uint256[](2);
         nftIds1[0] = 30;
         nftIds1[1] = 31;
