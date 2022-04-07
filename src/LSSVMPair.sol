@@ -25,7 +25,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
     // The current price of the NFT
     // @dev This is generally used to mean the immediate sell price for the next marginal NFT.
-    // However, this should NOT be assumed! Use getBuyNFTQuote and getSellNFTQuote for accurate pricing info.
+    // However, this should NOT be assumed, as future bonding curves may use spotPrice in different ways.
+    // Use getBuyNFTQuote and getSellNFTQuote for accurate pricing info.
     uint128 public spotPrice;
 
     // The parameter for the pair's bonding curve.
@@ -450,9 +451,6 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
         CurveErrorCodes.Error error;
-        // Store spotPrice/delta locally to reduce 1 SLOAD
-        uint128 currentSpotPrice = spotPrice;
-        uint128 currentDelta = delta;
         uint128 newSpotPrice;
         uint128 newDelta;
         (
@@ -462,7 +460,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             inputAmount,
             protocolFee
         ) = _bondingCurve.getBuyInfo(
-            currentSpotPrice,
+            spotPrice,
             delta,
             numNFTs,
             fee,
@@ -478,13 +476,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         require(inputAmount <= maxExpectedTokenInput, "In too many tokens");
 
         // Update spot price if it has been updated
-        if (currentSpotPrice != newSpotPrice) {
+        if (spotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
         }
 
         // Update delta if it has been updated
-        if (currentDelta != newDelta) {
+        if (delta != newDelta) {
             delta = newDelta;
             emit DeltaUpdate(newDelta);
         }
@@ -506,14 +504,11 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
         CurveErrorCodes.Error error;
-        // Store spotPrice/delta locally to reduce 1 SLOAD
-        uint128 currentSpotPrice = spotPrice;
-        uint128 currentDelta = delta;
         uint128 newSpotPrice;
         uint128 newDelta;
         (error, newSpotPrice, newDelta, outputAmount, protocolFee) = _bondingCurve
             .getSellInfo(
-                currentSpotPrice,
+                spotPrice,
                 delta,
                 numNFTs,
                 fee,
@@ -532,13 +527,13 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         );
 
         // Update spot price if it has been updated
-        if (currentSpotPrice != newSpotPrice) {
+        if (spotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
         }
 
         // Update delta if it has been updated
-        if (currentDelta != newDelta) {
+        if (delta != newDelta) {
             delta = newDelta;
             emit DeltaUpdate(newDelta);
         }
@@ -805,6 +800,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         );
     }
 
+    /**
+      @param _returnData The data returned from a multicall result
+      @dev Used to grab the revert string from the underlying call
+     */
     function _getRevertMsg(bytes memory _returnData)
         internal
         pure
