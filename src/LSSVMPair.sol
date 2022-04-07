@@ -451,9 +451,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
         CurveErrorCodes.Error error;
-        // Save on 1 SLOAD by caching current spot price locally
+        // Save on 2 SLOADs by caching
         uint128 currentSpotPrice = spotPrice;
         uint128 newSpotPrice;
+        uint128 currentDelta = delta;
         uint128 newDelta;
         (
             error,
@@ -463,7 +464,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             protocolFee
         ) = _bondingCurve.getBuyInfo(
             currentSpotPrice,
-            delta,
+            currentDelta,
             numNFTs,
             fee,
             _factory.protocolFeeMultiplier()
@@ -484,7 +485,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
 
         // Update delta if it has been updated
-        if (delta != newDelta) {
+        if (currentDelta != newDelta) {
             delta = newDelta;
             emit DeltaUpdate(newDelta);
         }
@@ -506,9 +507,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
         CurveErrorCodes.Error error;
-        // Save on 1 SLOAD by caching current spot price locally
+        // Save on 2 SLOADs by caching
         uint128 currentSpotPrice = spotPrice;
         uint128 newSpotPrice;
+        uint128 currentDelta = delta;
         uint128 newDelta;
         (
             error,
@@ -518,7 +520,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             protocolFee
         ) = _bondingCurve.getSellInfo(
             currentSpotPrice,
-            delta,
+            currentDelta,
             numNFTs,
             fee,
             _factory.protocolFeeMultiplier()
@@ -542,7 +544,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         }
 
         // Update delta if it has been updated
-        if (delta != newDelta) {
+        if (currentDelta != newDelta) {
             delta = newDelta;
             emit DeltaUpdate(newDelta);
         }
