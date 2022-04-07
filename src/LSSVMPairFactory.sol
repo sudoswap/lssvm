@@ -453,7 +453,7 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
     }
 
     /**
-      @dev Used to deposit ERC20s into a pair after creation and emit an event for indexing (if recipient is indeed a pair)
+      @dev Used to deposit ERC20s into a pair after creation and emit an event for indexing (if recipient is indeed an ERC20 pair and the token matches)
      */
     function depositERC20(
         ERC20 token,
@@ -463,11 +463,11 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         token.safeTransferFrom(msg.sender, recipient, amount);
         if (
             isPair(recipient, PairVariant.ENUMERABLE_ERC20) ||
-            isPair(recipient, PairVariant.ENUMERABLE_ETH) ||
-            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ERC20) ||
-            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ETH)
+            isPair(recipient, PairVariant.MISSING_ENUMERABLE_ERC20)
         ) {
-            emit TokenDeposit(recipient);
+            if (token == LSSVMPairERC20(recipient).token()) {
+                emit TokenDeposit(recipient);
+            }
         }
     }
 }

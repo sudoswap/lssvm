@@ -20,10 +20,14 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
     ) internal override {
         // Send NFTs to recipient
         // (we know NFT implements IERC721Enumerable so we just iterate)
-        for (uint256 i = 0; i < numNFTs; i++) {
-            uint256 nftId = IERC721Enumerable(address(_nft))
-                .tokenOfOwnerByIndex(address(this), 0);
-            _nft.safeTransferFrom(address(this), nftRecipient, nftId);
+        unchecked {
+            uint256 lastId = _nft.balanceOf(address(this)) - 1;
+            for (uint256 i = 0; i < numNFTs; i++) {
+                uint256 nftId = IERC721Enumerable(address(_nft))
+                    .tokenOfOwnerByIndex(address(this), lastId);
+                _nft.safeTransferFrom(address(this), nftRecipient, nftId);
+                lastId--;
+            }
         }
     }
 

@@ -645,22 +645,37 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 require(routerAllowed, "Not router");
 
                 // Call router to pull NFTs
-                uint256 tokenId;
-                unchecked {
-                    for (uint256 i = 0; i < numNFTs; i++) {
-                        tokenId = nftIds[i];
-                        router.pairTransferNFTFrom(
-                            _nft,
-                            routerCaller,
-                            _assetRecipient,
-                            tokenId,
-                            pairVariant()
-                        );
+                // If more than 1 NFT is being transfered, we can do a balance check instead of an ownership check, as pools are indifferent between NFTs from the same collection
+                if (numNFTs > 1) {
+                    unchecked {
+                        uint256 beforeBalance = _nft.balanceOf(_assetRecipient);
+                        for (uint256 i = 0; i < numNFTs; i++) {
+                            router.pairTransferNFTFrom(
+                                _nft,
+                                routerCaller,
+                                _assetRecipient,
+                                nftIds[i],
+                                pairVariant()
+                            );
+                        }
                         require(
-                            _nft.ownerOf(tokenId) == _assetRecipient,
-                            "NFT not transferred"
+                            (_nft.balanceOf(_assetRecipient) - beforeBalance) ==
+                                numNFTs,
+                            "NFTs not transferred"
                         );
                     }
+                } else {
+                    router.pairTransferNFTFrom(
+                        _nft,
+                        routerCaller,
+                        _assetRecipient,
+                        nftIds[0],
+                        pairVariant()
+                    );
+                    require(
+                        _nft.ownerOf(nftIds[0]) == _assetRecipient,
+                        "NFT not transferred"
+                    );
                 }
             } else {
                 // Pull NFTs directly from sender
