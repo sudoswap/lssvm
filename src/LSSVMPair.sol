@@ -109,6 +109,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         @dev To compute the amount of token to send, call bondingCurve.getBuyInfo.
         This swap function is meant for users who are ID agnostic
         @param numNFTs The number of NFTs to purchase
+        @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
+        amount is greater than this value, the transaction will be reverted.
         @param nftRecipient The recipient of the NFTs
         @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
         ETH pairs.
@@ -118,6 +120,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
      */
     function swapTokenForAnyNFTs(
         uint256 numNFTs,
+        uint256 maxExpectedTokenInput,
         address nftRecipient,
         bool isRouter,
         address routerCaller
@@ -142,7 +145,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(numNFTs, _bondingCurve, _factory);
+        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(
+            numNFTs,
+            maxExpectedTokenInput,
+            _bondingCurve,
+            _factory
+        );
 
         _pullTokenInputAndPayProtocolFee(
             inputAmount,
@@ -165,6 +173,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         This swap is meant for users who want specific IDs. Also higher chance of
         reverting if some of the specified IDs leave the pool before the swap goes through.
         @param nftIds The list of IDs of the NFTs to purchase
+        @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
+        amount is greater than this value, the transaction will be reverted.
         @param nftRecipient The recipient of the NFTs
         @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
         ETH pairs.
@@ -174,6 +184,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
      */
     function swapTokenForSpecificNFTs(
         uint256[] calldata nftIds,
+        uint256 maxExpectedTokenInput,
         address nftRecipient,
         bool isRouter,
         address routerCaller
@@ -194,7 +205,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(nftIds.length, _bondingCurve, _factory);
+        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(
+            nftIds.length,
+            maxExpectedTokenInput,
+            _bondingCurve,
+            _factory
+        );
 
         _pullTokenInputAndPayProtocolFee(
             inputAmount,
@@ -247,12 +263,11 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        (protocolFee, outputAmount) = _calculateSellInfoAndUpdatePoolParams(nftIds.length, _bondingCurve, _factory);
-
-        // Pricing-dependent validation
-        require(
-            outputAmount >= minExpectedTokenOutput,
-            "Out too little tokens"
+        (protocolFee, outputAmount) = _calculateSellInfoAndUpdatePoolParams(
+            nftIds.length,
+            minExpectedTokenOutput,
+            _bondingCurve,
+            _factory
         );
 
         _sendTokenOutput(tokenRecipient, outputAmount);
@@ -410,12 +425,15 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Calculates the amount needed to be sent into the pair for a buy and adjusts spot price or delta if necessary
         @param numNFTs The amount of NFTs to purchase from the pair
+        @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
+        amount is greater than this value, the transaction will be reverted.
         @param protocolFee The percentage of protocol fee to be taken, as a percentage
         @return protocolFee The amount of tokens to send as protocol fee
         @return inputAmount The amount of tokens total tokens receive
      */
     function _calculateBuyInfoAndUpdatePoolParams(
         uint256 numNFTs,
+        uint256 maxExpectedTokenInput,
         ICurve _bondingCurve,
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
@@ -437,7 +455,10 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             revert BondingCurveError(error);
         }
 
-        // Update spot price if it has been updated
+        // Revert if input is more than expected
+        require(inputAmount <= maxExpectedTokenInput, "In too many tokens");
+
+        // Update spot price if it has changed
         if (currentSpotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
@@ -447,12 +468,15 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     /**
         @notice Calculates the amount needed to be sent by the pair for a sell and adjusts spot price or delta if necessary
         @param numNFTs The amount of NFTs to send to the the pair
+        @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
+        amount is less than this value, the transaction will be reverted.
         @param protocolFee The percentage of protocol fee to be taken, as a percentage
         @return protocolFee The amount of tokens to send as protocol fee
         @return outputAmount The amount of tokens total tokens receive
      */
     function _calculateSellInfoAndUpdatePoolParams(
         uint256 numNFTs,
+        uint256 minExpectedTokenOutput,
         ICurve _bondingCurve,
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
@@ -473,6 +497,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         if (error != CurveErrorCodes.Error.OK) {
             revert BondingCurveError(error);
         }
+
+        // Revert if output is too little
+        require(
+            outputAmount >= minExpectedTokenOutput,
+            "Out too little tokens"
+        );
 
         // Update spot price if it has been updated
         if (currentSpotPrice != newSpotPrice) {
@@ -498,7 +528,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
     ) internal virtual;
 
     /**
-        @notice Sends excess tokens back to the caller
+        @notice Sends excess tokens back to the caller (if applicable)
         @dev We send ETH back to the caller even when called from LSSVMRouter because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller) 
         Excess ETH sent for one swap can then be used to help pay for the next swap.
      */

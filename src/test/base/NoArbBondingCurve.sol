@@ -137,6 +137,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             );
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
                 idList.length,
+                inputAmount,
                 address(this),
                 false,
                 address(0)
@@ -213,6 +214,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             startBalance = getBalance(address(this));
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
                 numItems,
+                inputAmount,
                 address(this),
                 false,
                 address(0)

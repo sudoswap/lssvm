@@ -281,6 +281,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             // buy NFTs
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
                 numItems,
+                inputAmount,
                 address(this),
                 false,
                 address(0)

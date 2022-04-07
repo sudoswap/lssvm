@@ -23,18 +23,18 @@ contract LSSVMRouter {
     }
 
     struct RobustPairSwapAny {
-      PairSwapAny swapInfo;
-      uint256 maxCost;
+        PairSwapAny swapInfo;
+        uint256 maxCost;
     }
 
     struct RobustPairSwapSpecific {
-      PairSwapSpecific swapInfo;
-      uint256 maxCost;
+        PairSwapSpecific swapInfo;
+        uint256 maxCost;
     }
 
     struct RobustPairSwapSpecificForToken {
-      PairSwapSpecific swapInfo;
-      uint256 minOutput;
+        PairSwapSpecific swapInfo;
+        uint256 minOutput;
     }
 
     struct NFTsForAnyNFTsTrade {
@@ -241,10 +241,10 @@ contract LSSVMRouter {
     /**
         @notice Swaps NFTs into ETH/ERC20 using multiple pairs.
         @param swapList The list of pairs to trade with and the IDs of the NFTs to sell to each.
-        @param minOutput The minimum acceptable total ETH received
+        @param minOutput The minimum acceptable total tokens received
         @param tokenRecipient The address that will receive the token output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
-        @return outputAmount The total ETH/ERC20 received
+        @return outputAmount The total tokens received
      */
     function swapNFTsForToken(
         PairSwapSpecific[] calldata swapList,
@@ -383,7 +383,13 @@ contract LSSVMRouter {
                 // So we just send that much
                 remainingValue -= swapList[i].swapInfo.pair.swapTokenForAnyNFTs{
                     value: pairCost
-                }(swapList[i].swapInfo.numItems, nftRecipient, true, msg.sender);
+                }(
+                    swapList[i].swapInfo.numItems,
+                    pairCost,
+                    nftRecipient,
+                    true,
+                    msg.sender
+                );
             }
         }
 
@@ -430,9 +436,16 @@ contract LSSVMRouter {
             ) {
                 // We know how much ETH to send because we already did the math above
                 // So we just send that much
-                remainingValue -= swapList[i].swapInfo.pair.swapTokenForSpecificNFTs{
-                    value: pairCost
-                }(swapList[i].swapInfo.nftIds, nftRecipient, true, msg.sender);
+                remainingValue -= swapList[i]
+                    .swapInfo
+                    .pair
+                    .swapTokenForSpecificNFTs{value: pairCost}(
+                    swapList[i].swapInfo.nftIds,
+                    pairCost,
+                    nftRecipient,
+                    true,
+                    msg.sender
+                );
             }
         }
 
@@ -474,11 +487,12 @@ contract LSSVMRouter {
                 error == CurveErrorCodes.Error.OK
             ) {
                 remainingValue -= swapList[i].swapInfo.pair.swapTokenForAnyNFTs(
-                    swapList[i].swapInfo.numItems,
-                    nftRecipient,
-                    true,
-                    msg.sender
-                );
+                        swapList[i].swapInfo.numItems,
+                        pairCost,
+                        nftRecipient,
+                        true,
+                        msg.sender
+                    );
             }
         }
     }
@@ -519,12 +533,16 @@ contract LSSVMRouter {
                 pairCost <= swapList[i].maxCost &&
                 error == CurveErrorCodes.Error.OK
             ) {
-                remainingValue -= swapList[i].swapInfo.pair.swapTokenForSpecificNFTs(
-                    swapList[i].swapInfo.nftIds,
-                    nftRecipient,
-                    true,
-                    msg.sender
-                );
+                remainingValue -= swapList[i]
+                    .swapInfo
+                    .pair
+                    .swapTokenForSpecificNFTs(
+                        swapList[i].swapInfo.nftIds,
+                        pairCost,
+                        nftRecipient,
+                        true,
+                        msg.sender
+                    );
             }
         }
     }
@@ -548,9 +566,10 @@ contract LSSVMRouter {
             // Locally scoped to avoid stack too deep error
             {
                 CurveErrorCodes.Error error;
-                (error, , pairOutput, ) = swapList[i].swapInfo.pair.getSellNFTQuote(
-                    swapList[i].swapInfo.nftIds.length
-                );
+                (error, , pairOutput, ) = swapList[i]
+                    .swapInfo
+                    .pair
+                    .getSellNFTQuote(swapList[i].swapInfo.nftIds.length);
                 if (error != CurveErrorCodes.Error.OK) {
                     continue;
                 }
@@ -662,7 +681,7 @@ contract LSSVMRouter {
 
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Calculate the cost per swap
+            // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
             (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
@@ -674,7 +693,7 @@ contract LSSVMRouter {
             // because otherwise the deduction from remainingValue will fail
             remainingValue -= swapList[i].pair.swapTokenForAnyNFTs{
                 value: pairCost
-            }(swapList[i].numItems, nftRecipient, true, msg.sender);
+            }(swapList[i].numItems, remainingValue, nftRecipient, true, msg.sender);
         }
 
         // Return remaining value to sender
@@ -704,7 +723,7 @@ contract LSSVMRouter {
 
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
-            // Calculate the cost per swap
+            // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
             (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].nftIds.length
             );
@@ -716,7 +735,7 @@ contract LSSVMRouter {
             // because otherwise the deduction from remainingValue will fail
             remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
                 value: pairCost
-            }(swapList[i].nftIds, nftRecipient, true, msg.sender);
+            }(swapList[i].nftIds, remainingValue, nftRecipient, true, msg.sender);
         }
 
         // Return remaining value to sender
@@ -750,6 +769,7 @@ contract LSSVMRouter {
             // because otherwise the deduction from remainingValue will fail
             remainingValue -= swapList[i].pair.swapTokenForAnyNFTs(
                 swapList[i].numItems,
+                remainingValue,
                 nftRecipient,
                 true,
                 msg.sender
@@ -782,6 +802,7 @@ contract LSSVMRouter {
             // because otherwise the deduction from remainingValue will fail
             remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs(
                 swapList[i].nftIds,
+                remainingValue,
                 nftRecipient,
                 true,
                 msg.sender
