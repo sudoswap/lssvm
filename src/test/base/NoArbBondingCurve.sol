@@ -100,6 +100,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             (
                 ,
                 uint256 newSpotPrice,
+                ,
                 uint256 outputAmount,
                 uint256 protocolFee
             ) = bondingCurve.getSellInfo(
@@ -128,7 +129,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy back the NFTs just sold to the pair
         {
-            (, , uint256 inputAmount, ) = bondingCurve.getBuyInfo(
+            (, , , uint256 inputAmount, ) = bondingCurve.getBuyInfo(
                 spotPrice,
                 delta,
                 numItems,
@@ -201,7 +202,7 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy all NFTs
         {
-            (, uint256 newSpotPrice, uint256 inputAmount, ) = bondingCurve
+            (, uint256 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
                 .getBuyInfo(
                     spotPrice,
                     delta,

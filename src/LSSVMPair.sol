@@ -486,7 +486,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         // Update delta if it has been updated
         if (currentDelta != newDelta) {
             delta = newDelta;
-            emit SpotPriceUpdate(newDelta);
+            emit DeltaUpdate(newDelta);
         }
     }
 
@@ -540,7 +540,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         // Update delta if it has been updated
         if (currentDelta != newDelta) {
             delta = newDelta;
-            emit SpotPriceUpdate(newDelta);
+            emit DeltaUpdate(newDelta);
         }
     }
 

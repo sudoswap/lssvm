@@ -29,6 +29,7 @@ contract ExponentialCurveTest is DSTest {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 inputValue,
             uint256 protocolFee
         ) = curve.getBuyInfo(
@@ -44,6 +45,7 @@ contract ExponentialCurveTest is DSTest {
             "Error code not OK"
         );
         assertEq(newSpotPrice, 96 ether, "Spot price incorrect");
+        assertEq(newDelta, 2 ether, "Delta incorrect");
         assertEq(inputValue, 187.488 ether, "Input value incorrect");
         assertEq(protocolFee, 0.558 ether, "Protocol fee incorrect");
     }
@@ -64,7 +66,8 @@ contract ExponentialCurveTest is DSTest {
 
         (
             CurveErrorCodes.Error error,
-            uint128 newSpotPrice,
+            uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 inputValue,
 
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
@@ -116,6 +119,7 @@ contract ExponentialCurveTest is DSTest {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 outputValue,
             uint256 protocolFee
         ) = curve.getSellInfo(
@@ -131,6 +135,7 @@ contract ExponentialCurveTest is DSTest {
             "Error code not OK"
         );
         assertEq(newSpotPrice, 0.09375 ether, "Spot price incorrect");
+        assertEq(newDelta, 2 ether, "Delta incorrect");
         assertEq(outputValue, 5.766 ether, "Output value incorrect");
         assertEq(protocolFee, 0.0174375 ether, "Protocol fee incorrect");
     }
@@ -151,6 +156,7 @@ contract ExponentialCurveTest is DSTest {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
+            ,
             uint256 outputValue,
 
         ) = curve.getSellInfo(spotPrice, delta, numItems, 0, 0);

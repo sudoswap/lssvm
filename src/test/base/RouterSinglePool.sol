@@ -92,7 +92,7 @@ abstract contract RouterSinglePool is
             memory swapList = new LSSVMRouter.PairSwapAny[](1);
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 1});
         uint256 inputAmount;
-        (, , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -113,7 +113,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 inputAmount;
-        (, , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -242,7 +242,7 @@ abstract contract RouterSinglePool is
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 5});
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
-        (, , inputAmount, ) = pair.getBuyNFTQuote(5);
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(5);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -270,7 +270,7 @@ abstract contract RouterSinglePool is
         });
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
-        (, , inputAmount, ) = pair.getBuyNFTQuote(5);
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(5);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -307,7 +307,7 @@ abstract contract RouterSinglePool is
             memory swapList = new LSSVMRouter.PairSwapAny[](1);
         swapList[0] = LSSVMRouter.PairSwapAny({pair: pair, numItems: 1});
         uint256 inputAmount;
-        (, , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
         inputAmount = inputAmount - 1 wei;
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
@@ -329,7 +329,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 inputAmount;
-        (, , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
         inputAmount = inputAmount - 1 wei;
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
@@ -351,7 +351,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 sellAmount;
-        (, , sellAmount, ) = pair.getSellNFTQuote(1);
+        (, , , sellAmount, ) = pair.getSellNFTQuote(1);
         sellAmount = sellAmount + 1 wei;
         router.swapNFTsForToken(
             swapList,
@@ -370,7 +370,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 sellAmount;
-        (, , sellAmount, ) = pair.getSellNFTQuote(1);
+        (, , , sellAmount, ) = pair.getSellNFTQuote(1);
         sellAmount = sellAmount + 1 wei;
         router.swapNFTsForToken(
             swapList,

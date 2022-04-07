@@ -25,6 +25,7 @@ contract LinearCurveTest is DSTest {
         (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 inputValue,
             uint256 protocolFee
         ) = curve.getBuyInfo(
@@ -40,6 +41,7 @@ contract LinearCurveTest is DSTest {
             "Error code not OK"
         );
         assertEq(newSpotPrice, 3.5 ether, "Spot price incorrect");
+        assertEq(newDelta, 0.1 ether, "Delta incorrect");
         assertEq(inputValue, 16.632 ether, "Input value incorrect");
         assertEq(protocolFee, 0.0495 ether, "Protocol fee incorrect");
     }
@@ -56,6 +58,7 @@ contract LinearCurveTest is DSTest {
         (
             CurveErrorCodes.Error error,
             uint128 newSpotPrice,
+            ,
             uint256 inputValue,
 
         ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
@@ -97,7 +100,8 @@ contract LinearCurveTest is DSTest {
         uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
         (
             CurveErrorCodes.Error error,
-            uint128 newSpotPrice,
+            uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 outputValue,
             uint256 protocolFee
         ) = curve.getSellInfo(
@@ -113,6 +117,7 @@ contract LinearCurveTest is DSTest {
             "Error code not OK"
         );
         assertEq(newSpotPrice, 2.5 ether, "Spot price incorrect");
+        assertEq(newDelta, 0.1 ether, "Delta incorrect");
         assertEq(outputValue, 13.888 ether, "Output value incorrect");
         assertEq(protocolFee, 0.042 ether, "Protocol fee incorrect");
     }
@@ -129,6 +134,7 @@ contract LinearCurveTest is DSTest {
         (
             CurveErrorCodes.Error error,
             uint128 newSpotPrice,
+            ,
             uint256 outputValue,
 
         ) = curve.getSellInfo(spotPrice, delta, numItems, 0, 0);

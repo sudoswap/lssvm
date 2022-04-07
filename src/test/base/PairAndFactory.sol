@@ -267,6 +267,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             (
                 ,
                 uint128 newSpotPrice,
+                ,
                 uint256 inputAmount,
                 uint256 protocolFee
             ) = bondingCurve.getBuyInfo(
