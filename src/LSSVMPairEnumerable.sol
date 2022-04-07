@@ -20,13 +20,15 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
     ) internal override {
         // Send NFTs to recipient
         // (we know NFT implements IERC721Enumerable so we just iterate)
-        unchecked {
-            uint256 lastId = _nft.balanceOf(address(this)) - 1;
-            for (uint256 i = 0; i < numNFTs; i++) {
-                uint256 nftId = IERC721Enumerable(address(_nft))
-                    .tokenOfOwnerByIndex(address(this), lastId);
-                _nft.safeTransferFrom(address(this), nftRecipient, nftId);
-                lastId--;
+        uint256 lastIndex = _nft.balanceOf(address(this)) - 1;
+        for (uint256 i = 0; i < numNFTs; ) {
+            uint256 nftId = IERC721Enumerable(address(_nft))
+                .tokenOfOwnerByIndex(address(this), lastIndex);
+            _nft.safeTransferFrom(address(this), nftRecipient, nftId);
+
+            unchecked {
+                --lastIndex;
+                ++i;
             }
         }
     }
@@ -38,8 +40,13 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         uint256[] calldata nftIds
     ) internal override {
         // Send NFTs to recipient
-        for (uint256 i = 0; i < nftIds.length; i++) {
+        uint256 numNFTs = nftIds.length;
+        for (uint256 i; i < numNFTs; ) {
             _nft.safeTransferFrom(address(this), nftRecipient, nftIds[i]);
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -48,11 +55,15 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         IERC721 _nft = nft();
         uint256 numNFTs = _nft.balanceOf(address(this));
         uint256[] memory ids = new uint256[](numNFTs);
-        for (uint256 i; i < numNFTs; i++) {
+        for (uint256 i; i < numNFTs; ) {
             ids[i] = IERC721Enumerable(address(_nft)).tokenOfOwnerByIndex(
                 address(this),
                 i
             );
+
+            unchecked {
+                ++i;
+            }
         }
         return ids;
     }
@@ -72,8 +83,13 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
         override
         onlyOwner
     {
-        for (uint256 i = 0; i < nftIds.length; i++) {
+        uint256 numNFTs = nftIds.length;
+        for (uint256 i; i < numNFTs; ) {
             a.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+
+            unchecked {
+                ++i;
+            }
         }
     }
 }

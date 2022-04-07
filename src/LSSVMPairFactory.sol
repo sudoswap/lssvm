@@ -390,12 +390,17 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         payable(address(_pair)).safeTransferETH(msg.value);
 
         // transfer initial NFTs from sender to pair
-        for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
+        uint256 numNFTs = _initialNFTIDs.length;
+        for (uint256 i; i < numNFTs; ) {
             _nft.safeTransferFrom(
                 msg.sender,
                 address(_pair),
                 _initialNFTIDs[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -421,12 +426,17 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         );
 
         // transfer initial NFTs from sender to pair
-        for (uint256 i = 0; i < _initialNFTIDs.length; i++) {
+        uint256 numNFTs = _initialNFTIDs.length;
+        for (uint256 i; i < numNFTs; ) {
             _nft.safeTransferFrom(
                 msg.sender,
                 address(_pair),
                 _initialNFTIDs[i]
             );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -439,8 +449,13 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
         address recipient
     ) external {
         // transfer NFTs from caller to recipient
-        for (uint256 i = 0; i < ids.length; i++) {
+        uint256 numNFTs = ids.length;
+        for (uint256 i; i < numNFTs; ) {
             _nft.safeTransferFrom(msg.sender, recipient, ids[i]);
+
+            unchecked {
+                ++i;
+            }
         }
         if (
             isPair(recipient, PairVariant.ENUMERABLE_ERC20) ||

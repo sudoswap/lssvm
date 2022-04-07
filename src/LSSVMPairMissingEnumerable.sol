@@ -27,11 +27,14 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         // We're missing enumerable, so we also update the pair's own ID set
         // NOTE: We start from last index to first index to save on gas
         uint256 lastIndex = idSet.length() - 1;
-        for (uint256 i = 0; i < numNFTs; i++) {
+        for (uint256 i; i < numNFTs; ) {
+            uint256 nftId = idSet.at(lastIndex);
+            _nft.safeTransferFrom(address(this), nftRecipient, nftId);
+            idSet.remove(nftId);
+
             unchecked {
-                uint256 nftId = idSet.at(lastIndex--);
-                _nft.safeTransferFrom(address(this), nftRecipient, nftId);
-                idSet.remove(nftId);
+                --lastIndex;
+                ++i;
             }
         }
     }
@@ -44,10 +47,15 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     ) internal override {
         // Send NFTs to caller
         // If missing enumerable, update pool's own ID set
-        for (uint256 i = 0; i < nftIds.length; i++) {
+        uint256 numNFTs = nftIds.length;
+        for (uint256 i; i < numNFTs; ) {
             _nft.safeTransferFrom(address(this), nftRecipient, nftIds[i]);
             // Remove from id set
             idSet.remove(nftIds[i]);
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -55,8 +63,12 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
     function getAllHeldIds() external view override returns (uint256[] memory) {
         uint256 numNFTs = idSet.length();
         uint256[] memory ids = new uint256[](numNFTs);
-        for (uint256 i; i < numNFTs; i++) {
+        for (uint256 i; i < numNFTs; ) {
             ids[i] = idSet.at(i);
+
+            unchecked {
+                ++i;
+            }
         }
         return ids;
     }
@@ -86,18 +98,27 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         onlyOwner
     {
         IERC721 _nft = nft();
+        uint256 numNFTs = nftIds.length;
 
         // If it's not the pair's NFT, just withdraw normally
         if (a != _nft) {
-            for (uint256 i = 0; i < nftIds.length; i++) {
+            for (uint256 i; i < numNFTs; ) {
                 a.safeTransferFrom(address(this), msg.sender, nftIds[i]);
+
+                unchecked {
+                    ++i;
+                }
             }
         }
         // Otherwise, withdraw and also remove the ID from the ID set
         else {
-            for (uint256 i = 0; i < nftIds.length; i++) {
+            for (uint256 i; i < numNFTs; ) {
                 _nft.safeTransferFrom(address(this), msg.sender, nftIds[i]);
                 idSet.remove(nftIds[i]);
+
+                unchecked {
+                    ++i;
+                }
             }
         }
     }

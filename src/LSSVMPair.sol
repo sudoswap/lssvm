@@ -649,23 +649,25 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 // Call router to pull NFTs
                 // If more than 1 NFT is being transfered, we can do a balance check instead of an ownership check, as pools are indifferent between NFTs from the same collection
                 if (numNFTs > 1) {
-                    unchecked {
-                        uint256 beforeBalance = _nft.balanceOf(_assetRecipient);
-                        for (uint256 i = 0; i < numNFTs; i++) {
-                            router.pairTransferNFTFrom(
-                                _nft,
-                                routerCaller,
-                                _assetRecipient,
-                                nftIds[i],
-                                pairVariant()
-                            );
-                        }
-                        require(
-                            (_nft.balanceOf(_assetRecipient) - beforeBalance) ==
-                                numNFTs,
-                            "NFTs not transferred"
+                    uint256 beforeBalance = _nft.balanceOf(_assetRecipient);
+                    for (uint256 i = 0; i < numNFTs; ) {
+                        router.pairTransferNFTFrom(
+                            _nft,
+                            routerCaller,
+                            _assetRecipient,
+                            nftIds[i],
+                            pairVariant()
                         );
+
+                        unchecked {
+                            ++i;
+                        }
                     }
+                    require(
+                        (_nft.balanceOf(_assetRecipient) - beforeBalance) ==
+                            numNFTs,
+                        "NFTs not transferred"
+                    );
                 } else {
                     router.pairTransferNFTFrom(
                         _nft,
@@ -681,13 +683,15 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
                 }
             } else {
                 // Pull NFTs directly from sender
-                unchecked {
-                    for (uint256 i = 0; i < numNFTs; i++) {
-                        _nft.safeTransferFrom(
-                            msg.sender,
-                            _assetRecipient,
-                            nftIds[i]
-                        );
+                for (uint256 i; i < numNFTs; ) {
+                    _nft.safeTransferFrom(
+                        msg.sender,
+                        _assetRecipient,
+                        nftIds[i]
+                    );
+
+                    unchecked {
+                        ++i;
                     }
                 }
             }
@@ -811,14 +815,19 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         external
         onlyOwner
     {
-        for (uint256 i = 0; i < calls.length; i++) {
+        for (uint256 i; i < calls.length; ) {
             (bool success, bytes memory result) = address(this).delegatecall(
                 calls[i]
             );
             if (!success && revertOnFail) {
                 revert(_getRevertMsg(result));
             }
+
+            unchecked {
+                ++i;
+            }
         }
+
         // Prevent multicall from malicious frontend sneaking in ownership change
         require(
             owner() == msg.sender,
