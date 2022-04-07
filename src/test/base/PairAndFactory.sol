@@ -246,6 +246,58 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
         pair.initialize(address(0), payable(address(0)), 0, 0, 0);
     }
 
+    function testFail_swapForNFTNotInPool() public {
+      (
+            ,
+            uint128 newSpotPrice,
+            ,
+            uint256 inputAmount,
+        ) = bondingCurve.getBuyInfo(
+                spotPrice,
+                delta,
+                numItems + 1,
+                0,
+                protocolFeeMultiplier
+            );
+
+        // buy specific NFT not in pool
+        uint256[] memory nftIds = new uint256[](1);
+        nftIds[0] = 69;
+        pair.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
+            nftIds,
+            inputAmount,
+            address(this),
+            false,
+            address(0)
+        );
+        spotPrice = uint56(newSpotPrice);
+    }
+
+    function testFail_swapForAnyNFTsPastBalance() public {
+        (
+            ,
+            uint128 newSpotPrice,
+            ,
+            uint256 inputAmount,
+        ) = bondingCurve.getBuyInfo(
+                spotPrice,
+                delta,
+                numItems + 1,
+                0,
+                protocolFeeMultiplier
+            );
+
+        // buy any NFTs past pool inventory 
+        pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+            numItems + 1,
+            inputAmount,
+            address(this),
+            false,
+            address(0)
+        );
+        spotPrice = uint56(newSpotPrice);
+    }
+
     /**
      * Test Admin functions
      */

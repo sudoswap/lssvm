@@ -341,7 +341,7 @@ abstract contract RouterSinglePool is
         );
     }
 
-    function testFail_swapSingleNFTForToken() public {
+    function testFail_swapSingleNFTForNonexistentToken() public {
         uint256[] memory nftIds = new uint256[](1);
         nftIds[0] = numInitialNFTs + 1;
         LSSVMRouter.PairSwapSpecific[]
@@ -358,6 +358,30 @@ abstract contract RouterSinglePool is
             sellAmount,
             payable(address(this)),
             block.timestamp
+        );
+    }
+
+    function testFail_swapTokenForAnyNFTsPastBalance() public {
+        uint256[] memory nftIds = new uint256[](1);
+        nftIds[0] = numInitialNFTs + 1;
+        LSSVMRouter.PairSwapAny[]
+            memory swapList = new LSSVMRouter.PairSwapAny[](1);
+        swapList[0] = LSSVMRouter.PairSwapAny({
+            pair: pair,
+            numItems: test721.balanceOf(address(pair)) + 1
+        });
+        uint256 inputAmount;
+        (, , , inputAmount, ) = pair.getBuyNFTQuote(
+            test721.balanceOf(address(pair)) + 1
+        );
+        inputAmount = inputAmount + 1 wei;
+        this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+            router,
+            swapList,
+            payable(address(this)),
+            address(this),
+            block.timestamp,
+            inputAmount
         );
     }
 
