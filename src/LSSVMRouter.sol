@@ -370,7 +370,7 @@ contract LSSVMRouter {
         CurveErrorCodes.Error error;
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+            (error, , , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
                 swapList[i].swapInfo.numItems
             );
 
@@ -425,7 +425,7 @@ contract LSSVMRouter {
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+            (error, , , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
                 swapList[i].swapInfo.nftIds.length
             );
 
@@ -477,7 +477,7 @@ contract LSSVMRouter {
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+            (error, , , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
                 swapList[i].swapInfo.numItems
             );
 
@@ -524,7 +524,7 @@ contract LSSVMRouter {
         // Try doing each swap
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate actual cost per swap
-            (error, , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
+            (error, , , pairCost, ) = swapList[i].swapInfo.pair.getBuyNFTQuote(
                 swapList[i].swapInfo.nftIds.length
             );
 
@@ -566,7 +566,7 @@ contract LSSVMRouter {
             // Locally scoped to avoid stack too deep error
             {
                 CurveErrorCodes.Error error;
-                (error, , pairOutput, ) = swapList[i]
+                (error, , , pairOutput, ) = swapList[i]
                     .swapInfo
                     .pair
                     .getSellNFTQuote(swapList[i].swapInfo.nftIds.length);
@@ -682,7 +682,7 @@ contract LSSVMRouter {
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
-            (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+            (error, , , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].numItems
             );
 
@@ -724,7 +724,7 @@ contract LSSVMRouter {
         // Do swaps
         for (uint256 i = 0; i < swapList.length; i++) {
             // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
-            (error, , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
+            (error, , , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
                 swapList[i].nftIds.length
             );
 

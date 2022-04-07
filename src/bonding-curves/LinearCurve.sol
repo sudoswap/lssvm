@@ -48,19 +48,20 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         returns (
             Error error,
             uint128 newSpotPrice,
+            uint128 newDelta,
             uint256 inputValue,
             uint256 protocolFee
         )
     {
         // We only calculate changes for buying 1 or more NFTs
         if (numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
         // For a linear curve, the spot price increases by delta for each item bought
         uint256 newSpotPrice_ = spotPrice + delta * numItems;
         if (newSpotPrice_ > type(uint128).max) {
-            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0);
+            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0);
         }
         newSpotPrice = uint128(newSpotPrice_);
 
@@ -94,6 +95,9 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         // Add the protocol fee to the required input amount
         inputValue += protocolFee;
 
+        // Keep delta the same
+        newDelta = delta;
+
         // If we got all the way here, no math error happened
         error = Error.OK;
     }
@@ -114,13 +118,14 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         returns (
             Error error,
             uint128 newSpotPrice,
+            uint128 newDelta,
             uint256 outputValue,
             uint256 protocolFee
         )
     {
         // We only calculate changes for selling 1 or more NFTs
         if (numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
         // We first calculate the change in spot price after selling all of the items
@@ -162,6 +167,9 @@ contract LinearCurve is ICurve, CurveErrorCodes {
 
         // Subtract the protocol fee from the output amount to the seller
         outputValue -= protocolFee;
+
+        // Keep delta the same
+        newDelta = delta;
 
         // If we reached here, no math errors
         error = Error.OK;

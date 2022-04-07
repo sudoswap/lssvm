@@ -293,18 +293,24 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 inputAmount,
             uint256 protocolFee
         )
     {
-        (error, newSpotPrice, inputAmount, protocolFee) = bondingCurve()
-            .getBuyInfo(
-                spotPrice,
-                delta,
-                numNFTs,
-                fee,
-                factory().protocolFeeMultiplier()
-            );
+        (
+            error,
+            newSpotPrice,
+            newDelta,
+            inputAmount,
+            protocolFee
+        ) = bondingCurve().getBuyInfo(
+            spotPrice,
+            delta,
+            numNFTs,
+            fee,
+            factory().protocolFeeMultiplier()
+        );
     }
 
     /**
@@ -317,18 +323,24 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         returns (
             CurveErrorCodes.Error error,
             uint256 newSpotPrice,
+            uint256 newDelta,
             uint256 outputAmount,
             uint256 protocolFee
         )
     {
-        (error, newSpotPrice, outputAmount, protocolFee) = bondingCurve()
-            .getSellInfo(
-                spotPrice,
-                delta,
-                numNFTs,
-                fee,
-                factory().protocolFeeMultiplier()
-            );
+        (
+            error,
+            newSpotPrice,
+            newDelta,
+            outputAmount,
+            protocolFee
+        ) = bondingCurve().getSellInfo(
+            spotPrice,
+            delta,
+            numNFTs,
+            fee,
+            factory().protocolFeeMultiplier()
+        );
     }
 
     /**
@@ -438,17 +450,24 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
         CurveErrorCodes.Error error;
-        // Store spotPrice locally to reduce 1 SLOAD
+        // Store spotPrice/delta locally to reduce 1 SLOAD
         uint128 currentSpotPrice = spotPrice;
+        uint128 currentDelta = delta;
         uint128 newSpotPrice;
-        (error, newSpotPrice, inputAmount, protocolFee) = _bondingCurve
-            .getBuyInfo(
-                currentSpotPrice,
-                delta,
-                numNFTs,
-                fee,
-                _factory.protocolFeeMultiplier()
-            );
+        uint128 newDelta;
+        (
+            error,
+            newSpotPrice,
+            newDelta,
+            inputAmount,
+            protocolFee
+        ) = _bondingCurve.getBuyInfo(
+            currentSpotPrice,
+            delta,
+            numNFTs,
+            fee,
+            _factory.protocolFeeMultiplier()
+        );
 
         // Revert if bonding curve had an error
         if (error != CurveErrorCodes.Error.OK) {
@@ -458,10 +477,16 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         // Revert if input is more than expected
         require(inputAmount <= maxExpectedTokenInput, "In too many tokens");
 
-        // Update spot price if it has changed
+        // Update spot price if it has been updated
         if (currentSpotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
+        }
+
+        // Update delta if it has been updated
+        if (currentDelta != newDelta) {
+            delta = newDelta;
+            emit SpotPriceUpdate(newDelta);
         }
     }
 
@@ -481,10 +506,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
         CurveErrorCodes.Error error;
-        // Store spotPrice locally to reduce 1 SLOAD
+        // Store spotPrice/delta locally to reduce 1 SLOAD
         uint128 currentSpotPrice = spotPrice;
+        uint128 currentDelta = delta;
         uint128 newSpotPrice;
-        (error, newSpotPrice, outputAmount, protocolFee) = _bondingCurve
+        uint128 newDelta;
+        (error, newSpotPrice, newDelta, outputAmount, protocolFee) = _bondingCurve
             .getSellInfo(
                 currentSpotPrice,
                 delta,
@@ -508,6 +535,12 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         if (currentSpotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
+        }
+
+        // Update delta if it has been updated
+        if (currentDelta != newDelta) {
+            delta = newDelta;
+            emit SpotPriceUpdate(newDelta);
         }
     }
 

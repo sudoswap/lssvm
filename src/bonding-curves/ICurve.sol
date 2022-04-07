@@ -33,6 +33,7 @@ interface ICurve {
         @param protocolFeeMultiplier Determines how much fee the protocol takes from this trade, 18 decimals
         @return error Any math calculation errors, only Error.OK means the returned values are valid
         @return newSpotPrice The updated selling spot price, in tokens
+        @return newDelta The updated delta, used to parameterize the bonding curve
         @return inputValue The amount that the user should pay, in tokens
         @return protocolFee The amount of fee to send to the protocol, in tokens
      */
@@ -48,6 +49,7 @@ interface ICurve {
         returns (
             CurveErrorCodes.Error error,
             uint128 newSpotPrice,
+            uint128 newDelta,
             uint256 inputValue,
             uint256 protocolFee
         );
@@ -62,6 +64,7 @@ interface ICurve {
         @param protocolFeeMultiplier Determines how much fee the protocol takes from this trade, 18 decimals
         @return error Any math calculation errors, only Error.OK means the returned values are valid
         @return newSpotPrice The updated selling spot price, in tokens
+        @return newDelta The updated delta, used to parameterize the bonding curve
         @return outputValue The amount that the user should receive, in tokens
         @return protocolFee The amount of fee to send to the protocol, in tokens
      */
@@ -77,6 +80,7 @@ interface ICurve {
         returns (
             CurveErrorCodes.Error error,
             uint128 newSpotPrice,
+            uint128 newDelta,
             uint256 outputValue,
             uint256 protocolFee
         );

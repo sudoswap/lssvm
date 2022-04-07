@@ -55,6 +55,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         returns (
             Error error,
             uint128 newSpotPrice,
+            uint128 newDelta,
             uint256 inputValue,
             uint256 protocolFee
         )
@@ -62,7 +63,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         // NOTE: we assume delta is > 1, as checked by validateDelta()
         // We only calculate changes for buying 1 or more NFTs
         if (numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
         uint256 deltaPowN = uint256(delta).fpow(
@@ -76,7 +77,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             FixedPointMathLib.WAD
         );
         if (newSpotPrice_ > type(uint128).max) {
-            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0);
+            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0);
         }
         newSpotPrice = uint128(newSpotPrice_);
 
@@ -114,6 +115,9 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         // Add the protocol fee to the required input amount
         inputValue += protocolFee;
 
+        // Keep delta the same
+        newDelta = delta;
+
         // If we got all the way here, no math error happened
         error = Error.OK;
     }
@@ -137,15 +141,16 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         returns (
             Error error,
             uint128 newSpotPrice,
+            uint128 newDelta,
             uint256 outputValue,
             uint256 protocolFee
         )
     {
         // NOTE: we assume delta is > 1, as checked by validateDelta()
-        
+
         // We only calculate changes for buying 1 or more NFTs
         if (numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
         uint256 invDelta = FixedPointMathLib.WAD.fdiv(
@@ -186,6 +191,9 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
 
         // Remove the protocol fee from the output amount
         outputValue -= protocolFee;
+
+        // Keep delta the same
+        newDelta = delta;
 
         // If we got all the way here, no math error happened
         error = Error.OK;
