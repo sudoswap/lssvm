@@ -451,6 +451,8 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
         CurveErrorCodes.Error error;
+        // Save on 1 SLOAD by caching current spot price locally
+        uint128 currentSpotPrice = spotPrice;
         uint128 newSpotPrice;
         uint128 newDelta;
         (
@@ -460,7 +462,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
             inputAmount,
             protocolFee
         ) = _bondingCurve.getBuyInfo(
-            spotPrice,
+            currentSpotPrice,
             delta,
             numNFTs,
             fee,
@@ -476,7 +478,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         require(inputAmount <= maxExpectedTokenInput, "In too many tokens");
 
         // Update spot price if it has been updated
-        if (spotPrice != newSpotPrice) {
+        if (currentSpotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
         }
@@ -504,16 +506,23 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
         CurveErrorCodes.Error error;
+        // Save on 1 SLOAD by caching current spot price locally
+        uint128 currentSpotPrice = spotPrice;
         uint128 newSpotPrice;
         uint128 newDelta;
-        (error, newSpotPrice, newDelta, outputAmount, protocolFee) = _bondingCurve
-            .getSellInfo(
-                spotPrice,
-                delta,
-                numNFTs,
-                fee,
-                _factory.protocolFeeMultiplier()
-            );
+        (
+            error,
+            newSpotPrice,
+            newDelta,
+            outputAmount,
+            protocolFee
+        ) = _bondingCurve.getSellInfo(
+            currentSpotPrice,
+            delta,
+            numNFTs,
+            fee,
+            _factory.protocolFeeMultiplier()
+        );
 
         // Revert if bonding curve had an error
         if (error != CurveErrorCodes.Error.OK) {
@@ -527,7 +536,7 @@ abstract contract LSSVMPair is Ownable, ReentrancyGuard {
         );
 
         // Update spot price if it has been updated
-        if (spotPrice != newSpotPrice) {
+        if (currentSpotPrice != newSpotPrice) {
             spotPrice = newSpotPrice;
             emit SpotPriceUpdate(newSpotPrice);
         }
