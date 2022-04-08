@@ -19,6 +19,7 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {Configurable} from "../mixins/Configurable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Test721} from "../../mocks/Test721.sol";
+import {TestPairManager} from "../../mocks/TestPairManager.sol";
 
 abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     uint128 delta = 1.1 ether;
@@ -33,6 +34,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
     LSSVMPair pair;
+    TestPairManager pairManager;
 
     function setUp() public {
         bondingCurve = setupCurve();
@@ -72,6 +74,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
         testERC20 = ERC20(address(new Test20()));
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
+        pairManager = new TestPairManager();
     }
 
     function testGas_basicDeploy() public {
@@ -97,6 +100,16 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
     function test_transferOwnership() public {
         pair.transferOwnership(payable(address(2)));
+        assertEq(pair.owner(), address(2));
+    }
+
+    function test_transferCallback() public {
+        pair.transferOwnership(address(pairManager));
+        assertEq(pairManager.isCallbackSet(), 1);
+    }
+
+    function testGas_transferNoCallback() public {
+        pair.transferOwnership(address(pair));
     }
 
     function testFail_transferOwnership() public {
@@ -247,12 +260,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_swapForNFTNotInPool() public {
-      (
-            ,
-            uint128 newSpotPrice,
-            ,
-            uint256 inputAmount,
-        ) = bondingCurve.getBuyInfo(
+        (, uint128 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
+            .getBuyInfo(
                 spotPrice,
                 delta,
                 numItems + 1,
@@ -274,12 +283,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
     }
 
     function testFail_swapForAnyNFTsPastBalance() public {
-        (
-            ,
-            uint128 newSpotPrice,
-            ,
-            uint256 inputAmount,
-        ) = bondingCurve.getBuyInfo(
+        (, uint128 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
+            .getBuyInfo(
                 spotPrice,
                 delta,
                 numItems + 1,
@@ -287,7 +292,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
                 protocolFeeMultiplier
             );
 
-        // buy any NFTs past pool inventory 
+        // buy any NFTs past pool inventory
         pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             numItems + 1,
             inputAmount,
