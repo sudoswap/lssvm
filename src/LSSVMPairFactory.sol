@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 // @dev Solmate's ERC20 is used instead of OZ's ERC20 so we can use safeTransferLib for cheaper safeTransfers for
@@ -111,13 +112,15 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
-
-        address template = ERC165Checker.supportsInterface(
-            address(_nft),
-            INTERFACE_ID_ERC721_ENUMERABLE
-        )
-            ? address(enumerableETHTemplate)
+        
+        // Check to see if the NFT supports Enumerable to determine which template to use
+        address template;
+        try IERC165(address(_nft)).supportsInterface(INTERFACE_ID_ERC721_ENUMERABLE) returns (bool isEnumerable) {
+          template = isEnumerable ? address(enumerableETHTemplate)
             : address(missingEnumerableETHTemplate);
+        } catch {
+          template = address(missingEnumerableETHTemplate);
+        }
 
         pair = LSSVMPairETH(
             payable(
@@ -180,12 +183,14 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
             "Bonding curve not whitelisted"
         );
 
-        address template = ERC165Checker.supportsInterface(
-            address(params.nft),
-            INTERFACE_ID_ERC721_ENUMERABLE
-        )
-            ? address(enumerableERC20Template)
+        // Check to see if the NFT supports Enumerable to determine which template to use
+        address template;
+        try IERC165(address(params.nft)).supportsInterface(INTERFACE_ID_ERC721_ENUMERABLE) returns (bool isEnumerable) {
+          template = isEnumerable ? address(enumerableERC20Template)
             : address(missingEnumerableERC20Template);
+        } catch {
+          template = address(missingEnumerableERC20Template);
+        }
 
         pair = LSSVMPairERC20(
             payable(
