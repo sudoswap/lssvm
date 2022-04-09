@@ -22,7 +22,7 @@ abstract contract OwnableWithTransferCallback {
 
     /// @dev Initializes the contract setting the deployer as the initial owner.
     function __Ownable_init(address initialOwner) internal {
-        _transferOwnership(initialOwner);
+        _owner = initialOwner;
     }
 
     /// @dev Returns the address of the current owner.
