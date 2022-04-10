@@ -3,5 +3,5 @@
 pragma solidity ^0.8.4;
 
 interface IOwnershipTransferCallback {
-  function onOwnershipTransfer() external;
+  function onOwnershipTransfer(address oldOwner) external;
 }

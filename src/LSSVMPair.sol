@@ -43,8 +43,8 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
     address payable public assetRecipient;
 
     // Events
-    event SwapNFTInPair(uint256 tokenAmount, uint256 numNFTs);
-    event SwapNFTOutPair(uint256 tokenAmount, uint256 numNFTs);
+    event SwapNFTInPair();
+    event SwapNFTOutPair();
     event SpotPriceUpdate(uint128 newSpotPrice);
     event TokenDeposit(uint256 amount);
     event TokenWithdrawal(uint256 amount);
@@ -165,7 +165,7 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapNFTOutPair(inputAmount, numNFTs);
+        emit SwapNFTOutPair();
     }
 
     /**
@@ -225,7 +225,7 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapNFTOutPair(inputAmount, nftIds.length);
+        emit SwapNFTOutPair();
     }
 
     /**
@@ -277,7 +277,7 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
 
         _takeNFTsFromSender(nft(), nftIds, _factory, isRouter, routerCaller);
 
-        emit SwapNFTInPair(outputAmount, nftIds.length);
+        emit SwapNFTInPair();
     }
 
     /**

@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 import {IOwnershipTransferCallback} from "../lib/IOwnershipTransferCallback.sol";
 
 contract TestPairManager is IOwnershipTransferCallback {
-    uint256 public isCallbackSet = 0;
+    address public prevOwner;
 
     constructor() {}
 
-    function onOwnershipTransfer() public {
-        isCallbackSet = 1;
+    function onOwnershipTransfer(address a) public {
+        prevOwner = a;
     }
 }

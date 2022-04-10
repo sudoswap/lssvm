@@ -105,7 +105,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
     function test_transferCallback() public {
         pair.transferOwnership(address(pairManager));
-        assertEq(pairManager.isCallbackSet(), 1);
+        assertEq(pairManager.prevOwner(), address(this));
     }
 
     function testGas_transferNoCallback() public {

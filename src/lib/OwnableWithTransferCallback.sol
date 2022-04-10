@@ -48,7 +48,7 @@ abstract contract OwnableWithTransferCallback {
         // @dev try/catch is around 5k gas cheaper than doing ERC165 checking
         if (newOwner.isContract()) {
             try
-                IOwnershipTransferCallback(newOwner).onOwnershipTransfer()
+                IOwnershipTransferCallback(newOwner).onOwnershipTransfer(msg.sender)
             {} catch (bytes memory) {}
         }
     }
