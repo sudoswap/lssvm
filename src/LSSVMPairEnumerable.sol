@@ -91,5 +91,7 @@ abstract contract LSSVMPairEnumerable is LSSVMPair {
                 ++i;
             }
         }
+
+        emit NFTWithdrawal();
     }
 }
