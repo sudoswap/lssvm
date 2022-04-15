@@ -3,17 +3,23 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {OwnableWithTransferCallback} from "./lib/OwnableWithTransferCallback.sol";
 import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {LSSVMRouter} from "./LSSVMRouter.sol";
 import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 /// @title The base contract for an NFT/TOKEN AMM pair
 /// @author boredGenius and 0xmons
 /// @notice This implements the core swap logic from NFT to TOKEN
-abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
+abstract contract LSSVMPair is
+    OwnableWithTransferCallback,
+    ReentrancyGuard,
+    ERC1155Holder
+{
     enum PoolType {
         TOKEN,
         NFT,
@@ -541,7 +547,7 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
             outputAmount >= minExpectedTokenOutput,
             "Out too little tokens"
         );
-        
+
         // Consolidate writes to save gas
         if (currentSpotPrice != newSpotPrice || currentDelta != newDelta) {
             spotPrice = newSpotPrice;
@@ -717,9 +723,9 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
      */
 
     /**
-        @notice Rescues a specified set of NFTs owned by the pair to the owner address.
-        @dev If the NFT is the pair's collection, we also remove it from the id tracking.
-        @param a The address of the NFT to transfer
+        @notice Rescues a specified set of NFTs owned by the pair to the owner address. (onlyOwnable modifier is in the implemented function)
+        @dev If the NFT is the pair's collection, we also remove it from the id tracking (if the NFT is missing enumerable).
+        @param a The NFT to transfer
         @param nftIds The list of IDs of the NFTs to send to the owner
      */
     function withdrawERC721(IERC721 a, uint256[] calldata nftIds)
@@ -727,11 +733,25 @@ abstract contract LSSVMPair is OwnableWithTransferCallback, ReentrancyGuard {
         virtual;
 
     /**
-        @notice Rescues ERC20 tokens from the pair to the owner. Only callable by the owner.
-        @param a The address of the token to transfer
+        @notice Rescues ERC20 tokens from the pair to the owner. Only callable by the owner (onlyOwnable modifier is in the implemented function).
+        @param a The token to transfer
         @param amount The amount of tokens to send to the owner
      */
     function withdrawERC20(ERC20 a, uint256 amount) external virtual;
+
+    /**
+        @notice Rescues ERC1155 tokens from the pair to the owner. Only callable by the owner.
+        @param a The NFT to transfer
+        @param ids The NFT ids to transfer
+        @param amounts The amounts of each id to transfer
+     */
+    function withdrawERC1155(
+        IERC1155 a,
+        uint256[] calldata ids,
+        uint256[] calldata amounts
+    ) external onlyOwner {
+        a.safeBatchTransferFrom(address(this), msg.sender, ids, amounts, "");
+    }
 
     /**
         @notice Updates the selling spot price. Only callable by the owner.
