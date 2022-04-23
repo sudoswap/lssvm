@@ -371,4 +371,63 @@ abstract contract RouterRobustSwap is
         );
         require(remainingValue == 0.36 ether, "Incorrect ETH received");
     }
+
+    // Test where we buy and sell in the same tx
+    function test_robustSwapNFTsForTokenAndTokenForNFTs() public {
+
+        // Check that we own #0 and #1, and that we don't own #32 and #33
+        assertEq(test721.ownerOf(0), address(pair1));
+        assertEq(test721.ownerOf(1), address(pair1));
+        assertEq(test721.ownerOf(32), address(this));
+        assertEq(test721.ownerOf(33), address(this));
+
+        uint256[] memory nftIds1 = new uint256[](2);
+        nftIds1[0] = 0;
+        nftIds1[1] = 1;
+        LSSVMRouter.RobustPairSwapSpecific[]
+            memory tokenToNFTSwapList = new LSSVMRouter.RobustPairSwapSpecific[](
+                1
+            );
+        tokenToNFTSwapList[0] = LSSVMRouter.RobustPairSwapSpecific({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: pair1,
+                nftIds: nftIds1
+            }),
+            maxCost: 0.44 ether
+        });
+
+        // We queue up a NFT->Token swap that should work 
+        uint256[] memory nftIds2 = new uint256[](2);
+        nftIds2[0] = 32;
+        nftIds2[1] = 33;
+        LSSVMRouter.RobustPairSwapSpecificForToken[]
+            memory nftToTokenSwapList = new LSSVMRouter.RobustPairSwapSpecificForToken[](
+                1
+            );
+        nftToTokenSwapList[0] = LSSVMRouter.RobustPairSwapSpecificForToken({
+            swapInfo: LSSVMRouter.PairSwapSpecific({
+                pair: pair2,
+                nftIds: nftIds2
+            }),
+            minOutput: 0.3 ether
+        });
+
+        // Do the swap
+        uint256 inputAmount = 0.44 ether;
+        this.robustSwapTokenForSpecificNFTsAndNFTsForTokens{value: modifyInputAmount(inputAmount)}(
+          router,
+          LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade({
+          nftToTokenTrades: nftToTokenSwapList,
+          tokenToNFTTrades: tokenToNFTSwapList,
+          inputAmount: inputAmount,
+          tokenRecipient: payable(address(this)),
+          nftRecipient: address(this)
+        }));
+
+        // Check that we own #0 and #1, and that we don't own #32 and #33
+        assertEq(test721.ownerOf(0), address(this));
+        assertEq(test721.ownerOf(1), address(this));
+        assertEq(test721.ownerOf(32), address(pair2));
+        assertEq(test721.ownerOf(33), address(pair2));
+    }
 }

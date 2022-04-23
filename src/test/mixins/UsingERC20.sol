@@ -197,4 +197,11 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
                 deadline
             );
     }
+
+    function robustSwapTokenForSpecificNFTsAndNFTsForTokens(
+        LSSVMRouter router,
+        LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
+    ) public payable override returns (uint256, uint256) {
+        return router.robustSwapERC20ForSpecificNFTsAndNFTsToToken(params);
+    }
 }

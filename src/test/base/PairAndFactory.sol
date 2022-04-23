@@ -20,14 +20,18 @@ import {Configurable} from "../mixins/Configurable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Test721} from "../../mocks/Test721.sol";
 import {TestPairManager} from "../../mocks/TestPairManager.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import {Test1155} from "../../mocks/Test1155.sol";
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
-abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
+abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155Holder {
     uint128 delta = 1.1 ether;
     uint128 spotPrice = 1 ether;
     uint256 tokenAmount = 10 ether;
     uint256 numItems = 2;
     uint256[] idList;
     IERC721 test721;
+    Test1155 test1155;
     ERC20 testERC20;
     ICurve bondingCurve;
     LSSVMPairFactory factory;
@@ -71,7 +75,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
             tokenAmount,
             address(0)
         );
-
+        test1155 = new Test1155();
         testERC20 = ERC20(address(new Test20()));
         IMintable(address(testERC20)).mint(address(pair), 1 ether);
         pairManager = new TestPairManager();
@@ -220,6 +224,17 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable {
 
         // verify NFT ownership
         assertEq(test721.ownerOf(1000), address(this));
+    }
+
+    function test_withdraw1155() public {
+        test1155.mint(address(pair), 1, 2);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 1;
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 2;
+        pair.withdrawERC1155(IERC1155(address(test1155)), ids, amounts);
+        assertEq(IERC1155(address(test1155)).balanceOf(address(pair), 1), 0);
+        assertEq(IERC1155(address(test1155)).balanceOf(address(this), 1), 2);
     }
 
     /**

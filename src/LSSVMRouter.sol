@@ -47,6 +47,14 @@ contract LSSVMRouter {
         PairSwapSpecific[] tokenToNFTTrades;
     }
 
+    struct RobustPairNFTsFoTokenAndTokenforNFTsTrade {
+        RobustPairSwapSpecific[] tokenToNFTTrades;  
+        RobustPairSwapSpecificForToken[] nftToTokenTrades;
+        uint256 inputAmount;
+        address payable tokenRecipient;
+        address nftRecipient;
+    }
+
     modifier checkDeadline(uint256 deadline) {
         _checkDeadline(deadline);
         _;
@@ -417,12 +425,7 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    )
-        external
-        payable
-        checkDeadline(deadline)
-        returns (uint256 remainingValue)
-    {
+    ) public payable checkDeadline(deadline) returns (uint256 remainingValue) {
         remainingValue = msg.value;
         uint256 pairCost;
         CurveErrorCodes.Error error;
@@ -526,12 +529,7 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address nftRecipient,
         uint256 deadline
-    )
-        external
-        payable
-        checkDeadline(deadline)
-        returns (uint256 remainingValue)
-    {
+    ) public checkDeadline(deadline) returns (uint256 remainingValue) {
         remainingValue = inputAmount;
         uint256 pairCost;
         CurveErrorCodes.Error error;
@@ -578,7 +576,7 @@ contract LSSVMRouter {
         RobustPairSwapSpecificForToken[] calldata swapList,
         address payable tokenRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) public checkDeadline(deadline) returns (uint256 outputAmount) {
         // Try doing each swap
         uint256 numSwaps = swapList.length;
         for (uint256 i; i < numSwaps; ) {
@@ -613,6 +611,209 @@ contract LSSVMRouter {
 
             unchecked {
                 ++i;
+            }
+        }
+    }
+
+    /**
+        @notice Buys NFTs with ETH and sells them for tokens in one transaction
+        @param params All the parameters for the swap (packed in struct to avoid stack too deep), containing:
+        - ethToNFTSwapList The list of NFTs to buy
+        - nftToTokenSwapList The list of NFTs to sell
+        - inputAmount The max amount of tokens to send (if ERC20)
+        - tokenRecipient The address that receives tokens from the NFTs sold
+        - nftRecipient The address that receives NFTs
+        - deadline UNIX timestamp deadline for the swap
+     */
+    function robustSwapETHForSpecificNFTsAndNFTsToToken(
+        RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
+    ) external payable returns (uint256 remainingValue, uint256 outputAmount) {
+        {
+            remainingValue = msg.value;
+            uint256 pairCost;
+            CurveErrorCodes.Error error;
+
+            // Try doing each swap
+            uint256 numSwaps = params.tokenToNFTTrades.length;
+            for (uint256 i; i < numSwaps; ) {
+                // Calculate actual cost per swap
+                (error, , , pairCost, ) = params
+                    .tokenToNFTTrades[i]
+                    .swapInfo
+                    .pair
+                    .getBuyNFTQuote(
+                        params.tokenToNFTTrades[i].swapInfo.nftIds.length
+                    );
+
+                // If within our maxCost and no error, proceed
+                if (
+                    pairCost <= params.tokenToNFTTrades[i].maxCost &&
+                    error == CurveErrorCodes.Error.OK
+                ) {
+                    // We know how much ETH to send because we already did the math above
+                    // So we just send that much
+                    remainingValue -= params
+                        .tokenToNFTTrades[i]
+                        .swapInfo
+                        .pair
+                        .swapTokenForSpecificNFTs{value: pairCost}(
+                        params.tokenToNFTTrades[i].swapInfo.nftIds,
+                        pairCost,
+                        params.nftRecipient,
+                        true,
+                        msg.sender
+                    );
+                }
+
+                unchecked {
+                    ++i;
+                }
+            }
+
+            // Return remaining value to sender
+            if (remainingValue > 0) {
+                params.tokenRecipient.safeTransferETH(remainingValue);
+            }
+        }
+        {
+            // Try doing each swap
+            uint256 numSwaps = params.nftToTokenTrades.length;
+            for (uint256 i; i < numSwaps; ) {
+                uint256 pairOutput;
+
+                // Locally scoped to avoid stack too deep error
+                {
+                    CurveErrorCodes.Error error;
+                    (error, , , pairOutput, ) = params
+                        .nftToTokenTrades[i]
+                        .swapInfo
+                        .pair
+                        .getSellNFTQuote(
+                            params.nftToTokenTrades[i].swapInfo.nftIds.length
+                        );
+                    if (error != CurveErrorCodes.Error.OK) {
+                        unchecked {
+                            ++i;
+                        }
+                        continue;
+                    }
+                }
+
+                // If at least equal to our minOutput, proceed
+                if (pairOutput >= params.nftToTokenTrades[i].minOutput) {
+                    // Do the swap and update outputAmount with how many tokens we got
+                    outputAmount += params
+                        .nftToTokenTrades[i]
+                        .swapInfo
+                        .pair
+                        .swapNFTsForToken(
+                            params.nftToTokenTrades[i].swapInfo.nftIds,
+                            0,
+                            params.tokenRecipient,
+                            true,
+                            msg.sender
+                        );
+                }
+
+                unchecked {
+                    ++i;
+                }
+            }
+        }
+    }
+
+    /**
+        @notice Buys NFTs with ERC20, and sells them for tokens in one transaction
+        @param params All the parameters for the swap (packed in struct to avoid stack too deep), containing:
+        - ethToNFTSwapList The list of NFTs to buy
+        - nftToTokenSwapList The list of NFTs to sell
+        - inputAmount The max amount of tokens to send (if ERC20)
+        - tokenRecipient The address that receives tokens from the NFTs sold
+        - nftRecipient The address that receives NFTs
+        - deadline UNIX timestamp deadline for the swap
+     */
+    function robustSwapERC20ForSpecificNFTsAndNFTsToToken(
+        RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
+    ) external payable returns (uint256 remainingValue, uint256 outputAmount) {
+        {
+            remainingValue = params.inputAmount;
+            uint256 pairCost;
+            CurveErrorCodes.Error error;
+
+            // Try doing each swap
+            uint256 numSwaps = params.tokenToNFTTrades.length;
+            for (uint256 i; i < numSwaps; ) {
+                // Calculate actual cost per swap
+                (error, , , pairCost, ) = params.tokenToNFTTrades[i]
+                    .swapInfo
+                    .pair
+                    .getBuyNFTQuote(params.tokenToNFTTrades[i].swapInfo.nftIds.length);
+
+                // If within our maxCost and no error, proceed
+                if (
+                    pairCost <= params.tokenToNFTTrades[i].maxCost &&
+                    error == CurveErrorCodes.Error.OK
+                ) {
+                    remainingValue -= params.tokenToNFTTrades[i]
+                        .swapInfo
+                        .pair
+                        .swapTokenForSpecificNFTs(
+                            params.tokenToNFTTrades[i].swapInfo.nftIds,
+                            pairCost,
+                            params.nftRecipient,
+                            true,
+                            msg.sender
+                        );
+                }
+
+                unchecked {
+                    ++i;
+                }
+            }
+        }
+        {
+            // Try doing each swap
+            uint256 numSwaps = params.nftToTokenTrades.length;
+            for (uint256 i; i < numSwaps; ) {
+                uint256 pairOutput;
+
+                // Locally scoped to avoid stack too deep error
+                {
+                    CurveErrorCodes.Error error;
+                    (error, , , pairOutput, ) = params
+                        .nftToTokenTrades[i]
+                        .swapInfo
+                        .pair
+                        .getSellNFTQuote(
+                            params.nftToTokenTrades[i].swapInfo.nftIds.length
+                        );
+                    if (error != CurveErrorCodes.Error.OK) {
+                        unchecked {
+                            ++i;
+                        }
+                        continue;
+                    }
+                }
+
+                // If at least equal to our minOutput, proceed
+                if (pairOutput >= params.nftToTokenTrades[i].minOutput) {
+                    // Do the swap and update outputAmount with how many tokens we got
+                    outputAmount += params
+                        .nftToTokenTrades[i]
+                        .swapInfo
+                        .pair
+                        .swapNFTsForToken(
+                            params.nftToTokenTrades[i].swapInfo.nftIds,
+                            0,
+                            params.tokenRecipient,
+                            true,
+                            msg.sender
+                        );
+                }
+
+                unchecked {
+                    ++i;
+                }
             }
         }
     }

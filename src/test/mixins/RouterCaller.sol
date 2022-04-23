@@ -59,4 +59,9 @@ abstract contract RouterCaller {
         uint256 deadline,
         uint256 inputAmount
     ) public payable virtual returns (uint256);
+
+    function robustSwapTokenForSpecificNFTsAndNFTsForTokens(
+        LSSVMRouter router,
+        LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
+    ) public payable virtual returns (uint256, uint256);
 }
