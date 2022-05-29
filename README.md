@@ -1,8 +1,8 @@
-# sudoswap AMM
+# sudoAMM
 
-An implementation of the AMM idea described [here](https://blog.0xmons.xyz/83017366310).
+An implementation of the AMM protocol described [here](https://blog.0xmons.xyz/83017366310).
 
-Liquidity providers use `LSSVMPairFactory` to deploy a minimal proxy `LSSVMPair` for a specific NFT collection. From there, the deployed pool maintains its own TOKEN/NFT inventory. Users can then call the various `swap` functions on the pool to trade TOKEN/NFTs.
+Liquidity providers use `LSSVMPairFactory` to deploy a modified minimal proxy `LSSVMPair` for a specific NFT collection. From there, the deployed pool maintains its own TOKEN/NFT inventory. Users can then call the various `swap` functions on the pool to trade TOKEN/NFTs.
 
 `LSSVMPair`s are either `LSSVMPairEnumerable` or `LSSVMPairMissingEnumerable` depending on whether or not the pair's `ERC721` contract supports `Enumerable` or not. If it doesn't, we implement our own ID set to allow for easy access to NFT IDs in the pool.
 
@@ -13,7 +13,7 @@ For the actual token, NFTs are paired either with an `ERC20` or `ETH`, so there 
 * Enumerable | ETH
 * Enumerable | ERC20
 
-The `LSSVMRouter` allows splitting swaps across multiple `LSSVMPair`s to purchase multiple NFTs.
+The `LSSVMRouter` allows splitting swaps across multiple `LSSVMPair`s to purchase and sell multiple NFTs in one call.
 
 An `LSSVMPair` can be TOKEN, NFT, or TRADE. 
 The type refers to what the pool holds:
