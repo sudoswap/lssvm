@@ -146,7 +146,7 @@ abstract contract LSSVMPair is
                 "Wrong Pool type"
             );
             require(
-                (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
+                (numNFTs != 0) && (numNFTs <= _nft.balanceOf(address(this))),
                 "Ask for > 0 and <= balanceOf NFTs"
             );
         }
@@ -208,7 +208,7 @@ abstract contract LSSVMPair is
                 _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
-            require((nftIds.length > 0), "Must ask for > 0 NFTs");
+            require((nftIds.length != 0), "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
@@ -266,7 +266,7 @@ abstract contract LSSVMPair is
                 _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
-            require(nftIds.length > 0, "Must ask for > 0 NFTs");
+            require(nftIds.length != 0, "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
