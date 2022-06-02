@@ -89,13 +89,13 @@ abstract contract LSSVMPair is
         PoolType _poolType = poolType();
 
         if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
-            require(_fee == 0, "Only Trade Pools can have nonzero fee");
+            require(_fee == 0, "Only Trade Pools can have >0 fee");
             assetRecipient = _assetRecipient;
         } else if (_poolType == PoolType.TRADE) {
             require(_fee < MAX_FEE, "Trade fee must be less than 90%");
             require(
                 _assetRecipient == address(0),
-                "Trade pools can't set asset recipient"
+                "Trade pools can't set recipient"
             );
             fee = _fee;
         }
@@ -147,7 +147,7 @@ abstract contract LSSVMPair is
             );
             require(
                 (numNFTs != 0) && (numNFTs <= _nft.balanceOf(address(this))),
-                "Ask for > 0 and <= balanceOf NFTs"
+                "Ask for >0 and <= balanceOf NFTs"
             );
         }
 
@@ -860,7 +860,7 @@ abstract contract LSSVMPair is
         // Prevent multicall from malicious frontend sneaking in ownership change
         require(
             owner() == msg.sender,
-            "Ownership cannot be changed in multicall"
+            "Owner can't change in multicall"
         );
     }
 
