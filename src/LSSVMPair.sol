@@ -665,7 +665,8 @@ abstract contract LSSVMPair is
                 // If more than 1 NFT is being transfered, we can do a balance check instead of an ownership check, as pools are indifferent between NFTs from the same collection
                 if (numNFTs > 1) {
                     uint256 beforeBalance = _nft.balanceOf(_assetRecipient);
-                    for (uint256 i = 0; i < numNFTs; ) {
+                    uint256 i;
+                    do {
                         router.pairTransferNFTFrom(
                             _nft,
                             routerCaller,
@@ -677,7 +678,7 @@ abstract contract LSSVMPair is
                         unchecked {
                             ++i;
                         }
-                    }
+                    } while (i < numNFTs);
                     require(
                         (_nft.balanceOf(_assetRecipient) - beforeBalance) ==
                             numNFTs,
