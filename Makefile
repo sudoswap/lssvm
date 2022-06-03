@@ -23,7 +23,7 @@ clean  :; forge clean
 lint   :; yarn run lint
 estimate :; ./scripts/estimate-gas.sh ${contract}
 size   :; ./scripts/contract-size.sh ${contract}
-snapshot :; forge snapshot --optimize --optimize-runs 1000000
+snapshot :; forge snapshot --optimize --optimizer-runs 1000000
 test-deploy :; ./scripts/test-deploy.sh
 
 # Deployment helpers
