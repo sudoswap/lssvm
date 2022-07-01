@@ -407,7 +407,7 @@ contract LSSVMRouter {
         }
 
         // Return remaining value to sender
-        if (remainingValue > 0) {
+        if (remainingValue != 0) {
             ethRecipient.safeTransferETH(remainingValue);
         }
     }
@@ -463,7 +463,7 @@ contract LSSVMRouter {
         }
 
         // Return remaining value to sender
-        if (remainingValue > 0) {
+        if (remainingValue != 0) {
             ethRecipient.safeTransferETH(remainingValue);
         }
     }
@@ -671,7 +671,7 @@ contract LSSVMRouter {
             }
 
             // Return remaining value to sender
-            if (remainingValue > 0) {
+            if (remainingValue != 0) {
                 params.tokenRecipient.safeTransferETH(remainingValue);
             }
         }
@@ -937,7 +937,7 @@ contract LSSVMRouter {
         }
 
         // Return remaining value to sender
-        if (remainingValue > 0) {
+        if (remainingValue != 0) {
             ethRecipient.safeTransferETH(remainingValue);
         }
     }
@@ -990,7 +990,7 @@ contract LSSVMRouter {
         }
 
         // Return remaining value to sender
-        if (remainingValue > 0) {
+        if (remainingValue != 0) {
             ethRecipient.safeTransferETH(remainingValue);
         }
     }

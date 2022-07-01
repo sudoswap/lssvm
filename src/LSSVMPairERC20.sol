@@ -92,7 +92,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             );
 
             // Take protocol fee (if it exists)
-            if (protocolFee > 0) {
+            if (protocolFee != 0) {
                 _token.safeTransferFrom(
                     msg.sender,
                     address(_factory),
@@ -113,7 +113,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         uint256 protocolFee
     ) internal override {
         // Take protocol fee (if it exists)
-        if (protocolFee > 0) {
+        if (protocolFee != 0) {
             ERC20 _token = token();
 
             // Round down to the actual token balance if there are numerical stability issues with the bonding curve calculations
@@ -121,7 +121,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             if (protocolFee > pairTokenBalance) {
                 protocolFee = pairTokenBalance;
             }
-            if (protocolFee > 0) {
+            if (protocolFee != 0) {
                 _token.safeTransfer(address(_factory), protocolFee);
             }
         }
@@ -133,7 +133,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         uint256 outputAmount
     ) internal override {
         // Send tokens to caller
-        if (outputAmount > 0) {
+        if (outputAmount != 0) {
             token().safeTransfer(tokenRecipient, outputAmount);
         }
     }
