@@ -14,13 +14,13 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {LSSVMPairCloner} from "../../lib/LSSVMPairCloner.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Test721} from "../../mocks/Test721.sol";
 
 import {Hevm} from "../utils/Hevm.sol";
 
-contract XykCurveTest is DSTest, IERC721Receiver {
+contract XykCurveTest is DSTest, ERC721Holder {
     using FixedPointMathLib for uint256;
 
     uint256 constant MIN_PRICE = 1 gwei;
@@ -33,15 +33,6 @@ contract XykCurveTest is DSTest, IERC721Receiver {
     LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template;
     LSSVMPair ethPair;
     Test721 nft;
-
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external virtual returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
-    }
 
     function setUp() public {
         enumerableETHTemplate = new LSSVMPairEnumerableETH();

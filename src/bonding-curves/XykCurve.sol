@@ -15,6 +15,8 @@ import {ILSSVMPairFactoryLike} from "../LSSVMPairFactory.sol";
     @notice Bonding curve logic for an x*y=k curve.
 */
 contract XykCurve is ICurve, CurveErrorCodes {
+    using FixedPointMathLib for uint256;
+
     /**
         @dev See {ICurve-validateDelta}
      */
@@ -46,7 +48,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         For example:
             * call swap with msg.value
             * input is calculated with pair's ETH balance and NFT balance
-        There is a cyclical depdency on msg.value. So it needs to be tracked seperatelyxs.
+        There is a cyclical depdency on msg.value. So it needs to be tracked separately.
         This is not an issue for ERC20 tokens because ERC20 tokens are transferred in only AFTER getBuyInfo is called.
      */
     function getBuyInfo(
@@ -83,8 +85,11 @@ contract XykCurve is ICurve, CurveErrorCodes {
         inputValue = (numItems * tokenBalance) / (nftBalance - numItems);
 
         // add the fees to the amount to send in
-        protocolFee = (inputValue * protocolFeeMultiplier) / 1e18;
-        uint256 fee = (inputValue * feeMultiplier) / 1e18;
+        protocolFee = inputValue.fmul(
+            protocolFeeMultiplier,
+            FixedPointMathLib.WAD
+        );
+        uint256 fee = inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
         inputValue += fee + protocolFee;
 
         // possible overflow here because of uint256 -> uint128 casting
@@ -145,8 +150,11 @@ contract XykCurve is ICurve, CurveErrorCodes {
         outputValue = (numItems * tokenBalance) / (nftBalance + numItems);
 
         // subtract fees from amount to send out
-        protocolFee = (outputValue * protocolFeeMultiplier) / 1e18;
-        uint256 fee = (outputValue * feeMultiplier) / 1e18;
+        protocolFee = outputValue.fmul(
+            protocolFeeMultiplier,
+            FixedPointMathLib.WAD
+        );
+        uint256 fee = outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
         outputValue -= fee + protocolFee;
 
         newSpotPrice = uint128(
