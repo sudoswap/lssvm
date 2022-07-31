@@ -8,27 +8,13 @@ import {LSSVMPair} from "../LSSVMPair.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {LSSVMPairCloner} from "../lib/LSSVMPairCloner.sol";
 import {LSSVMPairERC20} from "../LSSVMPairERC20.sol";
+import {ILSSVMPairFactoryLike} from "../LSSVMPairFactory.sol";
 
 /*
     @author 0xacedia
     @notice Bonding curve logic for an x*y=k curve.
 */
 contract XykCurve is ICurve, CurveErrorCodes {
-    address factory;
-
-    address public immutable enumerableETHTemplate;
-    address public immutable missingEnumerableETHTemplate;
-
-    constructor(
-        address _factory,
-        address _enumerableETHTemplate,
-        address _missingEnumerableETHTemplate
-    ) {
-        factory = _factory;
-        enumerableETHTemplate = _enumerableETHTemplate;
-        missingEnumerableETHTemplate = _missingEnumerableETHTemplate;
-    }
-
     /**
         @dev See {ICurve-validateDelta}
      */
@@ -81,9 +67,10 @@ contract XykCurve is ICurve, CurveErrorCodes {
         }
 
         // get the pair's nft and eth/erc20 balance
-        IERC721 nft = IERC721(LSSVMPair(msg.sender).nft());
+        LSSVMPair pair = LSSVMPair(msg.sender);
+        IERC721 nft = IERC721(pair.nft());
         uint256 nftBalance = nft.balanceOf(msg.sender);
-        uint256 tokenBalance = isETHPair(msg.sender)
+        uint256 tokenBalance = isETHPair(pair)
             ? msg.sender.balance
             : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
 
@@ -104,18 +91,13 @@ contract XykCurve is ICurve, CurveErrorCodes {
         error = Error.OK;
     }
 
-    function isETHPair(address query) public view returns (bool) {
+    function isETHPair(LSSVMPair pair) public pure returns (bool) {
+        ILSSVMPairFactoryLike.PairVariant variant = pair.pairVariant();
+
         return
-            LSSVMPairCloner.isETHPairClone(
-                factory,
-                enumerableETHTemplate,
-                query
-            ) ||
-            LSSVMPairCloner.isETHPairClone(
-                factory,
-                missingEnumerableETHTemplate,
-                query
-            );
+            variant ==
+            ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ETH ||
+            variant == ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ETH;
     }
 
     /**

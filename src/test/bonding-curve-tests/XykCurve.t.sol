@@ -6,6 +6,15 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 import {XykCurve} from "../../bonding-curves/XykCurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
+import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
+import {LSSVMPairEnumerableETH} from "../../LSSVMPairEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableETH} from "../../LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "../../LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableERC20.sol";
+import {LSSVMPairCloner} from "../../lib/LSSVMPairCloner.sol";
+import {LSSVMPair} from "../../LSSVMPair.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {Hevm} from "../utils/Hevm.sol";
 
@@ -15,14 +24,118 @@ contract XykCurveTest is DSTest {
     uint256 constant MIN_PRICE = 1 gwei;
 
     XykCurve curve;
+    LSSVMPairFactory factory;
+    LSSVMPairEnumerableETH enumerableETHTemplate;
+    LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate;
+    LSSVMPairEnumerableERC20 enumerableERC20Template;
+    LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template;
 
     function setUp() public {
-        curve = new XykCurve(address(0), address(0), address(0));
+        enumerableETHTemplate = new LSSVMPairEnumerableETH();
+        missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
+        enumerableERC20Template = new LSSVMPairEnumerableERC20();
+        missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
+
+        factory = new LSSVMPairFactory(
+            enumerableETHTemplate,
+            missingEnumerableETHTemplate,
+            enumerableERC20Template,
+            missingEnumerableERC20Template,
+            payable(0),
+            0
+        );
+
+        curve = new XykCurve();
     }
 
-    function test_isETHPair() public {}
+    function test_getBuyInfoCannotHave0NumItems() public {
+        // arrange
+        uint256 numItems = 0;
 
-    function test_buyReturnsSpotPrice() public {}
+        // act
+        (CurveErrorCodes.Error error, , , , ) = curve.getBuyInfo(
+            0,
+            0,
+            numItems,
+            0,
+            0
+        );
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.INVALID_NUMITEMS),
+            "Should have returned invalid num items error"
+        );
+    }
+
+    function test_isETHPair() public {
+        // arrange
+        address enumerableETHPair = LSSVMPairCloner.cloneETHPair(
+            address(enumerableETHTemplate),
+            factory,
+            curve,
+            IERC721(address(0)),
+            uint8(2)
+        );
+        address missingEnumerableETHPair = LSSVMPairCloner.cloneETHPair(
+            address(missingEnumerableETHTemplate),
+            factory,
+            curve,
+            IERC721(address(0)),
+            uint8(2)
+        );
+        address enumerableERC20Pair = LSSVMPairCloner.cloneERC20Pair(
+            address(enumerableERC20Template),
+            factory,
+            curve,
+            IERC721(address(0)),
+            uint8(2),
+            ERC20(address(0))
+        );
+        address missingEnumerableERC20Pair = LSSVMPairCloner.cloneERC20Pair(
+            address(missingEnumerableERC20Template),
+            factory,
+            curve,
+            IERC721(address(0)),
+            uint8(2),
+            ERC20(address(0))
+        );
+
+        // act
+        bool isEnumerableETHPairETHPair = curve.isETHPair(
+            LSSVMPair(enumerableETHPair)
+        );
+        bool isMissingEnumerableETHPairETHPair = curve.isETHPair(
+            LSSVMPair(missingEnumerableETHPair)
+        );
+        bool isEnumerableERC20PairETHPair = curve.isETHPair(
+            LSSVMPair(enumerableERC20Pair)
+        );
+        bool isMissingEnumerableERC20PairETHPair = curve.isETHPair(
+            LSSVMPair(missingEnumerableERC20Pair)
+        );
+
+        // assert
+        assertTrue(
+            isEnumerableETHPairETHPair,
+            "Enumerable ETH pair should be detected as an ETH pair"
+        );
+        assertTrue(
+            isMissingEnumerableETHPairETHPair,
+            "Missing enumerable ETH pair should be detected as an ETH pair"
+        );
+        assertTrue(
+            !isEnumerableERC20PairETHPair,
+            "Enumerable ERC20 pair should not be detected as an ETH pair"
+        );
+        assertTrue(
+            !isMissingEnumerableERC20PairETHPair,
+            "Missing enumerable ERC20 pair should not be detected as an ETH pair"
+        );
+    }
+
+    function test_getBuyInfoReturnsSpotPrice() public {}
 
     function test_sellReturnsSpotPrice() public {}
 
