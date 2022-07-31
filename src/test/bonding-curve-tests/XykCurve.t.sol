@@ -14,12 +14,13 @@ import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableE
 import {LSSVMPairCloner} from "../../lib/LSSVMPairCloner.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {Test721} from "../../mocks/Test721.sol";
 
 import {Hevm} from "../utils/Hevm.sol";
 
-contract XykCurveTest is DSTest {
+contract XykCurveTest is DSTest, IERC721Receiver {
     using FixedPointMathLib for uint256;
 
     uint256 constant MIN_PRICE = 1 gwei;
@@ -32,6 +33,15 @@ contract XykCurveTest is DSTest {
     LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template;
     LSSVMPair ethPair;
     Test721 nft;
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external virtual returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
+    }
 
     function setUp() public {
         enumerableETHTemplate = new LSSVMPairEnumerableETH();
@@ -66,7 +76,7 @@ contract XykCurveTest is DSTest {
             curve,
             payable(0),
             LSSVMPair.PoolType.TRADE,
-            0,
+            uint128(value),
             0,
             0,
             idList
@@ -147,6 +157,72 @@ contract XykCurveTest is DSTest {
         );
     }
 
+    function test_getBuyInfoCalculatesProtocolFee() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 0.8 ether;
+        setUpEthPair(numNfts, value);
+        factory.changeProtocolFeeMultiplier((2 * 1e18) / 100); // 2%
+        uint256 numItemsToBuy = 3;
+        uint256 expectedProtocolFee = (2 *
+            ((numItemsToBuy * value) / (numNfts - numItemsToBuy))) / 100;
+
+        // act
+        (CurveErrorCodes.Error error, , , , uint256 protocolFee) = ethPair
+            .getBuyNFTQuote(numItemsToBuy);
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            protocolFee,
+            expectedProtocolFee,
+            "Should have calculated protocol fee"
+        );
+    }
+
+    function test_swapTokenForAnyNFTs() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 0.8 ether;
+        setUpEthPair(numNfts, value);
+        uint256 numItemsToBuy = 2;
+        uint256 ethBalanceBefore = address(this).balance;
+        uint256 nftBalanceBefore = nft.balanceOf(address(this));
+
+        (CurveErrorCodes.Error error, , , uint256 inputValue, ) = ethPair
+            .getBuyNFTQuote(numItemsToBuy);
+
+        // act
+        ethPair.swapTokenForAnyNFTs{value: inputValue}(
+            numItemsToBuy,
+            inputValue,
+            address(this),
+            false,
+            address(0)
+        );
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            ethBalanceBefore - address(this).balance,
+            inputValue,
+            "Should have transferred ETH"
+        );
+        assertEq(
+            nft.balanceOf(address(this)) - nftBalanceBefore,
+            numItemsToBuy,
+            "Should have received NFTs"
+        );
+    }
+
     function test_sellReturnsSpotPrice() public {}
 
     function test_buyCalculatesFee() public {}
@@ -218,165 +294,4 @@ contract XykCurveTest is DSTest {
             "Missing enumerable ERC20 pair should not be detected as an ETH pair"
         );
     }
-
-    // function test_getBuyInfoExample() public {
-    //     uint128 spotPrice = 3 ether;
-    //     uint128 delta = 2 ether; // 2
-    //     uint256 numItems = 5;
-    //     uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
-    //     uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
-    //     (
-    //         CurveErrorCodes.Error error,
-    //         uint256 newSpotPrice,
-    //         uint256 newDelta,
-    //         uint256 inputValue,
-    //         uint256 protocolFee
-    //     ) = curve.getBuyInfo(
-    //             spotPrice,
-    //             delta,
-    //             numItems,
-    //             feeMultiplier,
-    //             protocolFeeMultiplier
-    //         );
-    //     assertEq(
-    //         uint256(error),
-    //         uint256(CurveErrorCodes.Error.OK),
-    //         "Error code not OK"
-    //     );
-    //     assertEq(newSpotPrice, 96 ether, "Spot price incorrect");
-    //     assertEq(newDelta, 2 ether, "Delta incorrect");
-    //     assertEq(inputValue, 187.488 ether, "Input value incorrect");
-    //     assertEq(protocolFee, 0.558 ether, "Protocol fee incorrect");
-    // }
-
-    // function test_getBuyInfoWithoutFee(
-    //     uint128 spotPrice,
-    //     uint64 delta,
-    //     uint8 numItems
-    // ) public {
-    //     if (
-    //         delta < FixedPointMathLib.WAD ||
-    //         numItems > 10 ||
-    //         spotPrice < MIN_PRICE ||
-    //         numItems == 0
-    //     ) {
-    //         return;
-    //     }
-
-    //     (
-    //         CurveErrorCodes.Error error,
-    //         uint256 newSpotPrice,
-    //         uint256 newDelta,
-    //         uint256 inputValue,
-
-    //     ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
-    //     uint256 deltaPowN = uint256(delta).fpow(
-    //         numItems,
-    //         FixedPointMathLib.WAD
-    //     );
-    //     uint256 fullWidthNewSpotPrice = uint256(spotPrice).fmul(
-    //         deltaPowN,
-    //         FixedPointMathLib.WAD
-    //     );
-    //     if (fullWidthNewSpotPrice > type(uint128).max) {
-    //         assertEq(
-    //             uint256(error),
-    //             uint256(CurveErrorCodes.Error.SPOT_PRICE_OVERFLOW),
-    //             "Error code not SPOT_PRICE_OVERFLOW"
-    //         );
-    //     } else {
-    //         assertEq(
-    //             uint256(error),
-    //             uint256(CurveErrorCodes.Error.OK),
-    //             "Error code not OK"
-    //         );
-
-    //         if (spotPrice > 0 && numItems > 0) {
-    //             assertTrue(
-    //                 (newSpotPrice > spotPrice &&
-    //                     delta > FixedPointMathLib.WAD) ||
-    //                     (newSpotPrice == spotPrice &&
-    //                         delta == FixedPointMathLib.WAD),
-    //                 "Price update incorrect"
-    //             );
-    //         }
-
-    //         assertGe(
-    //             inputValue,
-    //             numItems * uint256(spotPrice),
-    //             "Input value incorrect"
-    //         );
-    //     }
-    // }
-
-    // function test_getSellInfoExample() public {
-    //     uint128 spotPrice = 3 ether;
-    //     uint128 delta = 2 ether; // 2
-    //     uint256 numItems = 5;
-    //     uint256 feeMultiplier = (FixedPointMathLib.WAD * 5) / 1000; // 0.5%
-    //     uint256 protocolFeeMultiplier = (FixedPointMathLib.WAD * 3) / 1000; // 0.3%
-    //     (
-    //         CurveErrorCodes.Error error,
-    //         uint256 newSpotPrice,
-    //         uint256 newDelta,
-    //         uint256 outputValue,
-    //         uint256 protocolFee
-    //     ) = curve.getSellInfo(
-    //             spotPrice,
-    //             delta,
-    //             numItems,
-    //             feeMultiplier,
-    //             protocolFeeMultiplier
-    //         );
-    //     assertEq(
-    //         uint256(error),
-    //         uint256(CurveErrorCodes.Error.OK),
-    //         "Error code not OK"
-    //     );
-    //     assertEq(newSpotPrice, 0.09375 ether, "Spot price incorrect");
-    //     assertEq(newDelta, 2 ether, "Delta incorrect");
-    //     assertEq(outputValue, 5.766 ether, "Output value incorrect");
-    //     assertEq(protocolFee, 0.0174375 ether, "Protocol fee incorrect");
-    // }
-
-    // function test_getSellInfoWithoutFee(
-    //     uint128 spotPrice,
-    //     uint128 delta,
-    //     uint8 numItems
-    // ) public {
-    //     if (
-    //         delta < FixedPointMathLib.WAD ||
-    //         spotPrice < MIN_PRICE ||
-    //         numItems == 0
-    //     ) {
-    //         return;
-    //     }
-
-    //     (
-    //         CurveErrorCodes.Error error,
-    //         uint256 newSpotPrice,
-    //         ,
-    //         uint256 outputValue,
-
-    //     ) = curve.getSellInfo(spotPrice, delta, numItems, 0, 0);
-    //     assertEq(
-    //         uint256(error),
-    //         uint256(CurveErrorCodes.Error.OK),
-    //         "Error code not OK"
-    //     );
-
-    //     if (spotPrice > MIN_PRICE && numItems > 0) {
-    //         assertTrue(
-    //             (newSpotPrice < spotPrice && delta > 0) ||
-    //                 (newSpotPrice == spotPrice && delta == 0),
-    //             "Price update incorrect"
-    //         );
-    //     }
-
-    //     assertLe(
-    //         outputValue,
-    //         numItems * uint256(spotPrice),
-    //         "Output value incorrect"
-    //     );
-    // }
 }

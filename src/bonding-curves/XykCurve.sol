@@ -24,8 +24,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         override
         returns (bool)
     {
-        // delta should never be set
-        return delta == 0;
+        return true;
     }
 
     /**
@@ -42,7 +41,13 @@ contract XykCurve is ICurve, CurveErrorCodes {
     }
 
     /**
-        @dev See {ICurve-getBuyInfo}
+        @dev See {ICurve-getBuyInfo}. For ETH pairs, the previous eth balance is stored in `delta`.
+        This is so that we don't include the msg.value when calculating the swap price.
+        For example:
+            * call swap with msg.value
+            * input is calculated with pair's ETH balance and NFT balance
+        There is a cyclical depdency on msg.value. So it needs to be tracked seperatelyxs.
+        This is not an issue for ERC20 tokens because ERC20 tokens are transferred in only AFTER getBuyInfo is called.
      */
     function getBuyInfo(
         uint128 spotPrice,
@@ -71,7 +76,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         IERC721 nft = IERC721(pair.nft());
         uint256 nftBalance = nft.balanceOf(msg.sender);
         uint256 tokenBalance = isETHPair(pair)
-            ? msg.sender.balance
+            ? delta // previous eth balance (avoids including msg.value)
             : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
 
         // calculate the amount to send in
@@ -82,10 +87,13 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 fee = (inputValue * feeMultiplier) / 1e18;
         inputValue += fee + protocolFee;
 
-        // possible overflow here
+        // possible overflow here because of uint256 -> uint128 casting
         newSpotPrice = uint128(
             (inputValue + tokenBalance) / (nftBalance - numItems)
         );
+
+        // save the current eth balance
+        newDelta = uint128(msg.sender.balance);
 
         // If we got all the way here, no math error happened
         error = Error.OK;
