@@ -15,6 +15,7 @@ import {LSSVMPairCloner} from "../../lib/LSSVMPairCloner.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {Test721} from "../../mocks/Test721.sol";
 
 import {Hevm} from "../utils/Hevm.sol";
 
@@ -29,6 +30,8 @@ contract XykCurveTest is DSTest {
     LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate;
     LSSVMPairEnumerableERC20 enumerableERC20Template;
     LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template;
+    LSSVMPair ethPair;
+    Test721 nft;
 
     function setUp() public {
         enumerableETHTemplate = new LSSVMPairEnumerableETH();
@@ -46,6 +49,28 @@ contract XykCurveTest is DSTest {
         );
 
         curve = new XykCurve();
+        factory.setBondingCurveAllowed(curve, true);
+    }
+
+    function setUpEthPair(uint256 numNfts, uint256 value) public {
+        nft = new Test721();
+        nft.setApprovalForAll(address(factory), true);
+        uint256[] memory idList = new uint256[](numNfts);
+        for (uint256 i = 1; i <= numNfts; i++) {
+            nft.mint(address(this), i);
+            idList[i - 1] = i;
+        }
+
+        ethPair = factory.createPairETH{value: value}(
+            nft,
+            curve,
+            payable(0),
+            LSSVMPair.PoolType.TRADE,
+            0,
+            0,
+            0,
+            idList
+        );
     }
 
     function test_getBuyInfoCannotHave0NumItems() public {
@@ -68,6 +93,65 @@ contract XykCurveTest is DSTest {
             "Should have returned invalid num items error"
         );
     }
+
+    function test_getBuyInfoReturnsSpotPrice() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 1 ether;
+        setUpEthPair(numNfts, value);
+        uint256 numItemsToBuy = 2;
+        uint256 expectedNewSpotPrice = (value +
+            (numItemsToBuy * value) /
+            (numNfts - numItemsToBuy)) / (numNfts - numItemsToBuy);
+
+        // act
+        (CurveErrorCodes.Error error, uint256 newSpotPrice, , , ) = ethPair
+            .getBuyNFTQuote(numItemsToBuy);
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            newSpotPrice,
+            expectedNewSpotPrice,
+            "Should have calculated spot price"
+        );
+    }
+
+    function test_getBuyInfoReturnsInputValue() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 0.8 ether;
+        setUpEthPair(numNfts, value);
+        uint256 numItemsToBuy = 3;
+        uint256 expectedInputValue = (numItemsToBuy * value) /
+            (numNfts - numItemsToBuy);
+
+        // act
+        (CurveErrorCodes.Error error, , , uint256 inputValue, ) = ethPair
+            .getBuyNFTQuote(numItemsToBuy);
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            inputValue,
+            expectedInputValue,
+            "Should have calculated input value"
+        );
+    }
+
+    function test_sellReturnsSpotPrice() public {}
+
+    function test_buyCalculatesFee() public {}
+
+    function test_buyCalculatesProtocolFee() public {}
 
     function test_isETHPair() public {
         // arrange
@@ -134,14 +218,6 @@ contract XykCurveTest is DSTest {
             "Missing enumerable ERC20 pair should not be detected as an ETH pair"
         );
     }
-
-    function test_getBuyInfoReturnsSpotPrice() public {}
-
-    function test_sellReturnsSpotPrice() public {}
-
-    function test_buyCalculatesFee() public {}
-
-    function test_buyCalculatesProtocolFee() public {}
 
     // function test_getBuyInfoExample() public {
     //     uint128 spotPrice = 3 ether;
