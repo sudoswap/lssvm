@@ -26,6 +26,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         override
         returns (bool)
     {
+        // all values are valid
         return true;
     }
 
@@ -92,7 +93,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 fee = inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
         inputValue += fee + protocolFee;
 
-        // possible overflow here because of uint256 -> uint128 casting
+        // set the new spot price based on reserves
         newSpotPrice = uint128(
             (inputValue + tokenBalance) / (nftBalance - numItems)
         );
@@ -157,6 +158,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 fee = outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
         outputValue -= fee + protocolFee;
 
+        // set the new spot price based on reserves
         newSpotPrice = uint128(
             (tokenBalance - outputValue) / (nftBalance + numItems)
         );

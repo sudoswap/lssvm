@@ -34,6 +34,8 @@ contract XykCurveTest is DSTest, ERC721Holder {
     LSSVMPair ethPair;
     Test721 nft;
 
+    receive() external payable {}
+
     function setUp() public {
         enumerableETHTemplate = new LSSVMPairEnumerableETH();
         missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
@@ -95,6 +97,27 @@ contract XykCurveTest is DSTest, ERC721Holder {
         );
     }
 
+    function test_getSellInfoCannotHave0NumItems() public {
+        // arrange
+        uint256 numItems = 0;
+
+        // act
+        (CurveErrorCodes.Error error, , , , ) = curve.getSellInfo(
+            0,
+            0,
+            numItems,
+            0,
+            0
+        );
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.INVALID_NUMITEMS),
+            "Should have returned invalid num items error"
+        );
+    }
+
     function test_getBuyInfoReturnsSpotPrice() public {
         // arrange
         uint256 numNfts = 5;
@@ -108,6 +131,33 @@ contract XykCurveTest is DSTest, ERC721Holder {
         // act
         (CurveErrorCodes.Error error, uint256 newSpotPrice, , , ) = ethPair
             .getBuyNFTQuote(numItemsToBuy);
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            newSpotPrice,
+            expectedNewSpotPrice,
+            "Should have calculated spot price"
+        );
+    }
+
+    function test_getSellInfoReturnsSpotPrice() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 1 ether;
+        setUpEthPair(numNfts, value);
+        uint256 numItemsToSell = 2;
+        uint256 expectedNewSpotPrice = (value -
+            (numItemsToSell * value) /
+            (numNfts + numItemsToSell)) / (numNfts + numItemsToSell);
+
+        // act
+        (CurveErrorCodes.Error error, uint256 newSpotPrice, , , ) = ethPair
+            .getSellNFTQuote(numItemsToSell);
 
         // assert
         assertEq(
@@ -148,6 +198,32 @@ contract XykCurveTest is DSTest, ERC721Holder {
         );
     }
 
+    function test_getSellInfoReturnsOutputValue() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 0.8 ether;
+        setUpEthPair(numNfts, value);
+        uint256 numItemsToSell = 3;
+        uint256 expectedOutputValue = (numItemsToSell * value) /
+            (numNfts + numItemsToSell);
+
+        // act
+        (CurveErrorCodes.Error error, , , uint256 outputValue, ) = ethPair
+            .getSellNFTQuote(numItemsToSell);
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            outputValue,
+            expectedOutputValue,
+            "Should have calculated output value"
+        );
+    }
+
     function test_getBuyInfoCalculatesProtocolFee() public {
         // arrange
         uint256 numNfts = 5;
@@ -161,6 +237,33 @@ contract XykCurveTest is DSTest, ERC721Holder {
         // act
         (CurveErrorCodes.Error error, , , , uint256 protocolFee) = ethPair
             .getBuyNFTQuote(numItemsToBuy);
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            protocolFee,
+            expectedProtocolFee,
+            "Should have calculated protocol fee"
+        );
+    }
+
+    function test_getSellInfoCalculatesProtocolFee() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 0.8 ether;
+        setUpEthPair(numNfts, value);
+        factory.changeProtocolFeeMultiplier((2 * 1e18) / 100); // 2%
+        uint256 numItemsToSell = 3;
+        uint256 expectedProtocolFee = (2 *
+            ((numItemsToSell * value) / (numNfts + numItemsToSell))) / 100;
+
+        // act
+        (CurveErrorCodes.Error error, , , , uint256 protocolFee) = ethPair
+            .getSellNFTQuote(numItemsToSell);
 
         // assert
         assertEq(
@@ -214,11 +317,52 @@ contract XykCurveTest is DSTest, ERC721Holder {
         );
     }
 
-    function test_sellReturnsSpotPrice() public {}
+    function test_swapNFTsForToken() public {
+        // arrange
+        uint256 numNfts = 5;
+        uint256 value = 0.8 ether;
+        setUpEthPair(numNfts, value);
 
-    function test_buyCalculatesFee() public {}
+        uint256 numItemsToSell = 2;
+        (CurveErrorCodes.Error error, , , uint256 outputValue, ) = ethPair
+            .getSellNFTQuote(numItemsToSell);
 
-    function test_buyCalculatesProtocolFee() public {}
+        uint256[] memory idList = new uint256[](numItemsToSell);
+        for (uint256 i = 1; i <= numItemsToSell; i++) {
+            nft.mint(address(this), numNfts + i);
+            idList[i - 1] = numNfts + i;
+        }
+
+        uint256 ethBalanceBefore = address(this).balance;
+        uint256 nftBalanceBefore = nft.balanceOf(address(this));
+        nft.setApprovalForAll(address(ethPair), true);
+
+        // act
+        ethPair.swapNFTsForToken(
+            idList,
+            outputValue,
+            payable(address(this)),
+            false,
+            address(0)
+        );
+
+        // assert
+        assertEq(
+            uint256(error),
+            uint256(CurveErrorCodes.Error.OK),
+            "Should not have errored"
+        );
+        assertEq(
+            address(this).balance - ethBalanceBefore,
+            outputValue,
+            "Should have received ETH"
+        );
+        assertEq(
+            nftBalanceBefore - nft.balanceOf(address(this)),
+            numItemsToSell,
+            "Should have sent NFTs"
+        );
+    }
 
     function test_isETHPair() public {
         // arrange
