@@ -122,7 +122,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 protocolFeeMultiplier
     )
         external
-        pure
+        view
         override
         returns (
             Error error,
@@ -132,6 +132,34 @@ contract XykCurve is ICurve, CurveErrorCodes {
             uint256 protocolFee
         )
     {
+        if (numItems == 0) {
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
+        }
+
+        // get the pair's nft and eth/erc20 balance
+        LSSVMPair pair = LSSVMPair(msg.sender);
+        IERC721 nft = IERC721(pair.nft());
+        uint256 nftBalance = nft.balanceOf(msg.sender);
+        uint256 tokenBalance = isETHPair(pair)
+            ? delta // previous eth balance (avoids including msg.value)
+            : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
+
+        // calculate the amount to send in
+        outputValue = (numItems * tokenBalance) / (nftBalance + numItems);
+
+        // add the fees to the amount to send in
+        protocolFee = (outputValue * protocolFeeMultiplier) / 1e18;
+        uint256 fee = (outputValue * feeMultiplier) / 1e18;
+        outputValue -= fee + protocolFee;
+
+        // possible overflow here because of uint256 -> uint128 casting
+        newSpotPrice = uint128(
+            (tokenBalance - outputValue) / (nftBalance + numItems)
+        );
+
+        // save the current eth balance
+        newDelta = uint128(msg.sender.balance);
+
         // If we got all the way here, no math error happened
         error = Error.OK;
     }
