@@ -110,9 +110,6 @@ contract XykCurve is ICurve, CurveErrorCodes {
 
     /**
         @dev See {ICurve-getSellInfo}
-        If newSpotPrice is less than MIN_PRICE, newSpotPrice is set to MIN_PRICE instead.
-        This is to prevent the spot price from ever becoming 0, which would decouple the price
-        from the bonding curve (since 0 * delta is still 0)
      */
     function getSellInfo(
         uint128 spotPrice,
@@ -141,18 +138,17 @@ contract XykCurve is ICurve, CurveErrorCodes {
         IERC721 nft = IERC721(pair.nft());
         uint256 nftBalance = nft.balanceOf(msg.sender);
         uint256 tokenBalance = isETHPair(pair)
-            ? delta // previous eth balance (avoids including msg.value)
+            ? msg.sender.balance
             : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
 
-        // calculate the amount to send in
+        // calculate the amount to send out
         outputValue = (numItems * tokenBalance) / (nftBalance + numItems);
 
-        // add the fees to the amount to send in
+        // subtract fees from amount to send out
         protocolFee = (outputValue * protocolFeeMultiplier) / 1e18;
         uint256 fee = (outputValue * feeMultiplier) / 1e18;
         outputValue -= fee + protocolFee;
 
-        // possible overflow here because of uint256 -> uint128 casting
         newSpotPrice = uint128(
             (tokenBalance - outputValue) / (nftBalance + numItems)
         );
