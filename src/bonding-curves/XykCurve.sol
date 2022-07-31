@@ -99,7 +99,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         );
 
         // save the current eth balance
-        newDelta = uint128(msg.sender.balance);
+        newDelta = uint128(delta + inputValue - protocolFee);
 
         // If we got all the way here, no math error happened
         error = Error.OK;
@@ -144,7 +144,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         IERC721 nft = IERC721(pair.nft());
         uint256 nftBalance = nft.balanceOf(msg.sender);
         uint256 tokenBalance = isETHPair(pair)
-            ? msg.sender.balance
+            ? delta
             : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
 
         // calculate the amount to send out
@@ -164,7 +164,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         );
 
         // save the current eth balance
-        newDelta = uint128(msg.sender.balance);
+        newDelta = uint128(delta - (outputValue + protocolFee));
 
         // If we got all the way here, no math error happened
         error = Error.OK;

@@ -287,6 +287,9 @@ contract XykCurveTest is DSTest, ERC721Holder {
         uint256 ethBalanceBefore = address(this).balance;
         uint256 nftBalanceBefore = nft.balanceOf(address(this));
 
+        factory.changeProtocolFeeMultiplier((2 * 1e18) / 100); // 2%
+        ethPair.changeFee((1 * 1e18) / 100); // 1%
+
         (CurveErrorCodes.Error error, , , uint256 inputValue, ) = ethPair
             .getBuyNFTQuote(numItemsToBuy);
 
@@ -315,6 +318,11 @@ contract XykCurveTest is DSTest, ERC721Holder {
             numItemsToBuy,
             "Should have received NFTs"
         );
+        assertEq(
+            ethPair.delta(),
+            uint128(address(ethPair).balance),
+            "Delta should match eth balance after swap"
+        );
     }
 
     function test_swapNFTsForToken() public {
@@ -322,6 +330,9 @@ contract XykCurveTest is DSTest, ERC721Holder {
         uint256 numNfts = 5;
         uint256 value = 0.8 ether;
         setUpEthPair(numNfts, value);
+
+        factory.changeProtocolFeeMultiplier((2 * 1e18) / 100); // 2%
+        ethPair.changeFee((1 * 1e18) / 100); // 1%
 
         uint256 numItemsToSell = 2;
         (CurveErrorCodes.Error error, , , uint256 outputValue, ) = ethPair
@@ -361,6 +372,11 @@ contract XykCurveTest is DSTest, ERC721Holder {
             nftBalanceBefore - nft.balanceOf(address(this)),
             numItemsToSell,
             "Should have sent NFTs"
+        );
+        assertEq(
+            ethPair.delta(),
+            uint128(address(ethPair).balance),
+            "Delta should match eth balance after swap"
         );
     }
 
