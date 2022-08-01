@@ -71,7 +71,7 @@ contract XykCurveTest is DSTest, ERC721Holder {
             LSSVMPair.PoolType.TRADE,
             uint128(value),
             0,
-            0,
+            uint128(numNfts),
             idList
         );
     }
@@ -118,19 +118,21 @@ contract XykCurveTest is DSTest, ERC721Holder {
         );
     }
 
-    function test_getBuyInfoReturnsSpotPrice() public {
+    function test_getBuyInfoReturnsNewReserves() public {
         // arrange
         uint256 numNfts = 5;
         uint256 value = 1 ether;
         setUpEthPair(numNfts, value);
         uint256 numItemsToBuy = 2;
-        uint256 expectedNewSpotPrice = (value +
-            (numItemsToBuy * value) /
-            (numNfts - numItemsToBuy)) / (numNfts - numItemsToBuy);
 
         // act
-        (CurveErrorCodes.Error error, uint256 newSpotPrice, , , ) = ethPair
-            .getBuyNFTQuote(numItemsToBuy);
+        (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 newDelta,
+            uint256 inputValue,
+
+        ) = ethPair.getBuyNFTQuote(numItemsToBuy);
 
         // assert
         assertEq(
@@ -140,24 +142,31 @@ contract XykCurveTest is DSTest, ERC721Holder {
         );
         assertEq(
             newSpotPrice,
-            expectedNewSpotPrice,
-            "Should have calculated spot price"
+            numNfts - numItemsToBuy,
+            "Should have updated virtual nft reserve"
+        );
+        assertEq(
+            newDelta,
+            inputValue + value,
+            "Should have updated virtual eth reserve"
         );
     }
 
-    function test_getSellInfoReturnsSpotPrice() public {
+    function test_getSellInfoReturnsNewReserves() public {
         // arrange
         uint256 numNfts = 5;
         uint256 value = 1 ether;
         setUpEthPair(numNfts, value);
         uint256 numItemsToSell = 2;
-        uint256 expectedNewSpotPrice = (value -
-            (numItemsToSell * value) /
-            (numNfts + numItemsToSell)) / (numNfts + numItemsToSell);
 
         // act
-        (CurveErrorCodes.Error error, uint256 newSpotPrice, , , ) = ethPair
-            .getSellNFTQuote(numItemsToSell);
+        (
+            CurveErrorCodes.Error error,
+            uint256 newSpotPrice,
+            uint256 newDelta,
+            uint256 inputValue,
+
+        ) = ethPair.getSellNFTQuote(numItemsToSell);
 
         // assert
         assertEq(
@@ -167,8 +176,13 @@ contract XykCurveTest is DSTest, ERC721Holder {
         );
         assertEq(
             newSpotPrice,
-            expectedNewSpotPrice,
-            "Should have calculated spot price"
+            numNfts + numItemsToSell,
+            "Should have updated virtual nft reserve"
+        );
+        assertEq(
+            newDelta,
+            value - inputValue,
+            "Should have updated virtual eth reserve"
         );
     }
 
@@ -377,72 +391,6 @@ contract XykCurveTest is DSTest, ERC721Holder {
             ethPair.delta(),
             uint128(address(ethPair).balance),
             "Delta should match eth balance after swap"
-        );
-    }
-
-    function test_isETHPair() public {
-        // arrange
-        address enumerableETHPair = LSSVMPairCloner.cloneETHPair(
-            address(enumerableETHTemplate),
-            factory,
-            curve,
-            IERC721(address(0)),
-            uint8(2)
-        );
-        address missingEnumerableETHPair = LSSVMPairCloner.cloneETHPair(
-            address(missingEnumerableETHTemplate),
-            factory,
-            curve,
-            IERC721(address(0)),
-            uint8(2)
-        );
-        address enumerableERC20Pair = LSSVMPairCloner.cloneERC20Pair(
-            address(enumerableERC20Template),
-            factory,
-            curve,
-            IERC721(address(0)),
-            uint8(2),
-            ERC20(address(0))
-        );
-        address missingEnumerableERC20Pair = LSSVMPairCloner.cloneERC20Pair(
-            address(missingEnumerableERC20Template),
-            factory,
-            curve,
-            IERC721(address(0)),
-            uint8(2),
-            ERC20(address(0))
-        );
-
-        // act
-        bool isEnumerableETHPairETHPair = curve.isETHPair(
-            LSSVMPair(enumerableETHPair)
-        );
-        bool isMissingEnumerableETHPairETHPair = curve.isETHPair(
-            LSSVMPair(missingEnumerableETHPair)
-        );
-        bool isEnumerableERC20PairETHPair = curve.isETHPair(
-            LSSVMPair(enumerableERC20Pair)
-        );
-        bool isMissingEnumerableERC20PairETHPair = curve.isETHPair(
-            LSSVMPair(missingEnumerableERC20Pair)
-        );
-
-        // assert
-        assertTrue(
-            isEnumerableETHPairETHPair,
-            "Enumerable ETH pair should be detected as an ETH pair"
-        );
-        assertTrue(
-            isMissingEnumerableETHPairETHPair,
-            "Missing enumerable ETH pair should be detected as an ETH pair"
-        );
-        assertTrue(
-            !isEnumerableERC20PairETHPair,
-            "Enumerable ERC20 pair should not be detected as an ETH pair"
-        );
-        assertTrue(
-            !isMissingEnumerableERC20PairETHPair,
-            "Missing enumerable ERC20 pair should not be detected as an ETH pair"
         );
     }
 }

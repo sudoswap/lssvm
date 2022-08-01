@@ -12,7 +12,8 @@ import {ILSSVMPairFactoryLike} from "../LSSVMPairFactory.sol";
 
 /*
     @author 0xacedia
-    @notice Bonding curve logic for an x*y=k curve.
+    @notice Bonding curve logic for an x*y=k curve using virtual reserves.
+    @dev The virtual token reserve is stored in `delta` and the virtual nft reserve is stored in `spotPrice`.
 */
 contract XykCurve is ICurve, CurveErrorCodes {
     using FixedPointMathLib for uint256;
@@ -39,18 +40,12 @@ contract XykCurve is ICurve, CurveErrorCodes {
         override
         returns (bool)
     {
-        // all values should be valid
+        // all values are valid
         return true;
     }
 
     /**
-        @dev See {ICurve-getBuyInfo}. For ETH pairs, the previous eth balance is stored in `delta`.
-        This is so that we don't include the msg.value when calculating the swap price.
-        For example:
-            * call swap with msg.value
-            * input is calculated with pair's ETH balance and NFT balance
-        There is a cyclical depdency on msg.value. So it needs to be tracked separately.
-        This is not an issue for ERC20 tokens because ERC20 tokens are transferred in only AFTER getBuyInfo is called.
+        @dev See {ICurve-getBuyInfo}
      */
     function getBuyInfo(
         uint128 spotPrice,
@@ -60,7 +55,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 protocolFeeMultiplier
     )
         external
-        view
+        pure
         override
         returns (
             Error error,
@@ -74,13 +69,9 @@ contract XykCurve is ICurve, CurveErrorCodes {
             return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
-        // get the pair's nft and eth/erc20 balance
-        LSSVMPair pair = LSSVMPair(msg.sender);
-        IERC721 nft = IERC721(pair.nft());
-        uint256 nftBalance = nft.balanceOf(msg.sender);
-        uint256 tokenBalance = isETHPair(pair)
-            ? delta // previous eth balance (avoids including msg.value)
-            : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
+        // get the pair's virtual nft and eth/erc20 reserves
+        uint256 tokenBalance = delta;
+        uint256 nftBalance = spotPrice;
 
         // calculate the amount to send in
         inputValue = (numItems * tokenBalance) / (nftBalance - numItems);
@@ -93,25 +84,12 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 fee = inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
         inputValue += fee + protocolFee;
 
-        // set the new spot price based on reserves
-        newSpotPrice = uint128(
-            (inputValue + tokenBalance) / (nftBalance - numItems)
-        );
-
-        // save the current eth balance
-        newDelta = uint128(delta + inputValue - protocolFee);
+        // set the new virtual reserves
+        newDelta = uint128(delta + inputValue - protocolFee); // token reserves
+        newSpotPrice = uint128(nftBalance - numItems); // nft reserves
 
         // If we got all the way here, no math error happened
         error = Error.OK;
-    }
-
-    function isETHPair(LSSVMPair pair) public pure returns (bool) {
-        ILSSVMPairFactoryLike.PairVariant variant = pair.pairVariant();
-
-        return
-            variant ==
-            ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ETH ||
-            variant == ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ETH;
     }
 
     /**
@@ -125,7 +103,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 protocolFeeMultiplier
     )
         external
-        view
+        pure
         override
         returns (
             Error error,
@@ -139,13 +117,9 @@ contract XykCurve is ICurve, CurveErrorCodes {
             return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
-        // get the pair's nft and eth/erc20 balance
-        LSSVMPair pair = LSSVMPair(msg.sender);
-        IERC721 nft = IERC721(pair.nft());
-        uint256 nftBalance = nft.balanceOf(msg.sender);
-        uint256 tokenBalance = isETHPair(pair)
-            ? delta
-            : LSSVMPairERC20(msg.sender).token().balanceOf(msg.sender);
+        // get the pair's virtual nft and eth/erc20 balance
+        uint256 tokenBalance = delta;
+        uint256 nftBalance = spotPrice;
 
         // calculate the amount to send out
         outputValue = (numItems * tokenBalance) / (nftBalance + numItems);
@@ -158,13 +132,9 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 fee = outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
         outputValue -= fee + protocolFee;
 
-        // set the new spot price based on reserves
-        newSpotPrice = uint128(
-            (tokenBalance - outputValue) / (nftBalance + numItems)
-        );
-
-        // save the current eth balance
-        newDelta = uint128(delta - (outputValue + protocolFee));
+        // set the new virtual reserves
+        newDelta = uint128(delta - (outputValue + protocolFee)); // token reserves
+        newSpotPrice = uint128(nftBalance + numItems); // nft reserves
 
         // If we got all the way here, no math error happened
         error = Error.OK;

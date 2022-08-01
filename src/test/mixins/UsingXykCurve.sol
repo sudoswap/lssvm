@@ -14,7 +14,7 @@ abstract contract UsingXykCurve is Configurable {
     }
 
     function modifyDelta(uint64 delta) public pure override returns (uint64) {
-        return delta;
+        return 0.1 ether;
     }
 
     function modifySpotPrice(uint56 spotPrice)
@@ -23,6 +23,6 @@ abstract contract UsingXykCurve is Configurable {
         override
         returns (uint56)
     {
-        return spotPrice;
+        return 5;
     }
 }

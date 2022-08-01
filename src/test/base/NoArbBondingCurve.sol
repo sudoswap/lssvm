@@ -69,14 +69,8 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         delete idList;
 
-        // mint NFTs to initially deposit to the pair
-        for (uint256 i = 0; i < numItems; i++) {
-            test721.mint(address(this), startingId);
-            idList.push(startingId);
-            startingId += 1;
-        }
-
         // initialize the pair
+        uint256[] memory empty;
         LSSVMPair pair = setupPair(
             factory,
             test721,
@@ -86,15 +80,10 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             delta,
             0,
             spotPrice,
-            idList,
+            empty,
             0,
             address(0)
         );
-
-        uint256 startBalance;
-        uint256 endBalance;
-
-        delete idList;
 
         // mint NFTs to sell to the pair
         for (uint256 i = 0; i < numItems; i++) {
@@ -102,6 +91,9 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
             idList.push(startingId);
             startingId += 1;
         }
+
+        uint256 startBalance;
+        uint256 endBalance;
 
         // sell all NFTs minted to the pair
         {
@@ -111,7 +103,13 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 ,
                 uint256 outputAmount,
                 uint256 protocolFee
-            ) = pair.getSellNFTQuote(numItems);
+            ) = bondingCurve.getSellInfo(
+                    spotPrice,
+                    delta,
+                    numItems,
+                    0,
+                    protocolFeeMultiplier
+                );
 
             // give the pair contract enough tokens to pay for the NFTs
             sendTokens(pair, outputAmount + protocolFee);
@@ -131,7 +129,13 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy back the NFTs just sold to the pair
         {
-            (, , , uint256 inputAmount, ) = pair.getBuyNFTQuote(numItems);
+            (, , , uint256 inputAmount, ) = bondingCurve.getBuyInfo(
+                spotPrice,
+                delta,
+                numItems,
+                0,
+                protocolFeeMultiplier
+            );
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
                 idList.length,
                 inputAmount,
@@ -164,7 +168,11 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
         delta = modifyDelta(delta);
 
         // decrease the range of numItems to speed up testing
-        numItems = (numItems % 3) + 2; // min value of 2
+        numItems = numItems % 3;
+
+        if (numItems == 0) {
+            return;
+        }
 
         delete idList;
 
@@ -192,25 +200,38 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
         uint256 startBalance;
         uint256 endBalance;
 
-        idList.pop();
-        uint256 numItemsToTrade = idList.length;
-
         // buy all NFTs
         {
-            (, uint256 newSpotPrice, , uint256 inputAmount, ) = pair
-                .getBuyNFTQuote(numItemsToTrade);
+            (, uint256 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
+                .getBuyInfo(
+                    spotPrice,
+                    delta,
+                    numItems,
+                    0,
+                    protocolFeeMultiplier
+                );
 
             // buy NFTs
             startBalance = getBalance(address(this));
-            pair.swapTokenForSpecificNFTs{
-                value: modifyInputAmount(inputAmount)
-            }(idList, inputAmount, address(this), false, address(0));
+            pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+                numItems,
+                inputAmount,
+                address(this),
+                false,
+                address(0)
+            );
             spotPrice = uint56(newSpotPrice);
         }
 
         // sell back the NFTs
         {
-            pair.getSellNFTQuote(numItemsToTrade);
+            bondingCurve.getSellInfo(
+                spotPrice,
+                delta,
+                numItems,
+                0,
+                protocolFeeMultiplier
+            );
             pair.swapNFTsForToken(
                 idList,
                 0,
