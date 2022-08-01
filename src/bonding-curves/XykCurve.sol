@@ -13,7 +13,7 @@ import {ILSSVMPairFactoryLike} from "../LSSVMPairFactory.sol";
 /*
     @author 0xacedia
     @notice Bonding curve logic for an x*y=k curve using virtual reserves.
-    @dev The virtual token reserve is stored in `delta` and the virtual nft reserve is stored in `spotPrice`.
+    @dev The virtual token reserve is stored in `spotPrice` and the virtual nft reserve is stored in `delta`.
 */
 contract XykCurve is ICurve, CurveErrorCodes {
     using FixedPointMathLib for uint256;
@@ -70,8 +70,8 @@ contract XykCurve is ICurve, CurveErrorCodes {
         }
 
         // get the pair's virtual nft and eth/erc20 reserves
-        uint256 tokenBalance = delta;
-        uint256 nftBalance = spotPrice;
+        uint256 tokenBalance = spotPrice;
+        uint256 nftBalance = delta;
 
         // calculate the amount to send in
         inputValue = (numItems * tokenBalance) / (nftBalance - numItems);
@@ -85,8 +85,8 @@ contract XykCurve is ICurve, CurveErrorCodes {
         inputValue += fee + protocolFee;
 
         // set the new virtual reserves
-        newDelta = uint128(delta + inputValue - protocolFee); // token reserves
-        newSpotPrice = uint128(nftBalance - numItems); // nft reserves
+        newSpotPrice = uint128(spotPrice + inputValue - protocolFee); // token reserves
+        newDelta = uint128(nftBalance - numItems); // nft reserves
 
         // If we got all the way here, no math error happened
         error = Error.OK;
@@ -118,8 +118,8 @@ contract XykCurve is ICurve, CurveErrorCodes {
         }
 
         // get the pair's virtual nft and eth/erc20 balance
-        uint256 tokenBalance = delta;
-        uint256 nftBalance = spotPrice;
+        uint256 tokenBalance = spotPrice;
+        uint256 nftBalance = delta;
 
         // calculate the amount to send out
         outputValue = (numItems * tokenBalance) / (nftBalance + numItems);
@@ -133,8 +133,8 @@ contract XykCurve is ICurve, CurveErrorCodes {
         outputValue -= fee + protocolFee;
 
         // set the new virtual reserves
-        newDelta = uint128(delta - (outputValue + protocolFee)); // token reserves
-        newSpotPrice = uint128(nftBalance + numItems); // nft reserves
+        newSpotPrice = uint128(spotPrice - (outputValue + protocolFee)); // token reserves
+        newDelta = uint128(nftBalance + numItems); // nft reserves
 
         // If we got all the way here, no math error happened
         error = Error.OK;

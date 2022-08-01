@@ -69,9 +69,9 @@ contract XykCurveTest is DSTest, ERC721Holder {
             curve,
             payable(0),
             LSSVMPair.PoolType.TRADE,
-            uint128(value),
-            0,
             uint128(numNfts),
+            0,
+            uint128(value),
             idList
         );
     }
@@ -141,12 +141,12 @@ contract XykCurveTest is DSTest, ERC721Holder {
             "Should not have errored"
         );
         assertEq(
-            newSpotPrice,
+            newDelta,
             numNfts - numItemsToBuy,
             "Should have updated virtual nft reserve"
         );
         assertEq(
-            newDelta,
+            newSpotPrice,
             inputValue + value,
             "Should have updated virtual eth reserve"
         );
@@ -175,12 +175,12 @@ contract XykCurveTest is DSTest, ERC721Holder {
             "Should not have errored"
         );
         assertEq(
-            newSpotPrice,
+            newDelta,
             numNfts + numItemsToSell,
             "Should have updated virtual nft reserve"
         );
         assertEq(
-            newDelta,
+            newSpotPrice,
             value - inputValue,
             "Should have updated virtual eth reserve"
         );
@@ -333,9 +333,14 @@ contract XykCurveTest is DSTest, ERC721Holder {
             "Should have received NFTs"
         );
         assertEq(
-            ethPair.delta(),
+            ethPair.spotPrice(),
             uint128(address(ethPair).balance),
-            "Delta should match eth balance after swap"
+            "Spot price should match eth balance after swap"
+        );
+        assertEq(
+            ethPair.delta(),
+            nft.balanceOf(address(ethPair)),
+            "Delta should match nft balance after swap"
         );
     }
 
@@ -388,9 +393,14 @@ contract XykCurveTest is DSTest, ERC721Holder {
             "Should have sent NFTs"
         );
         assertEq(
-            ethPair.delta(),
+            ethPair.spotPrice(),
             uint128(address(ethPair).balance),
-            "Delta should match eth balance after swap"
+            "Spot price should match eth balance after swap"
+        );
+        assertEq(
+            ethPair.delta(),
+            nft.balanceOf(address(ethPair)),
+            "Delta should match nft balance after swap"
         );
     }
 }
