@@ -1,23 +1,40 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {LSSVMPair} from "./LSSVMPair.sol";
-import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
-import {LSSVMRouter} from "./LSSVMRouter.sol";
-import {ICurve} from "./bonding-curves/ICurve.sol";
-import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
+
+import {LSSVMRouter} from "../../LSSVMRouter.sol";
+import {ICurve} from "../../bonding-curves/ICurve.sol";
+import {LSSVMPairERC1155SingleId} from "./LSSVMPairERC1155SingleId.sol";
+import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
+import {ILSSVMPairERC1155FactoryLike} from "../ILSSVMPairERC1155FactoryLike.sol";
 
 /**
-    @title An NFT/Token pair where the token is an ERC20
+    @title An ERC1155 pair where the token is an ERC20
     @author boredGenius and 0xmons
  */
-abstract contract LSSVMPairERC20 is LSSVMPair {
+contract LSSVMPairERC1155SingleIdERC20 is LSSVMPairERC1155SingleId {
     using SafeTransferLib for ERC20;
 
     uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 81;
+
+    /**
+        Public functions
+     */
+
+    /// @inheritdoc LSSVMPairERC1155SingleId
+    function pairVariant()
+        public
+        pure
+        virtual
+        override
+        returns (ILSSVMPairERC1155FactoryLike.PairVariant)
+    {
+        return ILSSVMPairERC1155FactoryLike.PairVariant.SINGLE_ID_ERC20;
+    }
 
     /**
         @notice Returns the ERC20 token associated with the pair
@@ -33,12 +50,30 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc LSSVMPairERC1155SingleId
+    function withdrawERC20(ERC20 a, uint256 amount)
+        external
+        override
+        onlyOwner
+    {
+        a.safeTransfer(msg.sender, amount);
+
+        if (a == token()) {
+            // emit event since it is the pair token
+            emit TokenWithdrawal(amount);
+        }
+    }
+
+    /**
+        Internal functions
+     */
+
+    /// @inheritdoc LSSVMPairERC1155SingleId
     function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        ILSSVMPairFactoryLike _factory,
+        ILSSVMPairERC1155FactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
@@ -102,14 +137,14 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc LSSVMPairERC1155SingleId
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Do nothing since we transferred the exact input amount
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc LSSVMPairERC1155SingleId
     function _payProtocolFeeFromPair(
-        ILSSVMPairFactoryLike _factory,
+        ILSSVMPairERC1155FactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         // Take protocol fee (if it exists)
@@ -127,7 +162,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc LSSVMPairERC1155SingleId
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
@@ -138,23 +173,9 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc LSSVMPairERC1155SingleId
     // @dev see LSSVMPairCloner for params length calculation
     function _immutableParamsLength() internal pure override returns (uint256) {
         return IMMUTABLE_PARAMS_LENGTH;
-    }
-
-    /// @inheritdoc LSSVMPair
-    function withdrawERC20(ERC20 a, uint256 amount)
-        external
-        override
-        onlyOwner
-    {
-        a.safeTransfer(msg.sender, amount);
-
-        if (a == token()) {
-            // emit event since it is the pair token
-            emit TokenWithdrawal(amount);
-        }
     }
 }

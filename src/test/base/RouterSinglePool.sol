@@ -49,7 +49,7 @@ abstract contract RouterSinglePool is
             feeRecipient,
             protocolFeeMultiplier
         );
-        router = new LSSVMRouter(factory);
+        router = new LSSVMRouter(factory, address(0));
         factory.setBondingCurveAllowed(bondingCurve, true);
         factory.setRouterAllowed(router, true);
 

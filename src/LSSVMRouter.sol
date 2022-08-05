@@ -2,11 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
 import {LSSVMPair} from "./LSSVMPair.sol";
 import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
+import {ILSSVMPairERC1155FactoryLike} from "./erc1155/ILSSVMPairERC1155FactoryLike.sol";
 
 contract LSSVMRouter {
     using SafeTransferLib for address payable;
@@ -48,7 +51,7 @@ contract LSSVMRouter {
     }
 
     struct RobustPairNFTsFoTokenAndTokenforNFTsTrade {
-        RobustPairSwapSpecific[] tokenToNFTTrades;  
+        RobustPairSwapSpecific[] tokenToNFTTrades;
         RobustPairSwapSpecificForToken[] nftToTokenTrades;
         uint256 inputAmount;
         address payable tokenRecipient;
@@ -61,9 +64,11 @@ contract LSSVMRouter {
     }
 
     ILSSVMPairFactoryLike public immutable factory;
+    ILSSVMPairERC1155FactoryLike public immutable erc1155Factory;
 
-    constructor(ILSSVMPairFactoryLike _factory) {
+    constructor(ILSSVMPairFactoryLike _factory, address _erc1155Factory) {
         factory = _factory;
+        erc1155Factory = ILSSVMPairERC1155FactoryLike(_erc1155Factory);
     }
 
     /**
@@ -744,17 +749,21 @@ contract LSSVMRouter {
             uint256 numSwaps = params.tokenToNFTTrades.length;
             for (uint256 i; i < numSwaps; ) {
                 // Calculate actual cost per swap
-                (error, , , pairCost, ) = params.tokenToNFTTrades[i]
+                (error, , , pairCost, ) = params
+                    .tokenToNFTTrades[i]
                     .swapInfo
                     .pair
-                    .getBuyNFTQuote(params.tokenToNFTTrades[i].swapInfo.nftIds.length);
+                    .getBuyNFTQuote(
+                        params.tokenToNFTTrades[i].swapInfo.nftIds.length
+                    );
 
                 // If within our maxCost and no error, proceed
                 if (
                     pairCost <= params.tokenToNFTTrades[i].maxCost &&
                     error == CurveErrorCodes.Error.OK
                 ) {
-                    remainingValue -= params.tokenToNFTTrades[i]
+                    remainingValue -= params
+                        .tokenToNFTTrades[i]
                         .swapInfo
                         .pair
                         .swapTokenForSpecificNFTs(
@@ -838,18 +847,40 @@ contract LSSVMRouter {
         address from,
         address to,
         uint256 amount,
-        ILSSVMPairFactoryLike.PairVariant variant
+        uint8 variant
     ) external {
-        // verify caller is a trusted pair contract
-        require(factory.isPair(msg.sender, variant), "Not pair");
+        // verify pair
+        if (variant < 4) {
+            // ERC721 pair
+            // verify caller is a trusted pair contract
+            ILSSVMPairFactoryLike.PairVariant _variant = ILSSVMPairFactoryLike
+                .PairVariant(variant);
+            require(factory.isPair(msg.sender, _variant), "Not pair");
 
-        // verify caller is an ERC20 pair
-        require(
-            variant == ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
-                variant ==
-                ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
-            "Not ERC20 pair"
-        );
+            // verify caller is an ERC20 pair
+            require(
+                _variant ==
+                    ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
+                    _variant ==
+                    ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
+                "Not ERC20 pair"
+            );
+        } else {
+            // ERC1155 pair
+            // verify caller is a trusted pair contract
+            ILSSVMPairERC1155FactoryLike.PairVariant _variant = ILSSVMPairERC1155FactoryLike
+                    .PairVariant(variant);
+            require(erc1155Factory.isPair(msg.sender, _variant), "Not pair");
+
+            // verify caller is an ERC20 pair
+            require(
+                _variant ==
+                    ILSSVMPairERC1155FactoryLike.PairVariant.SINGLE_ID_ERC20 ||
+                    _variant ==
+                    ILSSVMPairERC1155FactoryLike.PairVariant.MANY_ID_ERC20,
+                "Not ERC20 pair"
+            );
+        }
 
         // transfer tokens to pair
         token.safeTransferFrom(from, to, amount);

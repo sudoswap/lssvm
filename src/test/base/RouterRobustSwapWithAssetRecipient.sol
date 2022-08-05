@@ -61,7 +61,7 @@ abstract contract RouterRobustSwapWithAssetRecipient is
             feeRecipient,
             protocolFeeMultiplier
         );
-        router = new LSSVMRouter(factory);
+        router = new LSSVMRouter(factory, address(0));
 
         // Set approvals
         test721.setApprovalForAll(address(factory), true);
