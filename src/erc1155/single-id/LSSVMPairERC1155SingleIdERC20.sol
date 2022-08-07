@@ -19,7 +19,7 @@ import {ILSSVMPairERC1155FactoryLike} from "../ILSSVMPairERC1155FactoryLike.sol"
 contract LSSVMPairERC1155SingleIdERC20 is LSSVMPairERC1155SingleId {
     using SafeTransferLib for ERC20;
 
-    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 81;
+    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 113;
 
     /**
         Public functions

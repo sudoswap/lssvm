@@ -18,7 +18,7 @@ contract LSSVMPairERC1155SingleIdETH is LSSVMPairERC1155SingleId {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
-    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 61;
+    uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 93;
 
     /**
         Public functions
