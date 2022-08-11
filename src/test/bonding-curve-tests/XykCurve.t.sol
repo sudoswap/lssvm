@@ -308,7 +308,7 @@ contract XykCurveTest is DSTest, ERC721Holder {
             .getBuyNFTQuote(numItemsToBuy);
 
         // act
-        ethPair.swapTokenForAnyNFTs{value: inputValue}(
+        uint256 inputAmount = ethPair.swapTokenForAnyNFTs{value: inputValue}(
             numItemsToBuy,
             inputValue,
             address(this),
@@ -332,10 +332,14 @@ contract XykCurveTest is DSTest, ERC721Holder {
             numItemsToBuy,
             "Should have received NFTs"
         );
+
+        uint256 withoutFeeInputAmount = (inputAmount * 1e18) / 103e16;
         assertEq(
             ethPair.spotPrice(),
-            uint128(address(ethPair).balance),
-            "Spot price should match eth balance after swap"
+            uint128(address(ethPair).balance) -
+                (withoutFeeInputAmount * 1e16) /
+                1e18,
+            "Spot price should match eth balance - fee after swap"
         );
         assertEq(
             ethPair.delta(),
@@ -368,7 +372,7 @@ contract XykCurveTest is DSTest, ERC721Holder {
         nft.setApprovalForAll(address(ethPair), true);
 
         // act
-        ethPair.swapNFTsForToken(
+        uint256 outputAmount = ethPair.swapNFTsForToken(
             idList,
             outputValue,
             payable(address(this)),
@@ -392,10 +396,13 @@ contract XykCurveTest is DSTest, ERC721Holder {
             numItemsToSell,
             "Should have sent NFTs"
         );
+
+        uint256 withoutFeeOutputAmount = (outputAmount * 1e18) / 0.97e18;
         assertEq(
             ethPair.spotPrice(),
-            uint128(address(ethPair).balance),
-            "Spot price should match eth balance after swap"
+            uint128(address(ethPair).balance) -
+                ((withoutFeeOutputAmount * 1e16) / 1e18),
+            "Spot price + fee should match eth balance after swap"
         );
         assertEq(
             ethPair.delta(),
