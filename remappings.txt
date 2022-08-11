@@ -4,3 +4,4 @@ ds-test/=lib/ds-test/src/
 solmate/=lib/solmate/src/
 manifoldxyz/=lib/royalty-registry-solidity.git/contracts
 @manifoldxyz/=lib/
+prb-math/=lib/prb-math/contracts/
