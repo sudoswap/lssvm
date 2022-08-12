@@ -75,18 +75,22 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 nftBalance = delta;
 
         // calculate the amount to send in
-        inputValue = (numItems * tokenBalance) / (nftBalance - numItems);
+        uint256 inputValueWithoutFee = (numItems * tokenBalance) /
+            (nftBalance - numItems);
 
         // add the fees to the amount to send in
-        protocolFee = inputValue.fmul(
+        protocolFee = inputValueWithoutFee.fmul(
             protocolFeeMultiplier,
             FixedPointMathLib.WAD
         );
-        uint256 fee = inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
-        inputValue += fee + protocolFee;
+        uint256 fee = inputValueWithoutFee.fmul(
+            feeMultiplier,
+            FixedPointMathLib.WAD
+        );
+        inputValue = inputValueWithoutFee + fee + protocolFee;
 
         // set the new virtual reserves
-        newSpotPrice = uint128(spotPrice + inputValue - protocolFee); // token reserve
+        newSpotPrice = uint128(spotPrice + inputValueWithoutFee); // token reserve
         newDelta = uint128(nftBalance - numItems); // nft reserve
 
         // If we got all the way here, no math error happened
@@ -123,18 +127,22 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 nftBalance = delta;
 
         // calculate the amount to send out
-        outputValue = (numItems * tokenBalance) / (nftBalance + numItems);
+        uint256 outputValueWithoutFee = (numItems * tokenBalance) /
+            (nftBalance + numItems);
 
         // subtract fees from amount to send out
-        protocolFee = outputValue.fmul(
+        protocolFee = outputValueWithoutFee.fmul(
             protocolFeeMultiplier,
             FixedPointMathLib.WAD
         );
-        uint256 fee = outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
-        outputValue -= fee + protocolFee;
+        uint256 fee = outputValueWithoutFee.fmul(
+            feeMultiplier,
+            FixedPointMathLib.WAD
+        );
+        outputValue = outputValueWithoutFee - fee - protocolFee;
 
         // set the new virtual reserves
-        newSpotPrice = uint128(spotPrice - (outputValue + protocolFee)); // token reserve
+        newSpotPrice = uint128(spotPrice - outputValueWithoutFee); // token reserve
         newDelta = uint128(nftBalance + numItems); // nft reserve
 
         // If we got all the way here, no math error happened
