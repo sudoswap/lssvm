@@ -74,6 +74,11 @@ contract XykCurve is ICurve, CurveErrorCodes {
         uint256 tokenBalance = spotPrice;
         uint256 nftBalance = delta;
 
+        // If numItems is too large, we will get divide by zero error
+        if (numItems >= nftBalance) {
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
+        }
+
         // calculate the amount to send in
         uint256 inputValueWithoutFee = (numItems * tokenBalance) /
             (nftBalance - numItems);
