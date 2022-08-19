@@ -194,7 +194,7 @@ contract LSSVMRouter2 {
 
             // Do all buy swaps
             for (uint256 i; i < numBuys; ) {
-                // Total ETH taken from sender cannot the starting remainingValue
+                // @dev Total ETH taken from sender cannot the starting remainingValue
                 // because otherwise the deduction from remainingValue will fail
                 remainingValue -= buyList[i]
                     .swapInfo
