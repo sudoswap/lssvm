@@ -28,14 +28,15 @@ contract LSSVMRouter2 {
     }
 
     struct PairSwapSpecificPartialFill {
-      PairSwapSpecific swapInfo;
-      uint256 minNFTBalance;
-      uint256[] maxCostPerNumNFTs;
+        PairSwapSpecific swapInfo;
+        uint256 expectedSpotPrice;
+        uint256[] maxCostPerNumNFTs;
     }
 
     struct PairSwapSpecificPartialFillForToken {
-      PairSwapSpecific swapInfo;
-      uint256[] minOutputPerNumNFTs;
+        PairSwapSpecific swapInfo;
+        uint256 expectedSpotPrice;
+        uint256[] minOutputPerNumNFTs;
     }
 
     struct RobustPairNFTsFoTokenAndTokenforNFTsTrade {
@@ -75,27 +76,101 @@ contract LSSVMRouter2 {
         nft.safeTransferFrom(from, to, id);
     }
 
+    // Given a pair and a number of items to buy, calculate the max price paid for 1 up to numNFTs to buy
+    function getNFTQuoteForPartialFill(
+        LSSVMPair pair,
+        uint256 numNFTs,
+        bool isBuy
+    ) external view returns (uint256[] memory) {
+        uint256[] memory prices = new uint256[](numNFTs + 1);
+        uint256 fullPrice;
+        if (isBuy) {
+            (, , , fullPrice, ) = pair.getBuyNFTQuote(numNFTs);
+        } else {
+            (, , , fullPrice, ) = pair.getSellNFTQuote(numNFTs);
+        }
+        prices[numNFTs] = fullPrice;
+        for (uint256 i = 1; i < numNFTs; i++) {
+            uint256 currentPrice;
+            if (isBuy) {
+                (, , , currentPrice, ) = pair.getBuyNFTQuote(numNFTs - i);
+            } else {
+                (, , , currentPrice, ) = pair.getSellNFTQuote(numNFTs - i);
+            }
+            prices[i] = fullPrice - currentPrice;
+        }
+        return prices;
+    }
+
     /**
       @dev Performs a batch of buys and sells, avoids performing swaps where the price is beyond
      */
-    function robustBuySellWithETHAndPartialFill() external payable {
+    function robustBuySellWithETHAndPartialFill(
+        PairSwapSpecificPartialFill[] calldata buyList,
+        PairSwapSpecificPartialFillForToken[] calldata sellList
+    ) external payable {
+        // Go through each buy item
+        // Check to see if the quote is as expected
+        // If it is, then send that amt over to buy
+        // If the quote is more, then check the number of NFTs (presumably less than expected)
+        // Take the difference and figure out which ones are still buyable
+        // Look up the max cost we're willing to pay
+        // Look up the getBuyNFTQuote for the new amount
+        // If it is within our bounds, still go ahead and buy
+        // Send excess funds back to caller
+        // Go through each sell item
+        // Check to see if the quote is as expected
+        // If it is, then do the NFT->ETH swap
+        // (if selling multiple items? --> do the same thing as above for buys?)
+        // Otherwise, move on to the next sell attempt
 
-      // Go through each buy item
-      // Check to see if the quote is as expected
-      // If it is, then send that amt over to buy
-      // If the quote is more, then check the number of NFTs (presumably less than expected)
-      // Take the difference and figure out which ones are still buyable
-      // Look up the max cost we're willing to pay
-      // Look up the getBuyNFTQuote for the new amount
-      // If it is within our bounds, still go ahead and buy
-      // Send excess funds back to caller
+        // Locally scope the buys
+        {
+            // Start with all of the ETH sent
+            uint256 remainingValue = msg.value;
+            uint256 numBuys = buyList.length;
 
-      // Go through each sell item
-      // Check to see if the quote is as expected
-      // If it is, then do the NFT->ETH swap
-      // (if selling multiple items? --> do the same thing as above for buys?)
-      // Otherwise, move on to the next sell attempt
+            // Try each buy swaps
+            for (uint256 i; i < numBuys; ) {
+                uint256 spotPrice = buyList[i].swapInfo.pair.spotPrice();
+
+                // If spot price is at most the expected amount, then it's likely nothing happened since the tx was submitted
+                // We go and optimistically attempt to fill each one
+                if (spotPrice <= buyList[i].expectedSpotPrice) {
+                    // Total ETH taken from sender cannot msg.value
+                    // because otherwise the deduction from remainingValue will fail
+                    remainingValue -= buyList[i]
+                        .swapInfo
+                        .pair
+                        .swapTokenForSpecificNFTs{value: buyList[i].maxCostPerNumNFTs[buyList[i].swapInfo.nftIds.length]}(
+                        buyList[i].swapInfo.nftIds,
+                        remainingValue,
+                        msg.sender,
+                        true,
+                        msg.sender
+                    );
+                }
+                // If spot price is greater, then potentially 1 or more items have already been bought
+                else {
+                    // Do binary search on getBuyNFTQuote() from 1 to numItems
+                    // the goal is to find the largest number where the quote is still within the user specified max cost
+                    // then go through and figure out which items are still fillable
+                    // proveed to go and fill them
+                }
+
+                unchecked {
+                    ++i;
+                }
+            }
+
+            // Return remaining value to sender
+            if (remainingValue > 0) {
+                payable(msg.sender).safeTransferETH(remainingValue);
+            }
+        }
     }
+
+    function _buyWithPartialFill() internal {}
 
     /**
       @dev Buys the NFTs first, then sells them. Intended to be used for arbitrage.
