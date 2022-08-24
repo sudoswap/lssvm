@@ -2,3 +2,4 @@
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 ds-test/=lib/ds-test/src/
 solmate/=lib/solmate/src/
+royalty-registry/=lib/royalty-registry-solidity/contracts/

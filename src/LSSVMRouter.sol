@@ -86,6 +86,7 @@ contract LSSVMRouter {
     )
         external
         payable
+        virtual
         checkDeadline(deadline)
         returns (uint256 remainingValue)
     {
@@ -109,16 +110,16 @@ contract LSSVMRouter {
     )
         external
         payable
+        virtual
         checkDeadline(deadline)
         returns (uint256 remainingValue)
     {
-        return
-            _swapETHForSpecificNFTs(
-                swapList,
-                msg.value,
-                ethRecipient,
-                nftRecipient
-            );
+        (remainingValue, ) = _swapETHForSpecificNFTs(
+            swapList,
+            msg.value,
+            ethRecipient,
+            nftRecipient
+        );
     }
 
     /**
@@ -191,14 +192,13 @@ contract LSSVMRouter {
 
         // Swap ETH for specific NFTs
         // cost <= inputValue = outputAmount - minOutput, so outputAmount' = (outputAmount - minOutput - cost) + minOutput >= minOutput
-        outputAmount =
-            _swapETHForSpecificNFTs(
-                trade.tokenToNFTTrades,
-                outputAmount - minOutput,
-                ethRecipient,
-                nftRecipient
-            ) +
-            minOutput;
+        (outputAmount, ) = _swapETHForSpecificNFTs(
+            trade.tokenToNFTTrades,
+            outputAmount - minOutput,
+            ethRecipient,
+            nftRecipient
+        );
+        outputAmount += minOutput;
     }
 
     /**
@@ -959,14 +959,16 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address payable ethRecipient,
         address nftRecipient
-    ) internal returns (uint256 remainingValue) {
+    ) internal returns (uint256 remainingValue, uint256[] memory costs) {
         remainingValue = inputAmount;
 
         uint256 pairCost;
         CurveErrorCodes.Error error;
 
-        // Do swaps
         uint256 numSwaps = swapList.length;
+        costs = new uint256[](numSwaps);
+
+        // Do swaps
         for (uint256 i; i < numSwaps; ) {
             // Calculate the cost per swap first to send exact amount of ETH over, saves gas by avoiding the need to send back excess ETH
             (error, , , pairCost, ) = swapList[i].pair.getBuyNFTQuote(
@@ -976,9 +978,7 @@ contract LSSVMRouter {
             // Require no errors
             require(error == CurveErrorCodes.Error.OK, "Bonding curve error");
 
-            // Total ETH taken from sender cannot exceed inputAmount
-            // because otherwise the deduction from remainingValue will fail
-            remainingValue -= swapList[i].pair.swapTokenForSpecificNFTs{
+            uint256 cost = swapList[i].pair.swapTokenForSpecificNFTs{
                 value: pairCost
             }(
                 swapList[i].nftIds,
@@ -987,6 +987,11 @@ contract LSSVMRouter {
                 true,
                 msg.sender
             );
+
+            // Total ETH taken from sender cannot exceed inputAmount
+            // because otherwise the deduction from remainingValue will fail
+            remainingValue -= cost;
+            costs[i] = cost;
 
             unchecked {
                 ++i;

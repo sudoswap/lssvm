@@ -14,3 +14,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/rari-capital/solmate
+[submodule "lib/royalty-registry-solidity"]
+	path = lib/royalty-registry-solidity
+	url = https://github.com/manifoldxyz/royalty-registry-solidity
