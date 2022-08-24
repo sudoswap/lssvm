@@ -29,13 +29,11 @@ contract LSSVMRouter2 {
 
     struct PairSwapSpecificPartialFill {
         PairSwapSpecific swapInfo;
-        uint256 expectedSpotPrice;
         uint256[] maxCostPerNumNFTs;
     }
 
     struct PairSwapSpecificPartialFillForToken {
         PairSwapSpecific swapInfo;
-        uint256 expectedSpotPrice;
         uint256[] minOutputPerNumNFTs;
     }
 
@@ -104,25 +102,20 @@ contract LSSVMRouter2 {
 
     /**
       @dev Performs a batch of buys and sells, avoids performing swaps where the price is beyond
+      maxCostPerNumNFTs is 0-indexed, i.e. maxCostPerNumNFTs[0] is the max price to buy 1 NFT, and so on
      */
     function robustBuySellWithETHAndPartialFill(
         PairSwapSpecificPartialFill[] calldata buyList,
         PairSwapSpecificPartialFillForToken[] calldata sellList
     ) external payable {
-        // Go through each buy item
-        // Check to see if the quote is as expected
+        // High level logic:
+        // Go through each buy order
+        // Check to see if the quote to buy all items is fillable given the max price
         // If it is, then send that amt over to buy
-        // If the quote is more, then check the number of NFTs (presumably less than expected)
-        // Take the difference and figure out which ones are still buyable
-        // Look up the max cost we're willing to pay
-        // Look up the getBuyNFTQuote for the new amount
-        // If it is within our bounds, still go ahead and buy
+        // If the quote is more expensive than expexted, then figure out the maximum amt to buy to be within maxCost
+        // Find a list of IDs still available
+        // Make the swap
         // Send excess funds back to caller
-        // Go through each sell item
-        // Check to see if the quote is as expected
-        // If it is, then do the NFT->ETH swap
-        // (if selling multiple items? --> do the same thing as above for buys?)
-        // Otherwise, move on to the next sell attempt
 
         // Locally scope the buys
         {
@@ -132,30 +125,62 @@ contract LSSVMRouter2 {
 
             // Try each buy swaps
             for (uint256 i; i < numBuys; ) {
-                uint256 spotPrice = buyList[i].swapInfo.pair.spotPrice();
+                LSSVMPair pair = buyList[i].swapInfo.pair;
+                uint256 numNFTs = buyList[i].swapInfo.nftIds.length;
+                (, , , uint256 fullPrice, ) = pair.getBuyNFTQuote(numNFTs);
 
-                // If spot price is at most the expected amount, then it's likely nothing happened since the tx was submitted
+                // If the price to buy them all is at most the expected amount, then it's likely nothing happened since the tx was submitted
                 // We go and optimistically attempt to fill each one
-                if (spotPrice <= buyList[i].expectedSpotPrice) {
+                if (fullPrice <= buyList[i].maxCostPerNumNFTs[numNFTs - 1]) {
                     // Total ETH taken from sender cannot msg.value
                     // because otherwise the deduction from remainingValue will fail
-                    remainingValue -= buyList[i]
-                        .swapInfo
-                        .pair
-                        .swapTokenForSpecificNFTs{value: buyList[i].maxCostPerNumNFTs[buyList[i].swapInfo.nftIds.length]}(
+                    remainingValue -= pair.swapTokenForSpecificNFTs{
+                        value: buyList[i].maxCostPerNumNFTs[numNFTs - 1]
+                    }(
                         buyList[i].swapInfo.nftIds,
-                        remainingValue,
+                        buyList[i].maxCostPerNumNFTs[numNFTs - 1],
                         msg.sender,
                         true,
                         msg.sender
                     );
                 }
-                // If spot price is greater, then potentially 1 or more items have already been bought
+                // If full price is greater, then potentially 1 or more items have already been bought
                 else {
-                    // Do binary search on getBuyNFTQuote() from 1 to numItems
-                    // the goal is to find the largest number where the quote is still within the user specified max cost
-                    // then go through and figure out which items are still fillable
-                    // proveed to go and fill them
+                    // Go through all items to figure out which ones are still buyable
+                    // We do a halving search on getBuyNFTQuote() from 1 to numNFTs-1 (we already know we can't fill numNFTs items)
+                    // The goal is to find *a* number (not necessarily the largest) where the quote is still within the user specified max cost
+                    // Then, go through and find as many available items as possible (i.e. still owned by the pair)
+                    (
+                        uint256 numItemsToFill,
+                        uint256 priceToFillAt
+                    ) = _findMaxFillableAmt(
+                            pair,
+                            numNFTs,
+                            buyList[i].maxCostPerNumNFTs
+                        );
+
+                    // If no items are fillable, then skip
+                    if (numItemsToFill == 0) {
+                        continue;
+                    } else {
+                        // Figure out which items are actually still buyable from the list
+                        uint256[] memory fillableIds = _findAvailableIds(
+                            pair,
+                            numItemsToFill,
+                            buyList[i].swapInfo.nftIds
+                        );
+
+                        // Otherwise, do the swap with the updated price and ids
+                        remainingValue -= pair.swapTokenForSpecificNFTs{
+                            value: priceToFillAt
+                        }(
+                            fillableIds,
+                            priceToFillAt,
+                            msg.sender,
+                            true,
+                            msg.sender
+                        );
+                    }
                 }
 
                 unchecked {
@@ -170,7 +195,76 @@ contract LSSVMRouter2 {
         }
     }
 
-    function _buyWithPartialFill() internal {}
+    /**
+      @dev Performs a log(n) search to find the largest value where maxPricesPerNumNFTs is still greater than 
+      the pair's getBuyNFTQuote() value. Not a true binary search, as it's biased to underfill to reduce gas.
+      @param maxNumNFTs The maximum number of NFTs to fill / get a quote for
+      @param maxPricesPerNumNFTs The user's specified maximum price to pay for filling a number of NFTs
+      @dev Note that maxPricesPerNumNFTs is 0-indexed
+     */
+    function _findMaxFillableAmt(
+        LSSVMPair pair,
+        uint256 maxNumNFTs,
+        uint256[] memory maxPricesPerNumNFTs
+    ) internal view returns (uint256 numNFTs, uint256 price) {
+        uint256 start = 1;
+        uint256 end = maxNumNFTs;
+        while (start <= end) {
+            uint256 mid = (start + end) / 2;
+            (, , , uint256 currentPrice, ) = pair.getBuyNFTQuote(mid);
+            if (currentPrice <= maxPricesPerNumNFTs[mid - 1]) {
+                return (mid, currentPrice);
+            } else if (currentPrice > maxPricesPerNumNFTs[mid - 1]) {
+                end = mid - 1;
+            }
+        }
+        return (0, 0);
+    }
+
+    /**
+      @dev Checks ownership of all desired NFT IDs to see which ones are still fillable
+      @param pair The pair to check
+      @param numNFTs The max number of NFTs to check
+      @param potentialIds The possible NFT IDs
+     */
+    function _findAvailableIds(
+        LSSVMPair pair,
+        uint256 numNFTs,
+        uint256[] memory potentialIds
+    ) internal view returns (uint256[] memory idsToBuy) {
+        IERC721 nft = pair.nft();
+        uint256[] memory ids = new uint256[](numNFTs);
+        uint256 index = 0;
+        // Check to see if each potential ID is still owned by the pair, up to numNFTs items
+        for (uint256 i; i < potentialIds.length; ) {
+            if (nft.ownerOf(potentialIds[i]) == address(pair)) {
+                ids[index] = potentialIds[i];
+                unchecked {
+                    ++index;
+                    if (index == numNFTs) {
+                        break;
+                    }
+                }
+            }
+            unchecked {
+                ++i;
+            }
+        }
+        // Check to see if index is less than numNFTs.
+        // If so, then there are less fillable items then expected, and we just copy the first index items over
+        // This guarantees no empty spaces in the returned array
+        if (index < numNFTs) {
+            uint256[] memory idsSubset = new uint256[](index);
+            for (uint256 i; i < index; ) {
+                idsSubset[i] = ids[i];
+                unchecked {
+                    ++i;
+                }
+            }
+            return idsSubset;
+        }
+        return ids;
+    }
 
     /**
       @dev Buys the NFTs first, then sells them. Intended to be used for arbitrage.
@@ -194,7 +288,7 @@ contract LSSVMRouter2 {
                     .pair
                     .swapTokenForSpecificNFTs{value: buyList[i].maxCost}(
                     buyList[i].swapInfo.nftIds,
-                    remainingValue,
+                    buyList[i].maxCost,
                     msg.sender,
                     true,
                     msg.sender
@@ -276,7 +370,7 @@ contract LSSVMRouter2 {
                     .pair
                     .swapTokenForSpecificNFTs{value: buyList[i].maxCost}(
                     buyList[i].swapInfo.nftIds,
-                    remainingValue,
+                    buyList[i].maxCost,
                     msg.sender,
                     true,
                     msg.sender
