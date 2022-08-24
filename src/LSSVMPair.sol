@@ -89,13 +89,13 @@ abstract contract LSSVMPair is
         PoolType _poolType = poolType();
 
         if ((_poolType == PoolType.TOKEN) || (_poolType == PoolType.NFT)) {
-            require(_fee == 0, "Only Trade Pools can have nonzero fee");
+            require(_fee == 0, "Only Trade Pools can have >0 fee");
             assetRecipient = _assetRecipient;
         } else if (_poolType == PoolType.TRADE) {
             require(_fee < MAX_FEE, "Trade fee must be less than 90%");
             require(
                 _assetRecipient == address(0),
-                "Trade pools can't set asset recipient"
+                "Trade pools can't set recipient"
             );
             fee = _fee;
         }
@@ -146,8 +146,8 @@ abstract contract LSSVMPair is
                 "Wrong Pool type"
             );
             require(
-                (numNFTs > 0) && (numNFTs <= _nft.balanceOf(address(this))),
-                "Ask for > 0 and <= balanceOf NFTs"
+                (numNFTs != 0) && (numNFTs <= _nft.balanceOf(address(this))),
+                "Ask for >0 and <= balanceOf NFTs"
             );
         }
 
@@ -208,7 +208,7 @@ abstract contract LSSVMPair is
                 _poolType == PoolType.NFT || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
-            require((nftIds.length > 0), "Must ask for > 0 NFTs");
+            require((nftIds.length != 0), "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
@@ -266,7 +266,7 @@ abstract contract LSSVMPair is
                 _poolType == PoolType.TOKEN || _poolType == PoolType.TRADE,
                 "Wrong Pool type"
             );
-            require(nftIds.length > 0, "Must ask for > 0 NFTs");
+            require(nftIds.length != 0, "Must ask for > 0 NFTs");
         }
 
         // Call bonding curve for pricing information
@@ -665,7 +665,8 @@ abstract contract LSSVMPair is
                 // If more than 1 NFT is being transfered, we can do a balance check instead of an ownership check, as pools are indifferent between NFTs from the same collection
                 if (numNFTs > 1) {
                     uint256 beforeBalance = _nft.balanceOf(_assetRecipient);
-                    for (uint256 i = 0; i < numNFTs; ) {
+                    uint256 i;
+                    do {
                         router.pairTransferNFTFrom(
                             _nft,
                             routerCaller,
@@ -677,7 +678,7 @@ abstract contract LSSVMPair is
                         unchecked {
                             ++i;
                         }
-                    }
+                    } while (i < numNFTs);
                     require(
                         (_nft.balanceOf(_assetRecipient) - beforeBalance) ==
                             numNFTs,
@@ -860,7 +861,7 @@ abstract contract LSSVMPair is
         // Prevent multicall from malicious frontend sneaking in ownership change
         require(
             owner() == msg.sender,
-            "Ownership cannot be changed in multicall"
+            "Owner can't change in multicall"
         );
     }
 

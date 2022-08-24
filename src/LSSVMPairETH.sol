@@ -35,13 +35,13 @@ abstract contract LSSVMPairETH is LSSVMPair {
         }
 
         // Take protocol fee
-        if (protocolFee > 0) {
+        if (protocolFee != 0) {
             // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
             if (protocolFee > address(this).balance) {
                 protocolFee = address(this).balance;
             }
 
-            if (protocolFee > 0) {
+            if (protocolFee != 0) {
                 payable(address(_factory)).safeTransferETH(protocolFee);
             }
         }
@@ -61,13 +61,13 @@ abstract contract LSSVMPairETH is LSSVMPair {
         uint256 protocolFee
     ) internal override {
         // Take protocol fee
-        if (protocolFee > 0) {
+        if (protocolFee != 0) {
             // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
             if (protocolFee > address(this).balance) {
                 protocolFee = address(this).balance;
             }
 
-            if (protocolFee > 0) {
+            if (protocolFee != 0) {
                 payable(address(_factory)).safeTransferETH(protocolFee);
             }
         }
@@ -79,7 +79,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
         uint256 outputAmount
     ) internal override {
         // Send ETH to caller
-        if (outputAmount > 0) {
+        if (outputAmount != 0) {
             tokenRecipient.safeTransferETH(outputAmount);
         }
     }
