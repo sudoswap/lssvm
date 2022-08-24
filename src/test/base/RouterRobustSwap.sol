@@ -374,7 +374,6 @@ abstract contract RouterRobustSwap is
 
     // Test where we buy and sell in the same tx
     function test_robustSwapNFTsForTokenAndTokenForNFTs() public {
-
         // Check that we own #0 and #1, and that we don't own #32 and #33
         assertEq(test721.ownerOf(0), address(pair1));
         assertEq(test721.ownerOf(1), address(pair1));
@@ -396,7 +395,7 @@ abstract contract RouterRobustSwap is
             maxCost: 0.44 ether
         });
 
-        // We queue up a NFT->Token swap that should work 
+        // We queue up a NFT->Token swap that should work
         uint256[] memory nftIds2 = new uint256[](2);
         nftIds2[0] = 32;
         nftIds2[1] = 33;
@@ -414,15 +413,18 @@ abstract contract RouterRobustSwap is
 
         // Do the swap
         uint256 inputAmount = 0.44 ether;
-        this.robustSwapTokenForSpecificNFTsAndNFTsForTokens{value: modifyInputAmount(inputAmount)}(
-          router,
-          LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade({
-          nftToTokenTrades: nftToTokenSwapList,
-          tokenToNFTTrades: tokenToNFTSwapList,
-          inputAmount: inputAmount,
-          tokenRecipient: payable(address(this)),
-          nftRecipient: address(this)
-        }));
+        this.robustSwapTokenForSpecificNFTsAndNFTsForTokens{
+            value: modifyInputAmount(inputAmount)
+        }(
+            router,
+            LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade({
+                nftToTokenTrades: nftToTokenSwapList,
+                tokenToNFTTrades: tokenToNFTSwapList,
+                inputAmount: inputAmount,
+                tokenRecipient: payable(address(this)),
+                nftRecipient: address(this)
+            })
+        );
 
         // Check that we own #0 and #1, and that we don't own #32 and #33
         assertEq(test721.ownerOf(0), address(this));

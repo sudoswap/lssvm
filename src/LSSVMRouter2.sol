@@ -142,7 +142,11 @@ contract LSSVMRouter2 {
                     remainingValue -= buyList[i]
                         .swapInfo
                         .pair
-                        .swapTokenForSpecificNFTs{value: buyList[i].maxCostPerNumNFTs[buyList[i].swapInfo.nftIds.length]}(
+                        .swapTokenForSpecificNFTs{
+                        value: buyList[i].maxCostPerNumNFTs[
+                            buyList[i].swapInfo.nftIds.length
+                        ]
+                    }(
                         buyList[i].swapInfo.nftIds,
                         remainingValue,
                         msg.sender,

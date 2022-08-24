@@ -134,7 +134,7 @@ abstract contract LSSVMPairETH is LSSVMPair {
      */
     fallback() external payable {
         // Only allow calls without function selector
-        require (msg.data.length == _immutableParamsLength()); 
+        require(msg.data.length == _immutableParamsLength());
         emit TokenDeposit(msg.value);
     }
 }

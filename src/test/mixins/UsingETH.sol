@@ -172,6 +172,9 @@ abstract contract UsingETH is Configurable, RouterCaller {
         LSSVMRouter router,
         LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
     ) public payable override returns (uint256, uint256) {
-        return router.robustSwapETHForSpecificNFTsAndNFTsToToken{value: msg.value}(params);
+        return
+            router.robustSwapETHForSpecificNFTsAndNFTsToToken{value: msg.value}(
+                params
+            );
     }
 }
