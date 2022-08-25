@@ -8,6 +8,12 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
+/*
+  - add erc20 support
+  - add sell support (for tokens)
+  - add test cases 
+*/
+
 contract LSSVMRouter2 {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
@@ -189,7 +195,7 @@ contract LSSVMRouter2 {
                             continue;
                         }
 
-                        // Otherwise, do the swap with the updated price and ids
+                        // Otherwise, do the partial fill swap with the updated price and ids
                         remainingValue -= pair.swapTokenForSpecificNFTs{
                             value: priceToFillAt
                         }(
@@ -210,6 +216,50 @@ contract LSSVMRouter2 {
             // Return remaining value to sender
             if (remainingValue > 0) {
                 payable(msg.sender).safeTransferETH(remainingValue);
+            }
+        }
+        // Locally scope the sells
+        {
+            // Check spot price
+            // Do sells
+            // Otherwise, find max fillable amt for sell (while being eth balance aware)
+            // Then do the sells
+            for (uint256 i; i < sellList.length; ) {
+                LSSVMPair pair = sellList[i].swapInfo.pair;
+                uint256 spotPrice = pair.spotPrice();
+                uint256 numNFTs = sellList[i].swapInfo.nftIds.length;
+
+                // If spot price is at least the expected spot price, go ahead and do the swap
+                if (spotPrice >= sellList[i].expectedSpotPrice) {
+                    pair.swapNFTsForToken(
+                        sellList[i].swapInfo.nftIds,
+                        sellList[i].minOutputPerNumNFTs[numNFTs - 1],
+                        payable(msg.sender),
+                        true,
+                        msg.sender
+                    );
+                }
+                // Otherwise, run partial fill calculations
+                else {
+                    (
+                        uint256 numItemsToFill,
+                        uint256 priceToFillAt
+                    ) = _findMaxFillableAmtForETHSell(
+                            pair,
+                            numNFTs,
+                            sellList[i].minOutputPerNumNFTs
+                        );
+                    pair.swapNFTsForToken(
+                        sellList[i].swapInfo.nftIds[0:numItemsToFill],
+                        priceToFillAt,
+                        payable(msg.sender),
+                        true,
+                        msg.sender
+                    );
+                }
+                unchecked {
+                    ++i;
+                }
             }
         }
     }
@@ -233,18 +283,53 @@ contract LSSVMRouter2 {
             // Get price of mid number of items
             uint256 mid = start + (end - start + 1) / 2;
             (, , , uint256 currentPrice, ) = pair.getBuyNFTQuote(mid);
-            // If we can fill more than that, record the value, and recurse on the right half
+            // If we pay at least the currentPrice with our maxPrice, record the value, and recurse on the right half
             if (currentPrice < maxPricesPerNumNFTs[mid]) {
-                numNFTs = mid;
+                // We have to add 1 because mid is indexing into maxPricesPerNumNFTs which is 0-indexed
+                numNFTs = mid + 1;
                 price = currentPrice;
                 start = mid + 1;
             }
-            // Otherwise, if it's beyond our budget, recurse on the left half
-            else if (currentPrice >= maxPricesPerNumNFTs[mid]) {
+            // Otherwise, if it's beyond our budget, recurse on the left half (to find smth cheaper)
+            else {
                 end = mid - 1;
             }
         }
         // At the end, we will return the last seen numNFTs and price
+    }
+
+    function _findMaxFillableAmtForETHSell(
+        LSSVMPair pair,
+        uint256 maxNumNFTs,
+        uint256[] memory minOutputPerNumNFTs
+    ) internal view returns (uint256 numNFTs, uint256 price) {
+        uint256 pairBalance = address(pair).balance;
+        // Start and end indices
+        uint256 start = 0;
+        uint256 end = maxNumNFTs - 1;
+        while (start <= end) {
+            // Get price of mid number of items
+            uint256 mid = start + (end - start + 1) / 2;
+            (, , , uint256 currentPrice, ) = pair.getSellNFTQuote(mid);
+            // If it costs more than there is ETH balance for, then recurse on the left half
+            if (currentPrice > pairBalance) {
+                end = mid - 1;
+            }
+            // Otherwise, we can proceed
+            else {
+                // If we can get at least minOutput selling this number of items, recurse on the right half
+                if (currentPrice >= minOutputPerNumNFTs[mid]) {
+                    numNFTs = mid + 1;
+                    price = currentPrice;
+                    start = mid + 1;
+                }
+                // Otherwise, recurse on the left to find something better priced
+                else {
+                    end = mid - 1;
+                }
+            }
+        }
+        // Return numNFTs and price
     }
 
     /**
@@ -293,7 +378,7 @@ contract LSSVMRouter2 {
     }
 
     /**
-      @dev Buys the NFTs first, then sells them. Intended to be used for arbitrage.
+      @dev Buys NFTs first, then sells them.
      */
     function buyNFTsThenSellWithETH(
         RobustPairSwapSpecific[] calldata buyList,
@@ -389,7 +474,7 @@ contract LSSVMRouter2 {
 
             // Do all buy swaps
             for (uint256 i; i < numBuys; ) {
-                // @dev Total ETH taken from sender cannot the starting remainingValue
+                // @dev Total ETH taken from sender cannot exceed the starting remainingValue
                 // because otherwise the deduction from remainingValue will fail
                 remainingValue -= buyList[i]
                     .swapInfo
@@ -457,6 +542,7 @@ contract LSSVMRouter2 {
         @notice Swaps NFTs for tokens, designed to be used for 1 token at a time
         @dev Calling with multiple tokens is permitted, BUT minOutput will be 
         far from enough of a safety check because different tokens almost certainly have different unit prices.
+        @dev Does no price checking, this is assumed to be done off-chain
         @param swapList The list of pairs and swap calldata 
         @return outputAmount The number of tokens to be received
      */
