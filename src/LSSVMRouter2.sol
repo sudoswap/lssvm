@@ -29,11 +29,13 @@ contract LSSVMRouter2 {
 
     struct PairSwapSpecificPartialFill {
         PairSwapSpecific swapInfo;
+        uint256 expectedSpotPrice;
         uint256[] maxCostPerNumNFTs;
     }
 
     struct PairSwapSpecificPartialFillForToken {
         PairSwapSpecific swapInfo;
+        uint256 expectedSpotPrice;
         uint256[] minOutputPerNumNFTs;
     }
 
@@ -80,25 +82,37 @@ contract LSSVMRouter2 {
         uint256 numNFTs,
         bool isBuy
     ) external view returns (uint256[] memory) {
-        uint256[] memory prices = new uint256[](numNFTs + 1);
+        uint256[] memory prices = new uint256[](numNFTs);
         uint256 fullPrice;
         if (isBuy) {
             (, , , fullPrice, ) = pair.getBuyNFTQuote(numNFTs);
         } else {
             (, , , fullPrice, ) = pair.getSellNFTQuote(numNFTs);
         }
-        prices[numNFTs] = fullPrice;
-        for (uint256 i = 1; i < numNFTs; i++) {
+        prices[numNFTs - 1] = fullPrice;
+        for (uint256 i = 0; i < numNFTs; i++) {
             uint256 currentPrice;
             if (isBuy) {
-                (, , , currentPrice, ) = pair.getBuyNFTQuote(numNFTs - i);
+                (, , , currentPrice, ) = pair.getBuyNFTQuote(numNFTs - i - 1);
             } else {
-                (, , , currentPrice, ) = pair.getSellNFTQuote(numNFTs - i);
+                (, , , currentPrice, ) = pair.getSellNFTQuote(numNFTs - i - 1);
             }
             prices[i] = fullPrice - currentPrice;
         }
         return prices;
     }
+
+    /** 
+      TODO:
+      test cases:
+      Buys:
+      - everything to buy is fillable
+      - pricing is within budget (i.e. large slippage was used), but not all items exist in the pair
+      - pricing for some items are within budget, and all items exist in the pair
+      - pricing for some items are within budget, but not all items exist in the pair, but enough to fill the desired amt
+      - pricing for some items are within budget, but not all items exist in the pair, and less than the desired amt
+      - pricing for no items are within budget
+    */
 
     /**
       @dev Performs a batch of buys and sells, avoids performing swaps where the price is beyond
@@ -127,11 +141,11 @@ contract LSSVMRouter2 {
             for (uint256 i; i < numBuys; ) {
                 LSSVMPair pair = buyList[i].swapInfo.pair;
                 uint256 numNFTs = buyList[i].swapInfo.nftIds.length;
-                (, , , uint256 fullPrice, ) = pair.getBuyNFTQuote(numNFTs);
+                uint256 spotPrice = pair.spotPrice();
 
-                // If the price to buy them all is at most the expected amount, then it's likely nothing happened since the tx was submitted
-                // We go and optimistically attempt to fill each one
-                if (fullPrice <= buyList[i].maxCostPerNumNFTs[numNFTs - 1]) {
+                // If the spot price is at most the expected spot price, then it's likely nothing happened since the tx was submitted
+                // We go and optimistically attempt to fill each item using the user supplied max cost
+                if (spotPrice <= buyList[i].expectedSpotPrice) {
                     // Total ETH taken from sender cannot msg.value
                     // because otherwise the deduction from remainingValue will fail
                     remainingValue -= pair.swapTokenForSpecificNFTs{
@@ -144,16 +158,16 @@ contract LSSVMRouter2 {
                         msg.sender
                     );
                 }
-                // If full price is greater, then potentially 1 or more items have already been bought
+                // If spot price is is greater, then potentially 1 or more items have already been bought
                 else {
                     // Go through all items to figure out which ones are still buyable
-                    // We do a halving search on getBuyNFTQuote() from 1 to numNFTs-1 (we already know we can't fill numNFTs items)
+                    // We do a halving search on getBuyNFTQuote() from 1 to numNFTs
                     // The goal is to find *a* number (not necessarily the largest) where the quote is still within the user specified max cost
-                    // Then, go through and find as many available items as possible (i.e. still owned by the pair)
+                    // Then, go through and find as many available items as possible (i.e. still owned by the pair) we can fill
                     (
                         uint256 numItemsToFill,
                         uint256 priceToFillAt
-                    ) = _findMaxFillableAmt(
+                    ) = _findMaxFillableAmtForBuy(
                             pair,
                             numNFTs,
                             buyList[i].maxCostPerNumNFTs
@@ -169,6 +183,11 @@ contract LSSVMRouter2 {
                             numItemsToFill,
                             buyList[i].swapInfo.nftIds
                         );
+
+                        // If no IDs are fillable, then skip
+                        if (fillableIds.length == 0) {
+                            continue;
+                        }
 
                         // Otherwise, do the swap with the updated price and ids
                         remainingValue -= pair.swapTokenForSpecificNFTs{
@@ -197,28 +216,35 @@ contract LSSVMRouter2 {
 
     /**
       @dev Performs a log(n) search to find the largest value where maxPricesPerNumNFTs is still greater than 
-      the pair's getBuyNFTQuote() value. Not a true binary search, as it's biased to underfill to reduce gas.
+      the pair's getBuyNFTQuote() value. Not a true binary search, as it's biased to underfill to reduce gas / complexity.
       @param maxNumNFTs The maximum number of NFTs to fill / get a quote for
       @param maxPricesPerNumNFTs The user's specified maximum price to pay for filling a number of NFTs
       @dev Note that maxPricesPerNumNFTs is 0-indexed
      */
-    function _findMaxFillableAmt(
+    function _findMaxFillableAmtForBuy(
         LSSVMPair pair,
         uint256 maxNumNFTs,
         uint256[] memory maxPricesPerNumNFTs
     ) internal view returns (uint256 numNFTs, uint256 price) {
-        uint256 start = 1;
-        uint256 end = maxNumNFTs;
+        // Start and end indices
+        uint256 start = 0;
+        uint256 end = maxNumNFTs - 1;
         while (start <= end) {
-            uint256 mid = (start + end) / 2;
+            // Get price of mid number of items
+            uint256 mid = start + (end - start + 1) / 2;
             (, , , uint256 currentPrice, ) = pair.getBuyNFTQuote(mid);
-            if (currentPrice <= maxPricesPerNumNFTs[mid - 1]) {
-                return (mid, currentPrice);
-            } else if (currentPrice > maxPricesPerNumNFTs[mid - 1]) {
+            // If we can fill more than that, record the value, and recurse on the right half
+            if (currentPrice < maxPricesPerNumNFTs[mid]) {
+                numNFTs = mid;
+                price = currentPrice;
+                start = mid + 1;
+            }
+            // Otherwise, if it's beyond our budget, recurse on the left half
+            else if (currentPrice >= maxPricesPerNumNFTs[mid]) {
                 end = mid - 1;
             }
         }
-        return (0, 0);
+        // At the end, we will return the last seen numNFTs and price
     }
 
     /**
