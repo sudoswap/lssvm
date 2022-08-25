@@ -959,14 +959,14 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address payable ethRecipient,
         address nftRecipient
-    ) internal returns (uint256 remainingValue, uint256[] memory costs) {
+    ) internal returns (uint256 remainingValue, uint256[] memory costPerPair) {
         remainingValue = inputAmount;
 
         uint256 pairCost;
         CurveErrorCodes.Error error;
 
         uint256 numSwaps = swapList.length;
-        costs = new uint256[](numSwaps);
+        costPerPair = new uint256[](numSwaps);
 
         // Do swaps
         for (uint256 i; i < numSwaps; ) {
@@ -991,7 +991,7 @@ contract LSSVMRouter {
             // Total ETH taken from sender cannot exceed inputAmount
             // because otherwise the deduction from remainingValue will fail
             remainingValue -= cost;
-            costs[i] = cost;
+            costPerPair[i] = cost;
 
             unchecked {
                 ++i;

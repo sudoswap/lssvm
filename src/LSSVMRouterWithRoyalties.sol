@@ -15,7 +15,8 @@ contract LSSVMRouterWithRoyalties is LSSVMRouter {
     IRoyaltyEngineV1 public constant ROYALTY_ENGINE =
         IRoyaltyEngineV1(0x0385603ab55642cb4Dd5De3aE9e306809991804f);
 
-    EnumerableMap.AddressToUintMap private royaltyRecipients;
+    mapping(address => uint256) private royaltyRecipientAmounts;
+    address[] private royaltyRecipientList;
 
     constructor(ILSSVMPairFactoryLike _factory) LSSVMRouter(_factory) {}
 
@@ -81,10 +82,8 @@ contract LSSVMRouterWithRoyalties is LSSVMRouter {
                     uint256 amount = amounts[recipientIndex];
 
                     // add the amount that needs to be paid to each recipient in a mapping
-                    royaltyRecipients.set(
-                        recipient,
-                        royaltyRecipients.get(recipient) + amount
-                    );
+                    royaltyRecipientAmounts[recipient] += amount;
+                    royaltyRecipientList.push(recipient);
                     totalRoyalties += amount;
 
                     unchecked {
@@ -106,14 +105,23 @@ contract LSSVMRouterWithRoyalties is LSSVMRouter {
         remainingValue -= totalRoyalties;
 
         // loop through recipients
-        while (royaltyRecipients.length() > 0) {
-            (address recipient, uint256 amount) = royaltyRecipients.at(0);
+        uint256 index = royaltyRecipientList.length - 1;
+        while (index >= 0) {
+            address payable recipient = payable(royaltyRecipientList[index]);
+            uint256 amount = royaltyRecipientAmounts[recipient];
+
+            // remove recipient from storage in order to get gas refunds
+            royaltyRecipientList.pop();
+            delete royaltyRecipientAmounts[recipient];
 
             // issue payment to recipient
             payable(recipient).safeTransferETH(amount);
 
-            // remove recipient from list in order to get gas refunds
-            royaltyRecipients.remove(recipient);
+            if (index == 0) break;
+
+            unchecked {
+                --index;
+            }
         }
     }
 }
