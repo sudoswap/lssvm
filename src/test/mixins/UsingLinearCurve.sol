@@ -25,4 +25,9 @@ abstract contract UsingLinearCurve is Configurable {
     {
         return spotPrice;
     }
+
+        // Return 1 eth as spot price and 0.1 eth as the delta scaling
+    function getParamsForPartialFillTest() public pure override returns (uint128 spotPrice, uint128 delta) {
+      return (10**18, 10**17);
+    }
 }

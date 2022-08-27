@@ -5,3 +5,4 @@ PairAndFactory,PAF
 RouterMultiPool,RMP
 RouterSinglePoolWithAssetRecipient,RSPWAR
 RouterRobustSwapWithAssetRecipient,RRSWAR
+RouterPartialFill,RPF

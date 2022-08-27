@@ -8,12 +8,6 @@ import {LSSVMPair} from "./LSSVMPair.sol";
 import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
-/*
-  - add erc20 support
-  - add sell support (for tokens)
-  - add test cases 
-*/
-
 contract LSSVMRouter2 {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
@@ -96,7 +90,7 @@ contract LSSVMRouter2 {
             (, , , fullPrice, ) = pair.getSellNFTQuote(numNFTs);
         }
         prices[numNFTs - 1] = fullPrice;
-        for (uint256 i = 0; i < numNFTs; i++) {
+        for (uint256 i = 0; i < numNFTs - 1; i++) {
             uint256 currentPrice;
             if (isBuy) {
                 (, , , currentPrice, ) = pair.getBuyNFTQuote(numNFTs - i - 1);
@@ -107,18 +101,6 @@ contract LSSVMRouter2 {
         }
         return prices;
     }
-
-    /** 
-      TODO:
-      test cases:
-      Buys:
-      - everything to buy is fillable
-      - pricing is within budget (i.e. large slippage was used), but not all items exist in the pair
-      - pricing for some items are within budget, and all items exist in the pair
-      - pricing for some items are within budget, but not all items exist in the pair, but enough to fill the desired amt
-      - pricing for some items are within budget, but not all items exist in the pair, and less than the desired amt
-      - pricing for no items are within budget
-    */
 
     /**
       @dev Performs a batch of buys and sells, avoids performing swaps where the price is beyond
@@ -566,4 +548,6 @@ contract LSSVMRouter2 {
             }
         }
     }
+
+    receive() external payable {}
 }

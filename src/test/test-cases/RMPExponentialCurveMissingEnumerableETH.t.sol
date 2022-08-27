@@ -7,9 +7,4 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RMPExponentialCurveMissingEnumerableETHTest is
-    RouterMultiPool,
-    UsingExponentialCurve,
-    UsingMissingEnumerable,
-    UsingETH
-{}
+contract RMPExponentialCurveMissingEnumerableETHTest is RouterMultiPool, UsingExponentialCurve, UsingMissingEnumerable, UsingETH {}

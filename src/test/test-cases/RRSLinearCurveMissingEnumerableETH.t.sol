@@ -7,9 +7,4 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RRSLinearCurveMissingEnumerableETHTest is
-    RouterRobustSwap,
-    UsingLinearCurve,
-    UsingMissingEnumerable,
-    UsingETH
-{}
+contract RRSLinearCurveMissingEnumerableETHTest is RouterRobustSwap, UsingLinearCurve, UsingMissingEnumerable, UsingETH {}

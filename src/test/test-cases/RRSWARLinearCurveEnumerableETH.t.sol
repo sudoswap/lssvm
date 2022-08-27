@@ -7,9 +7,4 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RRSWARLinearCurveEnumerableETHTest is
-    RouterRobustSwapWithAssetRecipient,
-    UsingLinearCurve,
-    UsingEnumerable,
-    UsingETH
-{}
+contract RRSWARLinearCurveEnumerableETHTest is RouterRobustSwapWithAssetRecipient, UsingLinearCurve, UsingEnumerable, UsingETH {}

@@ -43,5 +43,10 @@ abstract contract Configurable {
 
     function withdrawProtocolFees(LSSVMPairFactory factory) public virtual;
 
+    function getParamsForPartialFillTest()
+        public
+        virtual
+        returns (uint128 spotPrice, uint128 delta);
+
     receive() external payable {}
 }

@@ -7,9 +7,4 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract NoArbExponentialCurveEnumerableETHTest is
-    NoArbBondingCurve,
-    UsingExponentialCurve,
-    UsingEnumerable,
-    UsingETH
-{}
+contract NoArbExponentialCurveEnumerableETHTest is NoArbBondingCurve, UsingExponentialCurve, UsingEnumerable, UsingETH {}

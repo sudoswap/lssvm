@@ -10,6 +10,7 @@ import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
+import {LSSVMRouter2} from "../../LSSVMRouter2.sol";
 import {Test20} from "../../mocks/Test20.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
@@ -203,5 +204,13 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
     ) public payable override returns (uint256, uint256) {
         return router.robustSwapERC20ForSpecificNFTsAndNFTsToToken(params);
+    }
+
+    function buyAndSellWithPartialFill(
+        LSSVMRouter2 router,
+        LSSVMRouter2.PairSwapSpecificPartialFill[] calldata buyList,
+        LSSVMRouter2.PairSwapSpecificPartialFillForToken[] calldata sellList
+    ) public payable override {
+      require(false, "Unimplemented");
     }
 }

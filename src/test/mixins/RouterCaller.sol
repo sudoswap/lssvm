@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
+import {LSSVMRouter2} from "../../LSSVMRouter2.sol";
 
 abstract contract RouterCaller {
     function swapTokenForAnyNFTs(
@@ -64,4 +65,10 @@ abstract contract RouterCaller {
         LSSVMRouter router,
         LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
     ) public payable virtual returns (uint256, uint256);
+
+    function buyAndSellWithPartialFill(
+        LSSVMRouter2 router,
+        LSSVMRouter2.PairSwapSpecificPartialFill[] calldata buyList,
+        LSSVMRouter2.PairSwapSpecificPartialFillForToken[] calldata sellList
+    ) public payable virtual;
 }

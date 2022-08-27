@@ -7,9 +7,4 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract NoArbExponentialCurveMissingEnumerableERC20Test is
-    NoArbBondingCurve,
-    UsingExponentialCurve,
-    UsingMissingEnumerable,
-    UsingERC20
-{}
+contract NoArbExponentialCurveMissingEnumerableERC20Test is NoArbBondingCurve, UsingExponentialCurve, UsingMissingEnumerable, UsingERC20 {}

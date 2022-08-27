@@ -6,6 +6,7 @@ import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {LSSVMPair} from "../../LSSVMPair.sol";
 import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
 import {LSSVMRouter} from "../../LSSVMRouter.sol";
+import {LSSVMRouter2} from "../../LSSVMRouter2.sol";
 import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
 import {Configurable} from "./Configurable.sol";
 import {RouterCaller} from "./RouterCaller.sol";
@@ -172,6 +173,19 @@ abstract contract UsingETH is Configurable, RouterCaller {
         LSSVMRouter router,
         LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
     ) public payable override returns (uint256, uint256) {
-        return router.robustSwapETHForSpecificNFTsAndNFTsToToken{value: msg.value}(params);
+        return
+            router.robustSwapETHForSpecificNFTsAndNFTsToToken{value: msg.value}(
+                params
+            );
+    }
+
+    function buyAndSellWithPartialFill(
+        LSSVMRouter2 router,
+        LSSVMRouter2.PairSwapSpecificPartialFill[] calldata buyList,
+        LSSVMRouter2.PairSwapSpecificPartialFillForToken[] calldata sellList
+    ) public payable override {
+      return router.robustBuySellWithETHAndPartialFill{value: msg.value}(
+        buyList, sellList
+      );
     }
 }

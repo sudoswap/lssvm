@@ -7,9 +7,4 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract RSPLinearCurveEnumerableERC20Test is
-    RouterSinglePool,
-    UsingLinearCurve,
-    UsingEnumerable,
-    UsingERC20
-{}
+contract RSPLinearCurveEnumerableERC20Test is RouterSinglePool, UsingLinearCurve, UsingEnumerable, UsingERC20 {}
