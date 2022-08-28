@@ -77,29 +77,33 @@ contract LSSVMRouter2 {
     }
 
     // Given a pair and a number of items to buy, calculate the max price paid for 1 up to numNFTs to buy
-    function getNFTQuoteForPartialFill(
-        LSSVMPair pair,
-        uint256 numNFTs,
-        bool isBuy
-    ) external view returns (uint256[] memory) {
+    function getNFTQuoteForPartialFillBuy(LSSVMPair pair, uint256 numNFTs)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        require(numNFTs > 0, "Nonzero");
         uint256[] memory prices = new uint256[](numNFTs);
-        uint256 fullPrice;
-        if (isBuy) {
-            (, , , fullPrice, ) = pair.getBuyNFTQuote(numNFTs);
-        } else {
-            (, , , fullPrice, ) = pair.getSellNFTQuote(numNFTs);
+        uint128 spotPrice = pair.spotPrice();
+        uint128 delta = pair.delta();
+        uint256 fee = pair.fee();
+        for (uint256 i; i < numNFTs; i++) {
+            uint256 price;
+            (, spotPrice, delta, price, ) = pair.bondingCurve().getBuyInfo(
+                spotPrice,
+                delta,
+                1,
+                fee,
+                pair.factory().protocolFeeMultiplier()
+            );
+            prices[i] = price;
         }
-        prices[numNFTs - 1] = fullPrice;
-        for (uint256 i = 0; i < numNFTs - 1; i++) {
-            uint256 currentPrice;
-            if (isBuy) {
-                (, , , currentPrice, ) = pair.getBuyNFTQuote(numNFTs - i - 1);
-            } else {
-                (, , , currentPrice, ) = pair.getSellNFTQuote(numNFTs - i - 1);
-            }
-            prices[i] = fullPrice - currentPrice;
+        uint256[] memory totalPrices = new uint256[](numNFTs);
+        totalPrices[0] = prices[prices.length - 1];
+        for (uint256 i = 1; i < numNFTs; i++) {
+            totalPrices[i] = totalPrices[i - 1] + prices[prices.length - 1 - i];
         }
-        return prices;
+        return totalPrices;
     }
 
     /**
@@ -109,7 +113,7 @@ contract LSSVMRouter2 {
     function robustBuySellWithETHAndPartialFill(
         PairSwapSpecificPartialFill[] calldata buyList,
         PairSwapSpecificPartialFillForToken[] calldata sellList
-    ) external payable {
+    ) external payable returns (uint256 remainingValue) {
         // High level logic:
         // Go through each buy order
         // Check to see if the quote to buy all items is fillable given the max price
@@ -122,10 +126,10 @@ contract LSSVMRouter2 {
         // Locally scope the buys
         {
             // Start with all of the ETH sent
-            uint256 remainingValue = msg.value;
+            remainingValue = msg.value;
             uint256 numBuys = buyList.length;
 
-            // Try each buy swaps
+            // Try each buy swap
             for (uint256 i; i < numBuys; ) {
                 LSSVMPair pair = buyList[i].swapInfo.pair;
                 uint256 numNFTs = buyList[i].swapInfo.nftIds.length;
@@ -165,6 +169,7 @@ contract LSSVMRouter2 {
                     if (numItemsToFill == 0) {
                         continue;
                     } else {
+
                         // Figure out which items are actually still buyable from the list
                         uint256[] memory fillableIds = _findAvailableIds(
                             pair,
@@ -172,12 +177,18 @@ contract LSSVMRouter2 {
                             buyList[i].swapInfo.nftIds
                         );
 
-                        // If no IDs are fillable, then skip
-                        if (fillableIds.length == 0) {
-                            continue;
+                        // If we can actually only fill less items...
+                        if (fillableIds.length < numItemsToFill) {
+                            numItemsToFill = fillableIds.length;
+                            // If no IDs are fillable, then skip entirely
+                            if (numItemsToFill == 0) {
+                                continue;
+                            }
+                            // Otherwise, adjust the max amt sent to be down
+                            (,,,priceToFillAt,) = pair.getBuyNFTQuote(numItemsToFill); 
                         }
 
-                        // Otherwise, do the partial fill swap with the updated price and ids
+                        // Now, do the partial fill swap with the updated price and ids
                         remainingValue -= pair.swapTokenForSpecificNFTs{
                             value: priceToFillAt
                         }(
@@ -263,10 +274,13 @@ contract LSSVMRouter2 {
         uint256 end = maxNumNFTs - 1;
         while (start <= end) {
             // Get price of mid number of items
-            uint256 mid = start + (end - start + 1) / 2;
-            (, , , uint256 currentPrice, ) = pair.getBuyNFTQuote(mid);
+            uint256 mid = start + (end - start) / 2;
+
+            // mid is the index of the max price to buy mid+1 NFTs
+            (, , , uint256 currentPrice, ) = pair.getBuyNFTQuote(mid + 1);
+
             // If we pay at least the currentPrice with our maxPrice, record the value, and recurse on the right half
-            if (currentPrice < maxPricesPerNumNFTs[mid]) {
+            if (currentPrice <= maxPricesPerNumNFTs[mid]) {
                 // We have to add 1 because mid is indexing into maxPricesPerNumNFTs which is 0-indexed
                 numNFTs = mid + 1;
                 price = currentPrice;
@@ -274,6 +288,9 @@ contract LSSVMRouter2 {
             }
             // Otherwise, if it's beyond our budget, recurse on the left half (to find smth cheaper)
             else {
+                if (mid == 0) {
+                    break;
+                }
                 end = mid - 1;
             }
         }
@@ -289,28 +306,34 @@ contract LSSVMRouter2 {
         // Start and end indices
         uint256 start = 0;
         uint256 end = maxNumNFTs - 1;
-        while (start <= end) {
-            // Get price of mid number of items
-            uint256 mid = start + (end - start + 1) / 2;
-            (, , , uint256 currentPrice, ) = pair.getSellNFTQuote(mid);
-            // If it costs more than there is ETH balance for, then recurse on the left half
-            if (currentPrice > pairBalance) {
-                end = mid - 1;
-            }
-            // Otherwise, we can proceed
-            else {
-                // If we can get at least minOutput selling this number of items, recurse on the right half
-                if (currentPrice >= minOutputPerNumNFTs[mid]) {
-                    numNFTs = mid + 1;
-                    price = currentPrice;
-                    start = mid + 1;
-                }
-                // Otherwise, recurse on the left to find something better priced
-                else {
-                    end = mid - 1;
-                }
-            }
-        }
+        // while (start <= end) {
+        //     // Get price of mid number of items
+        //     uint256 mid = start + (end - start + 1) / 2;
+        //     (, , , uint256 currentPrice, ) = pair.getSellNFTQuote(mid + 1);
+        //     // If it costs more than there is ETH balance for, then recurse on the left half
+        //     if (currentPrice > pairBalance) {
+        //         if (mid == 1) {
+        //             break;
+        //         }
+        //         end = mid - 1;
+        //     }
+        //     // Otherwise, we can proceed
+        //     else {
+        //         // If we can get at least minOutput selling this number of items, recurse on the right half
+        //         if (currentPrice >= minOutputPerNumNFTs[mid]) {
+        //             numNFTs = mid + 1;
+        //             price = currentPrice;
+        //             start = mid + 1;
+        //         }
+        //         // Otherwise, recurse on the left to find something better priced
+        //         else {
+        //             if (mid == 1) {
+        //                 break;
+        //             }
+        //             end = mid - 1;
+        //         }
+        //     }
+        // }
         // Return numNFTs and price
     }
 

@@ -183,9 +183,16 @@ abstract contract UsingETH is Configurable, RouterCaller {
         LSSVMRouter2 router,
         LSSVMRouter2.PairSwapSpecificPartialFill[] calldata buyList,
         LSSVMRouter2.PairSwapSpecificPartialFillForToken[] calldata sellList
-    ) public payable override {
+    ) public payable override returns (uint256) {
       return router.robustBuySellWithETHAndPartialFill{value: msg.value}(
         buyList, sellList
       );
+    }
+
+    function swapETHForSpecificNFTs(
+        LSSVMRouter2 router,
+        LSSVMRouter2.RobustPairSwapSpecific[] calldata buyList
+    ) public payable override returns (uint256) {
+      return router.swapETHForSpecificNFTs{value: msg.value}(buyList);
     }
 }

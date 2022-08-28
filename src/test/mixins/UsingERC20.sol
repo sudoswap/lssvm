@@ -210,7 +210,14 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         LSSVMRouter2 router,
         LSSVMRouter2.PairSwapSpecificPartialFill[] calldata buyList,
         LSSVMRouter2.PairSwapSpecificPartialFillForToken[] calldata sellList
-    ) public payable override {
-      require(false, "Unimplemented");
+    ) public payable override returns (uint256) {
+        require(false, "Unimplemented");
+    }
+
+    function swapETHForSpecificNFTs(
+        LSSVMRouter2 router,
+        LSSVMRouter2.RobustPairSwapSpecific[] calldata buyList
+    ) public payable override returns (uint256) {
+        require(false, "Unimplemented");
     }
 }
