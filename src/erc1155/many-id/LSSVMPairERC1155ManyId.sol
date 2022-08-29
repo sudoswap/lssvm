@@ -194,12 +194,18 @@ abstract contract LSSVMPairERC1155ManyId is
         @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
         @param tokenRecipient The recipient of the token output
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
+        ETH pairs.
+        @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
+        ETH pairs.
         @return outputAmount The amount of token received
      */
     function swapNFTsForToken(
         uint256[] calldata nftIds,
         uint256 minExpectedTokenOutput,
-        address payable tokenRecipient
+        address payable tokenRecipient,
+        bool isRouter,
+        address routerCaller
     ) external virtual nonReentrant returns (uint256 outputAmount) {
         // Store locally to remove extra calls
         ILSSVMPairERC1155FactoryLike _factory = factory();
@@ -228,7 +234,7 @@ abstract contract LSSVMPairERC1155ManyId is
 
         _payProtocolFeeFromPair(_factory, protocolFee);
 
-        _takeNFTsFromSender(nft(), nftIds);
+        _takeNFTsFromSender(nft(), nftIds, isRouter, routerCaller);
 
         emit SwapNFTInPair();
     }
@@ -588,28 +594,79 @@ abstract contract LSSVMPairERC1155ManyId is
         @param _nft The NFT collection to take from
         @param nftIds The specific NFT IDs to take
      */
-    function _takeNFTsFromSender(IERC1155 _nft, uint256[] calldata nftIds)
-        internal
-        virtual
-    {
-        {
-            address _assetRecipient = getAssetRecipient();
-            uint256 numNFTs = nftIds.length;
+    function _takeNFTsFromSender(
+        IERC1155 _nft,
+        uint256[] calldata nftIds,
+        bool isRouter,
+        address routerCaller
+    ) internal virtual {
+        address _assetRecipient = getAssetRecipient();
+        uint256 numNFTs = nftIds.length;
 
-            // Pull NFTs directly from sender
+        if (isRouter) {
+            // Verify if router is allowed
+            LSSVMRouter router = LSSVMRouter(payable(msg.sender));
+            (bool routerAllowed, ) = factory().routerStatus(router);
+            require(routerAllowed, "Not router");
+
+            // Construct input arrays
+            address[] memory accounts = new address[](numNFTs);
+            uint256[] memory amounts = new uint256[](numNFTs);
             for (uint256 i; i < numNFTs; ) {
-                _nft.safeTransferFrom(
-                    msg.sender,
-                    _assetRecipient,
-                    nftIds[i],
-                    1,
-                    bytes("")
+                accounts[i] = _assetRecipient;
+                amounts[i] = 1;
+
+                unchecked {
+                    ++i;
+                }
+            }
+
+            // Transfer NFTs via router
+            uint256[] memory beforeBalances = _nft.balanceOfBatch(
+                accounts,
+                nftIds
+            );
+            router.pairTransferERC1155From(
+                _nft,
+                routerCaller,
+                _assetRecipient,
+                nftIds,
+                amounts,
+                pairVariant()
+            );
+            uint256[] memory afterBalances = _nft.balanceOfBatch(
+                accounts,
+                nftIds
+            );
+
+            // Verify NFT transfers
+            for (uint256 i; i < numNFTs; ) {
+                require(
+                    afterBalances[i] - beforeBalances[i] == 1,
+                    "NFTs not transferred"
                 );
 
                 unchecked {
                     ++i;
                 }
             }
+        } else {
+            // Pull NFTs directly from sender
+            uint256[] memory amounts = new uint256[](numNFTs);
+            for (uint256 i; i < numNFTs; ) {
+                amounts[i] = 1;
+
+                unchecked {
+                    ++i;
+                }
+            }
+            _nft.safeBatchTransferFrom(
+                msg.sender,
+                _assetRecipient,
+                nftIds,
+                amounts,
+                bytes("")
+            );
         }
     }
 

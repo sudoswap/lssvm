@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
@@ -907,6 +908,20 @@ contract LSSVMRouter {
 
         // transfer NFTs to pair
         nft.safeTransferFrom(from, to, id);
+    }
+
+    function pairTransferERC1155From(
+        IERC1155 nft,
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        ILSSVMPairERC1155FactoryLike.PairVariant variant
+    ) external {
+        // verify caller is a trusted pair contract
+        require(erc1155Factory.isPair(msg.sender, variant), "Not pair");
+
+        nft.safeBatchTransferFrom(from, to, ids, amounts, bytes(""));
     }
 
     /**

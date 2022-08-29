@@ -197,12 +197,18 @@ abstract contract LSSVMPairERC1155SingleId is
         @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
         @param tokenRecipient The recipient of the token output
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
+        ETH pairs.
+        @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
+        ETH pairs.
         @return outputAmount The amount of token received
      */
     function swapNFTsForToken(
         uint256 numNFTs,
         uint256 minExpectedTokenOutput,
-        address payable tokenRecipient
+        address payable tokenRecipient,
+        bool isRouter,
+        address routerCaller
     ) external virtual nonReentrant returns (uint256 outputAmount) {
         // Store locally to remove extra calls
         ILSSVMPairERC1155FactoryLike _factory = factory();
@@ -231,7 +237,7 @@ abstract contract LSSVMPairERC1155SingleId is
 
         _payProtocolFeeFromPair(_factory, protocolFee);
 
-        _takeNFTsFromSender(nft(), numNFTs);
+        _takeNFTsFromSender(nft(), numNFTs, isRouter, routerCaller);
 
         emit SwapNFTInPair();
     }
@@ -592,18 +598,49 @@ abstract contract LSSVMPairERC1155SingleId is
         @param _nft The NFT collection to take from
         @param numNFTs The number of NFTs to take
      */
-    function _takeNFTsFromSender(IERC1155 _nft, uint256 numNFTs)
-        internal
-        virtual
-    {
-        // Pull NFTs directly from sender
-        _nft.safeTransferFrom(
-            msg.sender,
-            getAssetRecipient(),
-            nftId(),
-            numNFTs,
-            bytes("")
-        );
+    function _takeNFTsFromSender(
+        IERC1155 _nft,
+        uint256 numNFTs,
+        bool isRouter,
+        address routerCaller
+    ) internal virtual {
+        address _assetRecipient = getAssetRecipient();
+
+        if (isRouter) {
+            // Verify if router is allowed
+            LSSVMRouter router = LSSVMRouter(payable(msg.sender));
+            (bool routerAllowed, ) = factory().routerStatus(router);
+            require(routerAllowed, "Not router");
+
+            uint256 _nftId = nftId();
+            uint256 beforeBalance = _nft.balanceOf(_assetRecipient, _nftId);
+            uint256[] memory ids = new uint256[](1);
+            ids[0] = _nftId;
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = numNFTs;
+            router.pairTransferERC1155From(
+                _nft,
+                routerCaller,
+                _assetRecipient,
+                ids,
+                amounts,
+                pairVariant()
+            );
+            require(
+                (_nft.balanceOf(_assetRecipient, _nftId) - beforeBalance) ==
+                    numNFTs,
+                "NFTs not transferred"
+            );
+        } else {
+            // Pull NFTs directly from sender
+            _nft.safeTransferFrom(
+                msg.sender,
+                _assetRecipient,
+                nftId(),
+                numNFTs,
+                bytes("")
+            );
+        }
     }
 
     /**
