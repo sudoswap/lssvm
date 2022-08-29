@@ -21,7 +21,7 @@ import {RouterCaller} from "../mixins/RouterCaller.sol";
 import "../utils/console.sol";
 
 /** Handles test cases where users try to buy multiple NFTs from a pool, but only get partially filled
->  $ forge test --match-contract RPF* -vvvvv
+>  $ forge test --match-contract RPF.*ETH -vvvvv
 */
 abstract contract RouterPartialFill is
     DSTest,
@@ -196,7 +196,10 @@ abstract contract RouterPartialFill is
     // This is a case where:
     // - Not all items are there
     // - Not all items are in price range
-    function test_restrictedPartialFill() public {
+    function test_restrictedPartialFill(uint64 delta) public {
+        // Set new delta
+        pair.changeDelta(this.modifyDelta(delta));
+
         // First buy 1-9 items (asc), then attempt to partial fill 9-1 items (desc)
         for (
             uint256 numNFTsToBuyFirst = 1;
@@ -310,7 +313,10 @@ abstract contract RouterPartialFill is
     }
 
     // All items present, not all items buyable
-    function test_partialFill() public {
+    function test_partialFill(uint64 delta) public {
+        // Set new delta
+        pair.changeDelta(this.modifyDelta(delta));
+
         // First buy 1-9 items (asc), then attempt to partial fill 9-1 items (desc)
         for (
             uint256 numNFTsToBuyFirst = 1;
@@ -353,6 +359,86 @@ abstract contract RouterPartialFill is
                 numNFTsToBuyFirst
             );
             pair.changeSpotPrice(uint128(newSpotPrice));
+
+            // Get NFT balance now (after the partial fill)
+            uint256 startNFTBalance = test721.balanceOf(address(this));
+
+            // Do the actual partial fill
+            try
+                // We always pass in the maximal amount of ETH possible, we should get a refund
+                this.buyAndSellWithPartialFill{value: partialFillPrices[9]}(
+                    router,
+                    buyList,
+                    emptySellList
+                )
+            returns (uint256 remainingValue) {
+                uint256 endNFTBalance = test721.balanceOf(address(this));
+                uint256 numNFTsAcquired = endNFTBalance - startNFTBalance;
+                if (numNFTsAcquired > 0) {
+                    uint256 amountPaid = partialFillPrices[9] - remainingValue;
+                    uint256 maxBudget = partialFillPrices[numNFTsAcquired - 1];
+                    if (amountPaid > maxBudget) {
+                        console.log(numNFTsAcquired);
+                        console.log(amountPaid);
+                        console.log(maxBudget);
+                    }
+                    require(amountPaid <= maxBudget, "Overpaid");
+                } else {
+                    require(
+                        remainingValue == partialFillPrices[9],
+                        "Price leakage"
+                    );
+                }
+            } catch Error(string memory reason) {
+                if (this.compareStrings(reason, UNIMPLEMENTED)) {
+                    return;
+                }
+            }
+        }
+    }
+
+    // Price is within range, not all items buyable
+    function test_partialFillMissingItems(uint64 delta) public {
+        // Set new delta
+        pair.changeDelta(this.modifyDelta(delta));
+
+        // First buy 1-9 items (asc), then attempt to partial fill 9-1 items (desc)
+        for (
+            uint256 numNFTsToBuyFirst = 1;
+            numNFTsToBuyFirst <= 9;
+            numNFTsToBuyFirst++
+        ) {
+            this.setUp();
+
+            // Construct partial fill args first (below we fill some items before doing partial fill)
+            LSSVMRouter2.PairSwapSpecificPartialFill[]
+                memory buyList = new LSSVMRouter2.PairSwapSpecificPartialFill[](
+                    1
+                );
+            uint256[] memory ids = new uint256[](10);
+
+            // Set IDs to be inconsistent with the actual inventory state (for partial fill)
+            for (uint256 i = 1; i <= 10; i++) {
+                ids[i - 1] = 10 + i - numNFTsToBuyFirst;
+            }
+            // Get partial fill prices
+            uint256[] memory partialFillPrices = router
+                .getNFTQuoteForPartialFillBuy(pair, 10);
+            // Create the partial fill args
+            buyList[0] = LSSVMRouter2.PairSwapSpecificPartialFill({
+                swapInfo: LSSVMRouter2.PairSwapSpecific({
+                    pair: pair,
+                    nftIds: ids
+                }),
+                expectedSpotPrice: SPOT_PRICE-1,
+                maxCostPerNumNFTs: partialFillPrices
+            });
+            // Create empty sell list
+            LSSVMRouter2.PairSwapSpecificPartialFillForToken[]
+                memory emptySellList = new LSSVMRouter2.PairSwapSpecificPartialFillForToken[](
+                    0
+                );
+            string memory UNIMPLEMENTED = "Unimplemented";
 
             // Get NFT balance now (after the partial fill)
             uint256 startNFTBalance = test721.balanceOf(address(this));

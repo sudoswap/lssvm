@@ -16,7 +16,10 @@ abstract contract UsingExponentialCurve is Configurable {
     function modifyDelta(uint64 delta) public pure override returns (uint64) {
         if (delta <= FixedPointMathLib.WAD) {
             return uint64(FixedPointMathLib.WAD + delta + 1);
-        } else {
+        } else if (delta >= 2*FixedPointMathLib.WAD) {
+          return uint64(2*FixedPointMathLib.WAD);
+        }
+        else {
             return delta;
         }
     }
