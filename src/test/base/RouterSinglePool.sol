@@ -125,6 +125,7 @@ abstract contract RouterSinglePool is
     }
 
     function test_swapSingleNFTForToken() public {
+        (, , , uint256 outputAmount, ) = pair.getSellNFTQuote(1);
         uint256[] memory nftIds = new uint256[](1);
         nftIds[0] = numInitialNFTs + 1;
         LSSVMRouter.PairSwapSpecific[]
@@ -135,7 +136,7 @@ abstract contract RouterSinglePool is
         });
         router.swapNFTsForToken(
             swapList,
-            0.9 ether,
+            outputAmount,
             payable(address(this)),
             block.timestamp
         );
@@ -143,6 +144,7 @@ abstract contract RouterSinglePool is
 
     function testGas_swapSingleNFTForToken5Times() public {
         for (uint256 i = 1; i <= 5; i++) {
+            (, , , uint256 outputAmount, ) = pair.getSellNFTQuote(1);
             uint256[] memory nftIds = new uint256[](1);
             nftIds[0] = numInitialNFTs + i;
             LSSVMRouter.PairSwapSpecific[]
@@ -153,7 +155,7 @@ abstract contract RouterSinglePool is
             });
             router.swapNFTsForToken(
                 swapList,
-                0.9 ether,
+                outputAmount,
                 payable(address(this)),
                 block.timestamp
             );
@@ -284,6 +286,7 @@ abstract contract RouterSinglePool is
     }
 
     function test_swap5NFTsForToken() public {
+        (, , , uint256 outputAmount, ) = pair.getSellNFTQuote(5);
         uint256[] memory nftIds = new uint256[](5);
         for (uint256 i = 0; i < 5; i++) {
             nftIds[i] = numInitialNFTs + i + 1;
@@ -296,7 +299,7 @@ abstract contract RouterSinglePool is
         });
         router.swapNFTsForToken(
             swapList,
-            0.9 ether,
+            outputAmount,
             payable(address(this)),
             block.timestamp
         );

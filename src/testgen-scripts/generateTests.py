@@ -1,7 +1,7 @@
 import csv
 
 ENUMERABLE_TYPE = ['Enumerable', 'MissingEnumerable']
-CURVE_TYPE = ['ExponentialCurve', 'LinearCurve']
+CURVE_TYPE = ['ExponentialCurve', 'LinearCurve', 'XykCurve']
 TOKEN_TYPE = ['ETH', 'ERC20']
 FILE_OUT_PATH_BASE = '../test/test-cases/'
 
