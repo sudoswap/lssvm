@@ -25,4 +25,13 @@ abstract contract UsingXykCurve is Configurable {
     {
         return 0.01 ether;
     }
+
+    function getParamsForPartialFillTest()
+        public
+        pure
+        override
+        returns (uint128 spotPrice, uint128 delta)
+    {
+        return (0.01 ether, 11);
+    }
 }
