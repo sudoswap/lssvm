@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {LSSVMPair} from "./LSSVMPair.sol";
-import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
-import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {BeaconAmmV1Pair} from "./BeaconAmmV1Pair.sol";
+import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
@@ -14,14 +14,14 @@ import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
     @title An NFT/Token pair where the token is an ERC20
     @author boredGenius and 0xmons
  */
-abstract contract LSSVMPairERC20 is LSSVMPair {
+abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
     using SafeTransferLib for ERC20;
 
     uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 81;
 
     /**
         @notice Returns the ERC20 token associated with the pair
-        @dev See LSSVMPairCloner for an explanation on how this works
+        @dev See BeaconAmmV1PairCloner for an explanation on how this works
      */
     function token() public pure returns (ERC20 _token) {
         uint256 paramsLength = _immutableParamsLength();
@@ -33,12 +33,12 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1Pair
     function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        ILSSVMPairFactoryLike _factory,
+        IBeaconAmmV1PairFactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
@@ -48,7 +48,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
 
         if (isRouter) {
             // Verify if router is allowed
-            LSSVMRouter router = LSSVMRouter(payable(msg.sender));
+            BeaconAmmV1Router router = BeaconAmmV1Router(payable(msg.sender));
 
             // Locally scoped to avoid stack too deep
             {
@@ -102,14 +102,14 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1Pair
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Do nothing since we transferred the exact input amount
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1Pair
     function _payProtocolFeeFromPair(
-        ILSSVMPairFactoryLike _factory,
+        IBeaconAmmV1PairFactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         // Take protocol fee (if it exists)
@@ -127,7 +127,7 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1Pair
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
@@ -138,13 +138,13 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
-    // @dev see LSSVMPairCloner for params length calculation
+    /// @inheritdoc BeaconAmmV1Pair
+    // @dev see BeaconAmmV1PairCloner for params length calculation
     function _immutableParamsLength() internal pure override returns (uint256) {
         return IMMUTABLE_PARAMS_LENGTH;
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1Pair
     function withdrawERC20(ERC20 a, uint256 amount)
         external
         override

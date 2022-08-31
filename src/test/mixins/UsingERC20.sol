@@ -7,12 +7,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 import {NoArbBondingCurve} from "../base/NoArbBondingCurve.sol";
-import {LSSVMPair} from "../../LSSVMPair.sol";
-import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
-import {LSSVMRouter} from "../../LSSVMRouter.sol";
+import {BeaconAmmV1Pair} from "../../BeaconAmmV1Pair.sol";
+import {BeaconAmmV1PairERC20} from "../../BeaconAmmV1PairERC20.sol";
+import {BeaconAmmV1Router} from "../../BeaconAmmV1Router.sol";
 import {Test20} from "../../mocks/Test20.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
-import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
+import {BeaconAmmV1PairFactory} from "../../BeaconAmmV1PairFactory.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {Configurable} from "./Configurable.sol";
 import {RouterCaller} from "./RouterCaller.sol";
@@ -29,23 +29,23 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         return test20.balanceOf(a);
     }
 
-    function sendTokens(LSSVMPair pair, uint256 amount) public override {
+    function sendTokens(BeaconAmmV1Pair pair, uint256 amount) public override {
         test20.safeTransfer(address(pair), amount);
     }
 
     function setupPair(
-        LSSVMPairFactory factory,
+        BeaconAmmV1PairFactory factory,
         IERC721 nft,
         ICurve bondingCurve,
         address payable assetRecipient,
-        LSSVMPair.PoolType poolType,
+        BeaconAmmV1Pair.PoolType poolType,
         uint128 delta,
         uint96 fee,
         uint128 spotPrice,
         uint256[] memory _idList,
         uint256 initialTokenBalance,
         address routerAddress
-    ) public payable override returns (LSSVMPair) {
+    ) public payable override returns (BeaconAmmV1Pair) {
         // create ERC20 token if not already deployed
         if (address(test20) == address(0)) {
             test20 = new Test20();
@@ -59,8 +59,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         IMintable(address(test20)).mint(address(this), 1000 ether);
 
         // initialize the pair
-        LSSVMPair pair = factory.createPairERC20(
-            LSSVMPairFactory.CreateERC20PairParams(
+        BeaconAmmV1Pair pair = factory.createPairERC20(
+            BeaconAmmV1PairFactory.CreateERC20PairParams(
                 test20,
                 nft,
                 bondingCurve,
@@ -80,12 +80,12 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         return pair;
     }
 
-    function withdrawTokens(LSSVMPair pair) public override {
+    function withdrawTokens(BeaconAmmV1Pair pair) public override {
         uint256 total = test20.balanceOf(address(pair));
-        LSSVMPairERC20(address(pair)).withdrawERC20(test20, total);
+        BeaconAmmV1PairERC20(address(pair)).withdrawERC20(test20, total);
     }
 
-    function withdrawProtocolFees(LSSVMPairFactory factory) public override {
+    function withdrawProtocolFees(BeaconAmmV1PairFactory factory) public override {
         factory.withdrawERC20ProtocolFees(
             test20,
             test20.balanceOf(address(factory))
@@ -93,8 +93,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function swapTokenForAnyNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.PairSwapAny[] calldata swapList,
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.PairSwapAny[] calldata swapList,
         address payable,
         address nftRecipient,
         uint256 deadline,
@@ -110,8 +110,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function swapTokenForSpecificNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.PairSwapSpecific[] calldata swapList,
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.PairSwapSpecific[] calldata swapList,
         address payable,
         address nftRecipient,
         uint256 deadline,
@@ -127,8 +127,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function swapNFTsForAnyNFTsThroughToken(
-        LSSVMRouter router,
-        LSSVMRouter.NFTsForAnyNFTsTrade calldata trade,
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.NFTsForAnyNFTsTrade calldata trade,
         uint256 minOutput,
         address payable,
         address nftRecipient,
@@ -146,8 +146,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function swapNFTsForSpecificNFTsThroughToken(
-        LSSVMRouter router,
-        LSSVMRouter.NFTsForSpecificNFTsTrade calldata trade,
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.NFTsForSpecificNFTsTrade calldata trade,
         uint256 minOutput,
         address payable,
         address nftRecipient,
@@ -165,8 +165,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function robustSwapTokenForAnyNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.RobustPairSwapAny[] calldata swapList,
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.RobustPairSwapAny[] calldata swapList,
         address payable,
         address nftRecipient,
         uint256 deadline,
@@ -182,8 +182,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function robustSwapTokenForSpecificNFTs(
-        LSSVMRouter router,
-        LSSVMRouter.RobustPairSwapSpecific[] calldata swapList,
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.RobustPairSwapSpecific[] calldata swapList,
         address payable,
         address nftRecipient,
         uint256 deadline,
@@ -199,8 +199,8 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
     }
 
     function robustSwapTokenForSpecificNFTsAndNFTsForTokens(
-        LSSVMRouter router,
-        LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
+        BeaconAmmV1Router router,
+        BeaconAmmV1Router.RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
     ) public payable override returns (uint256, uint256) {
         return router.robustSwapERC20ForSpecificNFTsAndNFTsToToken(params);
     }

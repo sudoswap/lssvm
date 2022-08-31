@@ -8,14 +8,14 @@ import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
 import {Test20} from "../../mocks/Test20.sol";
-import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
-import {LSSVMPair} from "../../LSSVMPair.sol";
-import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
-import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
-import {LSSVMPairEnumerableETH} from "../../LSSVMPairEnumerableETH.sol";
-import {LSSVMPairMissingEnumerableETH} from "../../LSSVMPairMissingEnumerableETH.sol";
-import {LSSVMPairEnumerableERC20} from "../../LSSVMPairEnumerableERC20.sol";
-import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableERC20.sol";
+import {BeaconAmmV1PairFactory} from "../../BeaconAmmV1PairFactory.sol";
+import {BeaconAmmV1Pair} from "../../BeaconAmmV1Pair.sol";
+import {BeaconAmmV1PairETH} from "../../BeaconAmmV1PairETH.sol";
+import {BeaconAmmV1PairERC20} from "../../BeaconAmmV1PairERC20.sol";
+import {BeaconAmmV1PairEnumerableETH} from "../../BeaconAmmV1PairEnumerableETH.sol";
+import {BeaconAmmV1PairMissingEnumerableETH} from "../../BeaconAmmV1PairMissingEnumerableETH.sol";
+import {BeaconAmmV1PairEnumerableERC20} from "../../BeaconAmmV1PairEnumerableERC20.sol";
+import {BeaconAmmV1PairMissingEnumerableERC20} from "../../BeaconAmmV1PairMissingEnumerableERC20.sol";
 import {Configurable} from "../mixins/Configurable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Test721} from "../../mocks/Test721.sol";
@@ -34,20 +34,20 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     Test1155 test1155;
     ERC20 testERC20;
     ICurve bondingCurve;
-    LSSVMPairFactory factory;
+    BeaconAmmV1PairFactory factory;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
-    LSSVMPair pair;
+    BeaconAmmV1Pair pair;
     TestPairManager pairManager;
 
     function setUp() public {
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPairEnumerableETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
-        LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
-        LSSVMPairEnumerableERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
-        LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
-        factory = new LSSVMPairFactory(
+        BeaconAmmV1PairEnumerableETH enumerableETHTemplate = new BeaconAmmV1PairEnumerableETH();
+        BeaconAmmV1PairMissingEnumerableETH missingEnumerableETHTemplate = new BeaconAmmV1PairMissingEnumerableETH();
+        BeaconAmmV1PairEnumerableERC20 enumerableERC20Template = new BeaconAmmV1PairEnumerableERC20();
+        BeaconAmmV1PairMissingEnumerableERC20 missingEnumerableERC20Template = new BeaconAmmV1PairMissingEnumerableERC20();
+        factory = new BeaconAmmV1PairFactory(
             enumerableETHTemplate,
             missingEnumerableETHTemplate,
             enumerableERC20Template,
@@ -67,7 +67,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
             test721,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            BeaconAmmV1Pair.PoolType.TRADE,
             delta,
             0,
             spotPrice,
@@ -88,7 +88,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
             test721,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            BeaconAmmV1Pair.PoolType.TRADE,
             delta,
             0,
             spotPrice,
@@ -99,7 +99,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     }
 
     /**
-     * Test LSSVMPair Owner functions
+     * Test BeaconAmmV1Pair Owner functions
      */
 
     function test_transferOwnership() public {
@@ -138,7 +138,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
         // verify pair variables
         assertEq(address(pair.nft()), address(test721));
         assertEq(address(pair.bondingCurve()), address(bondingCurve));
-        assertEq(uint256(pair.poolType()), uint256(LSSVMPair.PoolType.TRADE));
+        assertEq(uint256(pair.poolType()), uint256(BeaconAmmV1Pair.PoolType.TRADE));
         assertEq(pair.delta(), delta);
         assertEq(pair.spotPrice(), spotPrice);
         assertEq(pair.owner(), address(this));
