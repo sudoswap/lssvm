@@ -3,21 +3,21 @@ pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {LSSVMPair} from "./LSSVMPair.sol";
-import {LSSVMRouter} from "./LSSVMRouter.sol";
-import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
+import {BeaconAmmV1} from "./BeaconAmmV1.sol";
+import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
+import {IBeaconAmmV1Factory} from "./IBeaconAmmV1Factory.sol";
 
 /**
     @title An NFT/Token pair for an NFT that does not implement ERC721Enumerable
     @author boredGenius and 0xmons
  */
-abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
+abstract contract BeaconAmmV1MissingEnumerable is BeaconAmmV1 {
     using EnumerableSet for EnumerableSet.UintSet;
 
     // Used for internal ID tracking
     EnumerableSet.UintSet private idSet;
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
@@ -39,7 +39,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1
     function _sendSpecificNFTsToRecipient(
         IERC721 _nft,
         address nftRecipient,
@@ -59,7 +59,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         }
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1
     function getAllHeldIds() external view override returns (uint256[] memory) {
         uint256 numNFTs = idSet.length();
         uint256[] memory ids = new uint256[](numNFTs);
@@ -91,7 +91,7 @@ abstract contract LSSVMPairMissingEnumerable is LSSVMPair {
         return this.onERC721Received.selector;
     }
 
-    /// @inheritdoc LSSVMPair
+    /// @inheritdoc BeaconAmmV1
     function withdrawERC721(IERC721 a, uint256[] calldata nftIds)
         external
         override

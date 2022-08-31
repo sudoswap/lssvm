@@ -7,15 +7,15 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 
 import {LinearCurve} from "../../bonding-curves/LinearCurve.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
-import {LSSVMPairFactory} from "../../LSSVMPairFactory.sol";
-import {LSSVMPair} from "../../LSSVMPair.sol";
-import {LSSVMPairETH} from "../../LSSVMPairETH.sol";
-import {LSSVMPairERC20} from "../../LSSVMPairERC20.sol";
-import {LSSVMPairEnumerableETH} from "../../LSSVMPairEnumerableETH.sol";
-import {LSSVMPairMissingEnumerableETH} from "../../LSSVMPairMissingEnumerableETH.sol";
-import {LSSVMPairEnumerableERC20} from "../../LSSVMPairEnumerableERC20.sol";
-import {LSSVMPairMissingEnumerableERC20} from "../../LSSVMPairMissingEnumerableERC20.sol";
-import {LSSVMRouter} from "../../LSSVMRouter.sol";
+import {BeaconAmmV1Factory} from "../../BeaconAmmV1Factory.sol";
+import {BeaconAmmV1} from "../../BeaconAmmV1.sol";
+import {BeaconAmmV1ETH} from "../../BeaconAmmV1ETH.sol";
+import {BeaconAmmV1ERC20} from "../../BeaconAmmV1ERC20.sol";
+import {BeaconAmmV1EnumerableETH} from "../../BeaconAmmV1EnumerableETH.sol";
+import {BeaconAmmV1MissingEnumerableETH} from "../../BeaconAmmV1MissingEnumerableETH.sol";
+import {BeaconAmmV1EnumerableERC20} from "../../BeaconAmmV1EnumerableERC20.sol";
+import {BeaconAmmV1MissingEnumerableERC20} from "../../BeaconAmmV1MissingEnumerableERC20.sol";
+import {BeaconAmmV1Router} from "../../BeaconAmmV1Router.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {Hevm} from "../utils/Hevm.sol";
 import {Configurable} from "../mixins/Configurable.sol";
@@ -29,13 +29,13 @@ abstract contract RouterRobustSwap is
 {
     IERC721Mintable test721;
     ICurve bondingCurve;
-    LSSVMPairFactory factory;
-    LSSVMRouter router;
+    BeaconAmmV1Factory factory;
+    BeaconAmmV1Router router;
 
     // Create 3 pairs
-    LSSVMPair pair1;
-    LSSVMPair pair2;
-    LSSVMPair pair3;
+    BeaconAmmV1 pair1;
+    BeaconAmmV1 pair2;
+    BeaconAmmV1 pair3;
 
     address payable constant feeRecipient = payable(address(69));
 
@@ -46,11 +46,11 @@ abstract contract RouterRobustSwap is
         // Create contracts
         bondingCurve = setupCurve();
         test721 = setup721();
-        LSSVMPairEnumerableETH enumerableETHTemplate = new LSSVMPairEnumerableETH();
-        LSSVMPairMissingEnumerableETH missingEnumerableETHTemplate = new LSSVMPairMissingEnumerableETH();
-        LSSVMPairEnumerableERC20 enumerableERC20Template = new LSSVMPairEnumerableERC20();
-        LSSVMPairMissingEnumerableERC20 missingEnumerableERC20Template = new LSSVMPairMissingEnumerableERC20();
-        factory = new LSSVMPairFactory(
+        BeaconAmmV1EnumerableETH enumerableETHTemplate = new BeaconAmmV1EnumerableETH();
+        BeaconAmmV1MissingEnumerableETH missingEnumerableETHTemplate = new BeaconAmmV1MissingEnumerableETH();
+        BeaconAmmV1EnumerableERC20 enumerableERC20Template = new BeaconAmmV1EnumerableERC20();
+        BeaconAmmV1MissingEnumerableERC20 missingEnumerableERC20Template = new BeaconAmmV1MissingEnumerableERC20();
+        factory = new BeaconAmmV1Factory(
             enumerableETHTemplate,
             missingEnumerableETHTemplate,
             enumerableERC20Template,
@@ -58,7 +58,7 @@ abstract contract RouterRobustSwap is
             feeRecipient,
             protocolFeeMultiplier
         );
-        router = new LSSVMRouter(factory);
+        router = new BeaconAmmV1Router(factory);
 
         // Set approvals
         test721.setApprovalForAll(address(factory), true);
@@ -78,7 +78,7 @@ abstract contract RouterRobustSwap is
             test721,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            BeaconAmmV1.PoolType.TRADE,
             modifyDelta(0),
             0,
             0.1 ether,
@@ -97,7 +97,7 @@ abstract contract RouterRobustSwap is
             test721,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            BeaconAmmV1.PoolType.TRADE,
             modifyDelta(0),
             0,
             0.2 ether,
@@ -116,7 +116,7 @@ abstract contract RouterRobustSwap is
             test721,
             bondingCurve,
             payable(address(0)),
-            LSSVMPair.PoolType.TRADE,
+            BeaconAmmV1.PoolType.TRADE,
             modifyDelta(0),
             0,
             0.3 ether,
@@ -139,18 +139,18 @@ abstract contract RouterRobustSwap is
 
     // Test where pair 1 and pair 2 swap tokens for NFT succeed but pair 3 fails
     function test_robustSwapTokenForAny2NFTs() public {
-        LSSVMRouter.RobustPairSwapAny[]
-            memory swapList = new LSSVMRouter.RobustPairSwapAny[](3);
-        swapList[0] = LSSVMRouter.RobustPairSwapAny({
-            swapInfo: LSSVMRouter.PairSwapAny({pair: pair1, numItems: 2}),
+        BeaconAmmV1Router.RobustPairSwapAny[]
+            memory swapList = new BeaconAmmV1Router.RobustPairSwapAny[](3);
+        swapList[0] = BeaconAmmV1Router.RobustPairSwapAny({
+            swapInfo: BeaconAmmV1Router.PairSwapAny({pair: pair1, numItems: 2}),
             maxCost: 0.44 ether
         });
-        swapList[1] = LSSVMRouter.RobustPairSwapAny({
-            swapInfo: LSSVMRouter.PairSwapAny({pair: pair2, numItems: 2}),
+        swapList[1] = BeaconAmmV1Router.RobustPairSwapAny({
+            swapInfo: BeaconAmmV1Router.PairSwapAny({pair: pair2, numItems: 2}),
             maxCost: 0.44 ether
         });
-        swapList[2] = LSSVMRouter.RobustPairSwapAny({
-            swapInfo: LSSVMRouter.PairSwapAny({pair: pair3, numItems: 2}),
+        swapList[2] = BeaconAmmV1Router.RobustPairSwapAny({
+            swapInfo: BeaconAmmV1Router.PairSwapAny({pair: pair3, numItems: 2}),
             maxCost: 0.44 ether
         });
 
@@ -196,24 +196,24 @@ abstract contract RouterRobustSwap is
         nftIds3[0] = 20;
         nftIds3[1] = 21;
 
-        LSSVMRouter.RobustPairSwapSpecific[]
-            memory swapList = new LSSVMRouter.RobustPairSwapSpecific[](3);
-        swapList[0] = LSSVMRouter.RobustPairSwapSpecific({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        BeaconAmmV1Router.RobustPairSwapSpecific[]
+            memory swapList = new BeaconAmmV1Router.RobustPairSwapSpecific[](3);
+        swapList[0] = BeaconAmmV1Router.RobustPairSwapSpecific({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair1,
                 nftIds: nftIds1
             }),
             maxCost: 0.44 ether
         });
-        swapList[1] = LSSVMRouter.RobustPairSwapSpecific({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[1] = BeaconAmmV1Router.RobustPairSwapSpecific({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair2,
                 nftIds: nftIds2
             }),
             maxCost: 0.44 ether
         });
-        swapList[2] = LSSVMRouter.RobustPairSwapSpecific({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[2] = BeaconAmmV1Router.RobustPairSwapSpecific({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair3,
                 nftIds: nftIds3
             }),
@@ -262,26 +262,26 @@ abstract contract RouterRobustSwap is
         nftIds3[0] = 34;
         nftIds3[1] = 35;
 
-        LSSVMRouter.RobustPairSwapSpecificForToken[]
-            memory swapList = new LSSVMRouter.RobustPairSwapSpecificForToken[](
+        BeaconAmmV1Router.RobustPairSwapSpecificForToken[]
+            memory swapList = new BeaconAmmV1Router.RobustPairSwapSpecificForToken[](
                 3
             );
-        swapList[0] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[0] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair1,
                 nftIds: nftIds1
             }),
             minOutput: 0.3 ether
         });
-        swapList[1] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[1] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair2,
                 nftIds: nftIds2
             }),
             minOutput: 0.3 ether
         });
-        swapList[2] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[2] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair3,
                 nftIds: nftIds3
             }),
@@ -324,26 +324,26 @@ abstract contract RouterRobustSwap is
 
         uint256[] memory nftIds3 = new uint256[](0);
 
-        LSSVMRouter.RobustPairSwapSpecificForToken[]
-            memory swapList = new LSSVMRouter.RobustPairSwapSpecificForToken[](
+        BeaconAmmV1Router.RobustPairSwapSpecificForToken[]
+            memory swapList = new BeaconAmmV1Router.RobustPairSwapSpecificForToken[](
                 3
             );
-        swapList[0] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[0] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair1,
                 nftIds: nftIds1
             }),
             minOutput: 0.3 ether
         });
-        swapList[1] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[1] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair2,
                 nftIds: nftIds2
             }),
             minOutput: 0.3 ether
         });
-        swapList[2] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        swapList[2] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair3,
                 nftIds: nftIds3
             }),
@@ -384,12 +384,12 @@ abstract contract RouterRobustSwap is
         uint256[] memory nftIds1 = new uint256[](2);
         nftIds1[0] = 0;
         nftIds1[1] = 1;
-        LSSVMRouter.RobustPairSwapSpecific[]
-            memory tokenToNFTSwapList = new LSSVMRouter.RobustPairSwapSpecific[](
+        BeaconAmmV1Router.RobustPairSwapSpecific[]
+            memory tokenToNFTSwapList = new BeaconAmmV1Router.RobustPairSwapSpecific[](
                 1
             );
-        tokenToNFTSwapList[0] = LSSVMRouter.RobustPairSwapSpecific({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        tokenToNFTSwapList[0] = BeaconAmmV1Router.RobustPairSwapSpecific({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair1,
                 nftIds: nftIds1
             }),
@@ -400,12 +400,12 @@ abstract contract RouterRobustSwap is
         uint256[] memory nftIds2 = new uint256[](2);
         nftIds2[0] = 32;
         nftIds2[1] = 33;
-        LSSVMRouter.RobustPairSwapSpecificForToken[]
-            memory nftToTokenSwapList = new LSSVMRouter.RobustPairSwapSpecificForToken[](
+        BeaconAmmV1Router.RobustPairSwapSpecificForToken[]
+            memory nftToTokenSwapList = new BeaconAmmV1Router.RobustPairSwapSpecificForToken[](
                 1
             );
-        nftToTokenSwapList[0] = LSSVMRouter.RobustPairSwapSpecificForToken({
-            swapInfo: LSSVMRouter.PairSwapSpecific({
+        nftToTokenSwapList[0] = BeaconAmmV1Router.RobustPairSwapSpecificForToken({
+            swapInfo: BeaconAmmV1Router.PairSwapSpecific({
                 pair: pair2,
                 nftIds: nftIds2
             }),
@@ -416,7 +416,7 @@ abstract contract RouterRobustSwap is
         uint256 inputAmount = 0.44 ether;
         this.robustSwapTokenForSpecificNFTsAndNFTsForTokens{value: modifyInputAmount(inputAmount)}(
           router,
-          LSSVMRouter.RobustPairNFTsFoTokenAndTokenforNFTsTrade({
+          BeaconAmmV1Router.RobustPairNFTsFoTokenAndTokenforNFTsTrade({
           nftToTokenTrades: nftToTokenSwapList,
           tokenToNFTTrades: tokenToNFTSwapList,
           inputAmount: inputAmount,

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
 
-interface ILSSVMPairFactoryLike {
+interface IBeaconAmmV1Factory {
     enum PairVariant {
         ENUMERABLE_ETH,
         MISSING_ENUMERABLE_ETH,
@@ -17,7 +17,7 @@ interface ILSSVMPairFactoryLike {
 
     function callAllowed(address target) external view returns (bool);
 
-    function routerStatus(LSSVMRouter router)
+    function routerStatus(BeaconAmmV1Router router)
         external
         view
         returns (bool allowed, bool wasEverAllowed);

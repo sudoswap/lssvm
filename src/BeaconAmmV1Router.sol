@@ -4,21 +4,21 @@ pragma solidity ^0.8.0;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {LSSVMPair} from "./LSSVMPair.sol";
-import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
+import {BeaconAmmV1} from "./BeaconAmmV1.sol";
+import {IBeaconAmmV1Factory} from "./IBeaconAmmV1Factory.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
-contract LSSVMRouter {
+contract BeaconAmmV1Router {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
     struct PairSwapAny {
-        LSSVMPair pair;
+        BeaconAmmV1 pair;
         uint256 numItems;
     }
 
     struct PairSwapSpecific {
-        LSSVMPair pair;
+        BeaconAmmV1 pair;
         uint256[] nftIds;
     }
 
@@ -60,9 +60,9 @@ contract LSSVMRouter {
         _;
     }
 
-    ILSSVMPairFactoryLike public immutable factory;
+    IBeaconAmmV1Factory public immutable factory;
 
-    constructor(ILSSVMPairFactoryLike _factory) {
+    constructor(IBeaconAmmV1Factory _factory) {
         factory = _factory;
     }
 
@@ -838,16 +838,16 @@ contract LSSVMRouter {
         address from,
         address to,
         uint256 amount,
-        ILSSVMPairFactoryLike.PairVariant variant
+        IBeaconAmmV1Factory.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");
 
         // verify caller is an ERC20 pair
         require(
-            variant == ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
+            variant == IBeaconAmmV1Factory.PairVariant.ENUMERABLE_ERC20 ||
                 variant ==
-                ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
+                IBeaconAmmV1Factory.PairVariant.MISSING_ENUMERABLE_ERC20,
             "Not ERC20 pair"
         );
 
@@ -869,7 +869,7 @@ contract LSSVMRouter {
         address from,
         address to,
         uint256 id,
-        ILSSVMPairFactoryLike.PairVariant variant
+        IBeaconAmmV1Factory.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");
