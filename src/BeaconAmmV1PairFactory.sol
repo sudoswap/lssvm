@@ -18,13 +18,13 @@ import {BeaconAmmV1PairETH} from "./BeaconAmmV1PairETH.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {BeaconAmmV1PairERC20} from "./BeaconAmmV1PairERC20.sol";
 import {BeaconAmmV1PairCloner} from "./lib/BeaconAmmV1PairCloner.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 import {BeaconAmmV1PairEnumerableETH} from "./BeaconAmmV1PairEnumerableETH.sol";
 import {BeaconAmmV1PairEnumerableERC20} from "./BeaconAmmV1PairEnumerableERC20.sol";
 import {BeaconAmmV1PairMissingEnumerableETH} from "./BeaconAmmV1PairMissingEnumerableETH.sol";
 import {BeaconAmmV1PairMissingEnumerableERC20} from "./BeaconAmmV1PairMissingEnumerableERC20.sol";
 
-contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactoryLike {
+contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactory {
     using BeaconAmmV1PairCloner for address;
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
@@ -89,7 +89,7 @@ contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactoryLike {
         @param _bondingCurve The bonding curve for the pair to price NFTs, must be whitelisted
         @param _assetRecipient The address that will receive the assets traders give during trades.
                               If set to address(0), assets will be sent to the pool address.
-                              Not available to TRADE pools. 
+                              Not available to TRADE pools.
         @param _poolType TOKEN, NFT, or TRADE
         @param _delta The delta value used by the bonding curve. The meaning of delta depends
         on the specific curve.
@@ -112,7 +112,7 @@ contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactoryLike {
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
-        
+
         // Check to see if the NFT supports Enumerable to determine which template to use
         address template;
         try IERC165(address(_nft)).supportsInterface(INTERFACE_ID_ERC721_ENUMERABLE) returns (bool isEnumerable) {
@@ -445,7 +445,7 @@ contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactoryLike {
         }
     }
 
-    /** 
+    /**
       @dev Used to deposit NFTs into a pair after creation and emit an event for indexing (if recipient is indeed a pair)
     */
     function depositNFTs(

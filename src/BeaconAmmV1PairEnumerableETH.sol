@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {BeaconAmmV1PairETH} from "./BeaconAmmV1PairETH.sol";
 import {BeaconAmmV1PairEnumerable} from "./BeaconAmmV1PairEnumerable.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 
 /**
     @title An NFT/Token pair where the NFT implements ERC721Enumerable, and the token is ETH
@@ -17,8 +17,8 @@ contract BeaconAmmV1PairEnumerableETH is BeaconAmmV1PairEnumerable, BeaconAmmV1P
         public
         pure
         override
-        returns (IBeaconAmmV1PairFactoryLike.PairVariant)
+        returns (IBeaconAmmV1PairFactory.PairVariant)
     {
-        return IBeaconAmmV1PairFactoryLike.PairVariant.ENUMERABLE_ETH;
+        return IBeaconAmmV1PairFactory.PairVariant.ENUMERABLE_ETH;
     }
 }

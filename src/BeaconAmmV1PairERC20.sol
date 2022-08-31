@@ -5,7 +5,7 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {BeaconAmmV1Pair} from "./BeaconAmmV1Pair.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
@@ -38,7 +38,7 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        IBeaconAmmV1PairFactoryLike _factory,
+        IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
@@ -109,7 +109,7 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
 
     /// @inheritdoc BeaconAmmV1Pair
     function _payProtocolFeeFromPair(
-        IBeaconAmmV1PairFactoryLike _factory,
+        IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee
     ) internal override {
         // Take protocol fee (if it exists)

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
 
-interface IBeaconAmmV1PairFactoryLike {
+interface IBeaconAmmV1PairFactory {
     enum PairVariant {
         ENUMERABLE_ETH,
         MISSING_ENUMERABLE_ETH,

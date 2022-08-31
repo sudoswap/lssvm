@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {BeaconAmmV1Pair} from "./BeaconAmmV1Pair.sol";
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 
 /**
     @title An NFT/Token pair for an NFT that does not implement ERC721Enumerable

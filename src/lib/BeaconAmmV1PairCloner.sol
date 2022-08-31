@@ -7,7 +7,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {ICurve} from "../bonding-curves/ICurve.sol";
-import {IBeaconAmmV1PairFactoryLike} from "../IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "../IBeaconAmmV1PairFactory.sol";
 
 library BeaconAmmV1PairCloner {
     /**
@@ -20,7 +20,7 @@ library BeaconAmmV1PairCloner {
      */
     function cloneETHPair(
         address implementation,
-        IBeaconAmmV1PairFactoryLike factory,
+        IBeaconAmmV1PairFactory factory,
         ICurve bondingCurve,
         IERC721 nft,
         uint8 poolType
@@ -110,7 +110,7 @@ library BeaconAmmV1PairCloner {
      */
     function cloneERC20Pair(
         address implementation,
-        IBeaconAmmV1PairFactoryLike factory,
+        IBeaconAmmV1PairFactory factory,
         ICurve bondingCurve,
         IERC721 nft,
         uint8 poolType,

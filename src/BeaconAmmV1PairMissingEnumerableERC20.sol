@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {BeaconAmmV1PairERC20} from "./BeaconAmmV1PairERC20.sol";
 import {BeaconAmmV1PairMissingEnumerable} from "./BeaconAmmV1PairMissingEnumerable.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 
 contract BeaconAmmV1PairMissingEnumerableERC20 is
     BeaconAmmV1PairMissingEnumerable,
@@ -13,8 +13,8 @@ contract BeaconAmmV1PairMissingEnumerableERC20 is
         public
         pure
         override
-        returns (IBeaconAmmV1PairFactoryLike.PairVariant)
+        returns (IBeaconAmmV1PairFactory.PairVariant)
     {
-        return IBeaconAmmV1PairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20;
+        return IBeaconAmmV1PairFactory.PairVariant.MISSING_ENUMERABLE_ERC20;
     }
 }

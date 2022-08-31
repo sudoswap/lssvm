@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {BeaconAmmV1Pair} from "./BeaconAmmV1Pair.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
 contract BeaconAmmV1Router {
@@ -48,7 +48,7 @@ contract BeaconAmmV1Router {
     }
 
     struct RobustPairNFTsFoTokenAndTokenforNFTsTrade {
-        RobustPairSwapSpecific[] tokenToNFTTrades;  
+        RobustPairSwapSpecific[] tokenToNFTTrades;
         RobustPairSwapSpecificForToken[] nftToTokenTrades;
         uint256 inputAmount;
         address payable tokenRecipient;
@@ -60,9 +60,9 @@ contract BeaconAmmV1Router {
         _;
     }
 
-    IBeaconAmmV1PairFactoryLike public immutable factory;
+    IBeaconAmmV1PairFactory public immutable factory;
 
-    constructor(IBeaconAmmV1PairFactoryLike _factory) {
+    constructor(IBeaconAmmV1PairFactory _factory) {
         factory = _factory;
     }
 
@@ -475,7 +475,7 @@ contract BeaconAmmV1Router {
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return remainingValue The unspent token amount
-        
+
      */
     function robustSwapERC20ForAnyNFTs(
         RobustPairSwapAny[] calldata swapList,
@@ -838,16 +838,16 @@ contract BeaconAmmV1Router {
         address from,
         address to,
         uint256 amount,
-        IBeaconAmmV1PairFactoryLike.PairVariant variant
+        IBeaconAmmV1PairFactory.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");
 
         // verify caller is an ERC20 pair
         require(
-            variant == IBeaconAmmV1PairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
+            variant == IBeaconAmmV1PairFactory.PairVariant.ENUMERABLE_ERC20 ||
                 variant ==
-                IBeaconAmmV1PairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
+                IBeaconAmmV1PairFactory.PairVariant.MISSING_ENUMERABLE_ERC20,
             "Not ERC20 pair"
         );
 
@@ -869,7 +869,7 @@ contract BeaconAmmV1Router {
         address from,
         address to,
         uint256 id,
-        IBeaconAmmV1PairFactoryLike.PairVariant variant
+        IBeaconAmmV1PairFactory.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");
@@ -998,7 +998,7 @@ contract BeaconAmmV1Router {
     /**
         @notice Internal function used to swap an ERC20 token for any NFTs
         @dev Note that we don't need to query the pair's bonding curve first for pricing data because
-        we just calculate and take the required amount from the caller during swap time. 
+        we just calculate and take the required amount from the caller during swap time.
         However, we can't "pull" ETH, which is why for the ETH->NFT swaps, we need to calculate the pricing info
         to figure out how much the router should send to the pool.
         @param swapList The list of pairs and swap calldata
@@ -1036,7 +1036,7 @@ contract BeaconAmmV1Router {
     /**
         @notice Internal function used to swap an ERC20 token for specific NFTs
         @dev Note that we don't need to query the pair's bonding curve first for pricing data because
-        we just calculate and take the required amount from the caller during swap time. 
+        we just calculate and take the required amount from the caller during swap time.
         However, we can't "pull" ETH, which is why for the ETH->NFT swaps, we need to calculate the pricing info
         to figure out how much the router should send to the pool.
         @param swapList The list of pairs and swap calldata
@@ -1073,10 +1073,10 @@ contract BeaconAmmV1Router {
 
     /**
         @notice Swaps NFTs for tokens, designed to be used for 1 token at a time
-        @dev Calling with multiple tokens is permitted, BUT minOutput will be 
+        @dev Calling with multiple tokens is permitted, BUT minOutput will be
         far from enough of a safety check because different tokens almost certainly have different unit prices.
-        @param swapList The list of pairs and swap calldata 
-        @param minOutput The minimum number of tokens to be receieved frm the swaps 
+        @param swapList The list of pairs and swap calldata
+        @param minOutput The minimum number of tokens to be receieved frm the swaps
         @param tokenRecipient The address that receives the tokens
         @return outputAmount The number of tokens to be received
      */

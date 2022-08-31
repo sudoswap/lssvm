@@ -8,7 +8,7 @@ import {OwnableWithTransferCallback} from "./lib/OwnableWithTransferCallback.sol
 import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
-import {IBeaconAmmV1PairFactoryLike} from "./IBeaconAmmV1PairFactoryLike.sol";
+import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
@@ -134,7 +134,7 @@ abstract contract BeaconAmmV1Pair is
         address routerCaller
     ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         // Store locally to remove extra calls
-        IBeaconAmmV1PairFactoryLike _factory = factory();
+        IBeaconAmmV1PairFactory _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
 
@@ -198,7 +198,7 @@ abstract contract BeaconAmmV1Pair is
         address routerCaller
     ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         // Store locally to remove extra calls
-        IBeaconAmmV1PairFactoryLike _factory = factory();
+        IBeaconAmmV1PairFactory _factory = factory();
         ICurve _bondingCurve = bondingCurve();
 
         // Input validation
@@ -256,7 +256,7 @@ abstract contract BeaconAmmV1Pair is
         address routerCaller
     ) external virtual nonReentrant returns (uint256 outputAmount) {
         // Store locally to remove extra calls
-        IBeaconAmmV1PairFactoryLike _factory = factory();
+        IBeaconAmmV1PairFactory _factory = factory();
         ICurve _bondingCurve = bondingCurve();
 
         // Input validation
@@ -363,9 +363,9 @@ abstract contract BeaconAmmV1Pair is
         public
         pure
         virtual
-        returns (IBeaconAmmV1PairFactoryLike.PairVariant);
+        returns (IBeaconAmmV1PairFactory.PairVariant);
 
-    function factory() public pure returns (IBeaconAmmV1PairFactoryLike _factory) {
+    function factory() public pure returns (IBeaconAmmV1PairFactory _factory) {
         uint256 paramsLength = _immutableParamsLength();
         assembly {
             _factory := shr(
@@ -455,7 +455,7 @@ abstract contract BeaconAmmV1Pair is
         uint256 numNFTs,
         uint256 maxExpectedTokenInput,
         ICurve _bondingCurve,
-        IBeaconAmmV1PairFactoryLike _factory
+        IBeaconAmmV1PairFactory _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
@@ -515,7 +515,7 @@ abstract contract BeaconAmmV1Pair is
         uint256 numNFTs,
         uint256 minExpectedTokenOutput,
         ICurve _bondingCurve,
-        IBeaconAmmV1PairFactoryLike _factory
+        IBeaconAmmV1PairFactory _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
@@ -577,7 +577,7 @@ abstract contract BeaconAmmV1Pair is
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        IBeaconAmmV1PairFactoryLike _factory,
+        IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee
     ) internal virtual;
 
@@ -592,7 +592,7 @@ abstract contract BeaconAmmV1Pair is
         @notice Sends protocol fee (if it exists) back to the BeaconAmmV1PairFactory from the pair
      */
     function _payProtocolFeeFromPair(
-        IBeaconAmmV1PairFactoryLike _factory,
+        IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee
     ) internal virtual;
 
@@ -647,7 +647,7 @@ abstract contract BeaconAmmV1Pair is
     function _takeNFTsFromSender(
         IERC721 _nft,
         uint256[] calldata nftIds,
-        IBeaconAmmV1PairFactoryLike _factory,
+        IBeaconAmmV1PairFactory _factory,
         bool isRouter,
         address routerCaller
     ) internal virtual {
@@ -828,7 +828,7 @@ abstract contract BeaconAmmV1Pair is
         external
         onlyOwner
     {
-        IBeaconAmmV1PairFactoryLike _factory = factory();
+        IBeaconAmmV1PairFactory _factory = factory();
         require(_factory.callAllowed(target), "Target must be whitelisted");
         (bool result, ) = target.call{value: 0}(data);
         require(result, "Call failed");
