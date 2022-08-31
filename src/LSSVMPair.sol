@@ -7,15 +7,15 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {OwnableWithTransferCallback} from "./lib/OwnableWithTransferCallback.sol";
 import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
-import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
-import {IBeaconAmmV1Factory} from "./IBeaconAmmV1Factory.sol";
+import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 /// @title The base contract for an NFT/TOKEN AMM pair
 /// @author boredGenius and 0xmons
 /// @notice This implements the core swap logic from NFT to TOKEN
-abstract contract BeaconAmmV1 is
+abstract contract LSSVMPair is
     OwnableWithTransferCallback,
     ReentrancyGuard,
     ERC1155Holder
@@ -26,7 +26,7 @@ abstract contract BeaconAmmV1 is
         TRADE
     }
 
-    // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in BeaconAmmV1Factory)
+    // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in LSSVMPairFactory)
     uint256 internal constant MAX_FEE = 0.90e18;
 
     // The current price of the NFT
@@ -65,13 +65,13 @@ abstract contract BeaconAmmV1 is
     /**
       @notice Called during pair creation to set initial parameters
       @dev Only called once by factory to initialize.
-      We verify this by making sure that the current owner is address(0).
+      We verify this by making sure that the current owner is address(0). 
       The Ownable library we use disallows setting the owner to be address(0), so this condition
-      should only be valid before the first initialize call.
+      should only be valid before the first initialize call. 
       @param _owner The owner of the pair
       @param _assetRecipient The address that will receive the TOKEN or NFT sent to this pair during swaps. NOTE: If set to address(0), they will go to the pair itself.
       @param _delta The initial delta of the bonding curve
-      @param _fee The initial % fee taken, if this is a trade pair
+      @param _fee The initial % fee taken, if this is a trade pair 
       @param _spotPrice The initial price to sell an asset into the pair
      */
     function initialize(
@@ -120,7 +120,7 @@ abstract contract BeaconAmmV1 is
         @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
         amount is greater than this value, the transaction will be reverted.
         @param nftRecipient The recipient of the NFTs
-        @param isRouter True if calling from BeaconAmmV1Router, false otherwise. Not used for
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
         ETH pairs.
         @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
         ETH pairs.
@@ -134,7 +134,7 @@ abstract contract BeaconAmmV1 is
         address routerCaller
     ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         // Store locally to remove extra calls
-        IBeaconAmmV1Factory _factory = factory();
+        ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
         IERC721 _nft = nft();
 
@@ -184,7 +184,7 @@ abstract contract BeaconAmmV1 is
         @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
         amount is greater than this value, the transaction will be reverted.
         @param nftRecipient The recipient of the NFTs
-        @param isRouter True if calling from BeaconAmmV1Router, false otherwise. Not used for
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
         ETH pairs.
         @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
         ETH pairs.
@@ -198,7 +198,7 @@ abstract contract BeaconAmmV1 is
         address routerCaller
     ) external payable virtual nonReentrant returns (uint256 inputAmount) {
         // Store locally to remove extra calls
-        IBeaconAmmV1Factory _factory = factory();
+        ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
 
         // Input validation
@@ -242,7 +242,7 @@ abstract contract BeaconAmmV1 is
         @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
         @param tokenRecipient The recipient of the token output
-        @param isRouter True if calling from BeaconAmmV1Router, false otherwise. Not used for
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
         ETH pairs.
         @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
         ETH pairs.
@@ -256,7 +256,7 @@ abstract contract BeaconAmmV1 is
         address routerCaller
     ) external virtual nonReentrant returns (uint256 outputAmount) {
         // Store locally to remove extra calls
-        IBeaconAmmV1Factory _factory = factory();
+        ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
 
         // Input validation
@@ -363,9 +363,9 @@ abstract contract BeaconAmmV1 is
         public
         pure
         virtual
-        returns (IBeaconAmmV1Factory.PairVariant);
+        returns (ILSSVMPairFactoryLike.PairVariant);
 
-    function factory() public pure returns (IBeaconAmmV1Factory _factory) {
+    function factory() public pure returns (ILSSVMPairFactoryLike _factory) {
         uint256 paramsLength = _immutableParamsLength();
         assembly {
             _factory := shr(
@@ -455,7 +455,7 @@ abstract contract BeaconAmmV1 is
         uint256 numNFTs,
         uint256 maxExpectedTokenInput,
         ICurve _bondingCurve,
-        IBeaconAmmV1Factory _factory
+        ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 inputAmount) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
@@ -515,7 +515,7 @@ abstract contract BeaconAmmV1 is
         uint256 numNFTs,
         uint256 minExpectedTokenOutput,
         ICurve _bondingCurve,
-        IBeaconAmmV1Factory _factory
+        ILSSVMPairFactoryLike _factory
     ) internal returns (uint256 protocolFee, uint256 outputAmount) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
@@ -568,31 +568,31 @@ abstract contract BeaconAmmV1 is
     /**
         @notice Pulls the token input of a trade from the trader and pays the protocol fee.
         @param inputAmount The amount of tokens to be sent
-        @param isRouter Whether or not the caller is BeaconAmmV1Router
-        @param routerCaller If called from BeaconAmmV1Router, store the original caller
-        @param _factory The BeaconAmmV1Factory which stores BeaconAmmV1Router allowlist info
+        @param isRouter Whether or not the caller is LSSVMRouter
+        @param routerCaller If called from LSSVMRouter, store the original caller
+        @param _factory The LSSVMPairFactory which stores LSSVMRouter allowlist info
         @param protocolFee The protocol fee to be paid
      */
     function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
-        IBeaconAmmV1Factory _factory,
+        ILSSVMPairFactoryLike _factory,
         uint256 protocolFee
     ) internal virtual;
 
     /**
         @notice Sends excess tokens back to the caller (if applicable)
-        @dev We send ETH back to the caller even when called from BeaconAmmV1Router because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller)
+        @dev We send ETH back to the caller even when called from LSSVMRouter because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller) 
         Excess ETH sent for one swap can then be used to help pay for the next swap.
      */
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
 
     /**
-        @notice Sends protocol fee (if it exists) back to the BeaconAmmV1Factory from the pair
+        @notice Sends protocol fee (if it exists) back to the LSSVMPairFactory from the pair
      */
     function _payProtocolFeeFromPair(
-        IBeaconAmmV1Factory _factory,
+        ILSSVMPairFactoryLike _factory,
         uint256 protocolFee
     ) internal virtual;
 
@@ -608,11 +608,11 @@ abstract contract BeaconAmmV1 is
 
     /**
         @notice Sends some number of NFTs to a recipient address, ID agnostic
-        @dev Even though we specify the NFT address here, this internal function is only
+        @dev Even though we specify the NFT address here, this internal function is only 
         used to send NFTs associated with this specific pool.
         @param _nft The address of the NFT to send
         @param nftRecipient The receiving address for the NFTs
-        @param numNFTs The number of NFTs to send
+        @param numNFTs The number of NFTs to send  
      */
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
@@ -622,11 +622,11 @@ abstract contract BeaconAmmV1 is
 
     /**
         @notice Sends specific NFTs to a recipient address
-        @dev Even though we specify the NFT address here, this internal function is only
+        @dev Even though we specify the NFT address here, this internal function is only 
         used to send NFTs associated with this specific pool.
         @param _nft The address of the NFT to send
         @param nftRecipient The receiving address for the NFTs
-        @param nftIds The specific IDs of NFTs to send
+        @param nftIds The specific IDs of NFTs to send  
      */
     function _sendSpecificNFTsToRecipient(
         IERC721 _nft,
@@ -636,10 +636,10 @@ abstract contract BeaconAmmV1 is
 
     /**
         @notice Takes NFTs from the caller and sends them into the pair's asset recipient
-        @dev This is used by the BeaconAmmV1's swapNFTForToken function.
+        @dev This is used by the LSSVMPair's swapNFTForToken function. 
         @param _nft The NFT collection to take from
         @param nftIds The specific NFT IDs to take
-        @param isRouter True if calling from BeaconAmmV1Router, false otherwise. Not used for
+        @param isRouter True if calling from LSSVMRouter, false otherwise. Not used for
         ETH pairs.
         @param routerCaller If isRouter is true, ERC20 tokens will be transferred from this address. Not used for
         ETH pairs.
@@ -647,7 +647,7 @@ abstract contract BeaconAmmV1 is
     function _takeNFTsFromSender(
         IERC721 _nft,
         uint256[] calldata nftIds,
-        IBeaconAmmV1Factory _factory,
+        ILSSVMPairFactoryLike _factory,
         bool isRouter,
         address routerCaller
     ) internal virtual {
@@ -657,7 +657,7 @@ abstract contract BeaconAmmV1 is
 
             if (isRouter) {
                 // Verify if router is allowed
-                BeaconAmmV1Router router = BeaconAmmV1Router(payable(msg.sender));
+                LSSVMRouter router = LSSVMRouter(payable(msg.sender));
                 (bool routerAllowed, ) = _factory.routerStatus(router);
                 require(routerAllowed, "Not router");
 
@@ -714,7 +714,7 @@ abstract contract BeaconAmmV1 is
     }
 
     /**
-        @dev Used internally to grab pair parameters from calldata, see BeaconAmmV1Cloner for technical details
+        @dev Used internally to grab pair parameters from calldata, see LSSVMPairCloner for technical details
      */
     function _immutableParamsLength() internal pure virtual returns (uint256);
 
@@ -828,14 +828,14 @@ abstract contract BeaconAmmV1 is
         external
         onlyOwner
     {
-        IBeaconAmmV1Factory _factory = factory();
+        ILSSVMPairFactoryLike _factory = factory();
         require(_factory.callAllowed(target), "Target must be whitelisted");
         (bool result, ) = target.call{value: 0}(data);
         require(result, "Call failed");
     }
 
     /**
-        @notice Allows owner to batch multiple calls, forked from: https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/BoringBatchable.sol
+        @notice Allows owner to batch multiple calls, forked from: https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/BoringBatchable.sol 
         @dev Intended for withdrawing/altering pool pricing in one tx, only callable by owner, cannot change owner
         @param calls The calldata for each call to make
         @param revertOnFail Whether or not to revert the entire tx if any of the calls fail

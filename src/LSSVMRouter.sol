@@ -4,21 +4,21 @@ pragma solidity ^0.8.0;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {BeaconAmmV1} from "./BeaconAmmV1.sol";
-import {IBeaconAmmV1Factory} from "./IBeaconAmmV1Factory.sol";
+import {LSSVMPair} from "./LSSVMPair.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 
-contract BeaconAmmV1Router {
+contract LSSVMRouter {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
     struct PairSwapAny {
-        BeaconAmmV1 pair;
+        LSSVMPair pair;
         uint256 numItems;
     }
 
     struct PairSwapSpecific {
-        BeaconAmmV1 pair;
+        LSSVMPair pair;
         uint256[] nftIds;
     }
 
@@ -60,9 +60,9 @@ contract BeaconAmmV1Router {
         _;
     }
 
-    IBeaconAmmV1Factory public immutable factory;
+    ILSSVMPairFactoryLike public immutable factory;
 
-    constructor(IBeaconAmmV1Factory _factory) {
+    constructor(ILSSVMPairFactoryLike _factory) {
         factory = _factory;
     }
 
@@ -838,16 +838,16 @@ contract BeaconAmmV1Router {
         address from,
         address to,
         uint256 amount,
-        IBeaconAmmV1Factory.PairVariant variant
+        ILSSVMPairFactoryLike.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");
 
         // verify caller is an ERC20 pair
         require(
-            variant == IBeaconAmmV1Factory.PairVariant.ENUMERABLE_ERC20 ||
+            variant == ILSSVMPairFactoryLike.PairVariant.ENUMERABLE_ERC20 ||
                 variant ==
-                IBeaconAmmV1Factory.PairVariant.MISSING_ENUMERABLE_ERC20,
+                ILSSVMPairFactoryLike.PairVariant.MISSING_ENUMERABLE_ERC20,
             "Not ERC20 pair"
         );
 
@@ -869,7 +869,7 @@ contract BeaconAmmV1Router {
         address from,
         address to,
         uint256 id,
-        IBeaconAmmV1Factory.PairVariant variant
+        ILSSVMPairFactoryLike.PairVariant variant
     ) external {
         // verify caller is a trusted pair contract
         require(factory.isPair(msg.sender, variant), "Not pair");

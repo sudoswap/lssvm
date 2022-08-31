@@ -4,26 +4,26 @@ pragma solidity ^0.8.0;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {BeaconAmmV1} from "./BeaconAmmV1.sol";
-import {IBeaconAmmV1Factory} from "./IBeaconAmmV1Factory.sol";
+import {LSSVMPair} from "./LSSVMPair.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 
 /**
     @title An NFT/Token pair where the token is ETH
     @author boredGenius and 0xmons
  */
-abstract contract BeaconAmmV1ETH is BeaconAmmV1 {
+abstract contract LSSVMPairETH is LSSVMPair {
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
     uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 61;
 
-    /// @inheritdoc BeaconAmmV1
+    /// @inheritdoc LSSVMPair
     function _pullTokenInputAndPayProtocolFee(
         uint256 inputAmount,
         bool, /*isRouter*/
         address, /*routerCaller*/
-        IBeaconAmmV1Factory _factory,
+        ILSSVMPairFactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
@@ -47,7 +47,7 @@ abstract contract BeaconAmmV1ETH is BeaconAmmV1 {
         }
     }
 
-    /// @inheritdoc BeaconAmmV1
+    /// @inheritdoc LSSVMPair
     function _refundTokenToSender(uint256 inputAmount) internal override {
         // Give excess ETH back to caller
         if (msg.value > inputAmount) {
@@ -55,9 +55,9 @@ abstract contract BeaconAmmV1ETH is BeaconAmmV1 {
         }
     }
 
-    /// @inheritdoc BeaconAmmV1
+    /// @inheritdoc LSSVMPair
     function _payProtocolFeeFromPair(
-        IBeaconAmmV1Factory _factory,
+        ILSSVMPairFactoryLike _factory,
         uint256 protocolFee
     ) internal override {
         // Take protocol fee
@@ -73,7 +73,7 @@ abstract contract BeaconAmmV1ETH is BeaconAmmV1 {
         }
     }
 
-    /// @inheritdoc BeaconAmmV1
+    /// @inheritdoc LSSVMPair
     function _sendTokenOutput(
         address payable tokenRecipient,
         uint256 outputAmount
@@ -84,8 +84,8 @@ abstract contract BeaconAmmV1ETH is BeaconAmmV1 {
         }
     }
 
-    /// @inheritdoc BeaconAmmV1
-    // @dev see BeaconAmmV1Cloner for params length calculation
+    /// @inheritdoc LSSVMPair
+    // @dev see LSSVMPairCloner for params length calculation
     function _immutableParamsLength() internal pure override returns (uint256) {
         return IMMUTABLE_PARAMS_LENGTH;
     }
@@ -111,7 +111,7 @@ abstract contract BeaconAmmV1ETH is BeaconAmmV1 {
         emit TokenWithdrawal(amount);
     }
 
-    /// @inheritdoc BeaconAmmV1
+    /// @inheritdoc LSSVMPair
     function withdrawERC20(ERC20 a, uint256 amount)
         external
         override

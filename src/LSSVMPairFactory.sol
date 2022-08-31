@@ -12,20 +12,20 @@ import {IERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
-import {BeaconAmmV1} from "./BeaconAmmV1.sol";
-import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
-import {BeaconAmmV1ETH} from "./BeaconAmmV1ETH.sol";
+import {LSSVMPair} from "./LSSVMPair.sol";
+import {LSSVMRouter} from "./LSSVMRouter.sol";
+import {LSSVMPairETH} from "./LSSVMPairETH.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
-import {BeaconAmmV1ERC20} from "./BeaconAmmV1ERC20.sol";
-import {BeaconAmmV1Cloner} from "./lib/BeaconAmmV1Cloner.sol";
-import {IBeaconAmmV1Factory} from "./IBeaconAmmV1Factory.sol";
-import {BeaconAmmV1EnumerableETH} from "./BeaconAmmV1EnumerableETH.sol";
-import {BeaconAmmV1EnumerableERC20} from "./BeaconAmmV1EnumerableERC20.sol";
-import {BeaconAmmV1MissingEnumerableETH} from "./BeaconAmmV1MissingEnumerableETH.sol";
-import {BeaconAmmV1MissingEnumerableERC20} from "./BeaconAmmV1MissingEnumerableERC20.sol";
+import {LSSVMPairERC20} from "./LSSVMPairERC20.sol";
+import {LSSVMPairCloner} from "./lib/LSSVMPairCloner.sol";
+import {ILSSVMPairFactoryLike} from "./ILSSVMPairFactoryLike.sol";
+import {LSSVMPairEnumerableETH} from "./LSSVMPairEnumerableETH.sol";
+import {LSSVMPairEnumerableERC20} from "./LSSVMPairEnumerableERC20.sol";
+import {LSSVMPairMissingEnumerableETH} from "./LSSVMPairMissingEnumerableETH.sol";
+import {LSSVMPairMissingEnumerableERC20} from "./LSSVMPairMissingEnumerableERC20.sol";
 
-contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
-    using BeaconAmmV1Cloner for address;
+contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
+    using LSSVMPairCloner for address;
     using SafeTransferLib for address payable;
     using SafeTransferLib for ERC20;
 
@@ -34,10 +34,10 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
 
     uint256 internal constant MAX_PROTOCOL_FEE = 0.10e18; // 10%, must <= 1 - MAX_FEE
 
-    BeaconAmmV1EnumerableETH public immutable enumerableETHTemplate;
-    BeaconAmmV1MissingEnumerableETH public immutable missingEnumerableETHTemplate;
-    BeaconAmmV1EnumerableERC20 public immutable enumerableERC20Template;
-    BeaconAmmV1MissingEnumerableERC20
+    LSSVMPairEnumerableETH public immutable enumerableETHTemplate;
+    LSSVMPairMissingEnumerableETH public immutable missingEnumerableETHTemplate;
+    LSSVMPairEnumerableERC20 public immutable enumerableERC20Template;
+    LSSVMPairMissingEnumerableERC20
         public immutable missingEnumerableERC20Template;
     address payable public override protocolFeeRecipient;
 
@@ -50,7 +50,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
         bool allowed;
         bool wasEverAllowed;
     }
-    mapping(BeaconAmmV1Router => RouterStatus) public override routerStatus;
+    mapping(LSSVMRouter => RouterStatus) public override routerStatus;
 
     event NewPair(address poolAddress);
     event TokenDeposit(address poolAddress);
@@ -59,13 +59,13 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
     event ProtocolFeeMultiplierUpdate(uint256 newMultiplier);
     event BondingCurveStatusUpdate(ICurve bondingCurve, bool isAllowed);
     event CallTargetStatusUpdate(address target, bool isAllowed);
-    event RouterStatusUpdate(BeaconAmmV1Router router, bool isAllowed);
+    event RouterStatusUpdate(LSSVMRouter router, bool isAllowed);
 
     constructor(
-        BeaconAmmV1EnumerableETH _enumerableETHTemplate,
-        BeaconAmmV1MissingEnumerableETH _missingEnumerableETHTemplate,
-        BeaconAmmV1EnumerableERC20 _enumerableERC20Template,
-        BeaconAmmV1MissingEnumerableERC20 _missingEnumerableERC20Template,
+        LSSVMPairEnumerableETH _enumerableETHTemplate,
+        LSSVMPairMissingEnumerableETH _missingEnumerableETHTemplate,
+        LSSVMPairEnumerableERC20 _enumerableERC20Template,
+        LSSVMPairMissingEnumerableERC20 _missingEnumerableERC20Template,
         address payable _protocolFeeRecipient,
         uint256 _protocolFeeMultiplier
     ) {
@@ -102,12 +102,12 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
         IERC721 _nft,
         ICurve _bondingCurve,
         address payable _assetRecipient,
-        BeaconAmmV1.PoolType _poolType,
+        LSSVMPair.PoolType _poolType,
         uint128 _delta,
         uint96 _fee,
         uint128 _spotPrice,
         uint256[] calldata _initialNFTIDs
-    ) external payable returns (BeaconAmmV1ETH pair) {
+    ) external payable returns (LSSVMPairETH pair) {
         require(
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
@@ -122,7 +122,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
           template = address(missingEnumerableETHTemplate);
         }
 
-        pair = BeaconAmmV1ETH(
+        pair = LSSVMPairETH(
             payable(
                 template.cloneETHPair(
                     this,
@@ -166,7 +166,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
         IERC721 nft;
         ICurve bondingCurve;
         address payable assetRecipient;
-        BeaconAmmV1.PoolType poolType;
+        LSSVMPair.PoolType poolType;
         uint128 delta;
         uint96 fee;
         uint128 spotPrice;
@@ -176,7 +176,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
 
     function createPairERC20(CreateERC20PairParams calldata params)
         external
-        returns (BeaconAmmV1ERC20 pair)
+        returns (LSSVMPairERC20 pair)
     {
         require(
             bondingCurveAllowed[params.bondingCurve],
@@ -192,7 +192,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
           template = address(missingEnumerableERC20Template);
         }
 
-        pair = BeaconAmmV1ERC20(
+        pair = LSSVMPairERC20(
             payable(
                 template.cloneERC20Pair(
                     this,
@@ -219,7 +219,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
     }
 
     /**
-        @notice Checks if an address is a BeaconAmmV1. Uses the fact that the pairs are EIP-1167 minimal proxies.
+        @notice Checks if an address is a LSSVMPair. Uses the fact that the pairs are EIP-1167 minimal proxies.
         @param potentialPair The address to check
         @param variant The pair variant (NFT is enumerable or not, pair uses ETH or ERC20)
         @return True if the address is the specified pair variant, false otherwise
@@ -232,28 +232,28 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
     {
         if (variant == PairVariant.ENUMERABLE_ERC20) {
             return
-                BeaconAmmV1Cloner.isERC20PairClone(
+                LSSVMPairCloner.isERC20PairClone(
                     address(this),
                     address(enumerableERC20Template),
                     potentialPair
                 );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ERC20) {
             return
-                BeaconAmmV1Cloner.isERC20PairClone(
+                LSSVMPairCloner.isERC20PairClone(
                     address(this),
                     address(missingEnumerableERC20Template),
                     potentialPair
                 );
         } else if (variant == PairVariant.ENUMERABLE_ETH) {
             return
-                BeaconAmmV1Cloner.isETHPairClone(
+                LSSVMPairCloner.isETHPairClone(
                     address(this),
                     address(enumerableETHTemplate),
                     potentialPair
                 );
         } else if (variant == PairVariant.MISSING_ENUMERABLE_ETH) {
             return
-                BeaconAmmV1Cloner.isETHPairClone(
+                LSSVMPairCloner.isETHPairClone(
                     address(this),
                     address(missingEnumerableETHTemplate),
                     potentialPair
@@ -345,7 +345,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
         // ensure target is not / was not ever a router
         if (isAllowed) {
             require(
-                !routerStatus[BeaconAmmV1Router(target)].wasEverAllowed,
+                !routerStatus[LSSVMRouter(target)].wasEverAllowed,
                 "Can't call router"
             );
         }
@@ -359,7 +359,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
         @param _router The router
         @param isAllowed True to whitelist, false to remove from whitelist
      */
-    function setRouterAllowed(BeaconAmmV1Router _router, bool isAllowed)
+    function setRouterAllowed(LSSVMRouter _router, bool isAllowed)
         external
         onlyOwner
     {
@@ -380,7 +380,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
      */
 
     function _initializePairETH(
-        BeaconAmmV1ETH _pair,
+        LSSVMPairETH _pair,
         IERC721 _nft,
         address payable _assetRecipient,
         uint128 _delta,
@@ -410,7 +410,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
     }
 
     function _initializePairERC20(
-        BeaconAmmV1ERC20 _pair,
+        LSSVMPairERC20 _pair,
         ERC20 _token,
         IERC721 _nft,
         address payable _assetRecipient,
@@ -485,7 +485,7 @@ contract BeaconAmmV1Factory is Ownable, IBeaconAmmV1Factory {
             isPair(recipient, PairVariant.ENUMERABLE_ERC20) ||
             isPair(recipient, PairVariant.MISSING_ENUMERABLE_ERC20)
         ) {
-            if (token == BeaconAmmV1ERC20(recipient).token()) {
+            if (token == LSSVMPairERC20(recipient).token()) {
                 emit TokenDeposit(recipient);
             }
         }

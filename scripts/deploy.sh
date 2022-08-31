@@ -6,28 +6,28 @@ set -eo pipefail
 . $(dirname $0)/common.sh
 
 # Deploy pair templates
-BeaconAmmV1EnumerableETHAddr=$(deploy BeaconAmmV1EnumerableETH)
-log "BeaconAmmV1EnumerableETH deployed at:" $BeaconAmmV1EnumerableETHAddr
+LSSVMPairEnumerableETHAddr=$(deploy LSSVMPairEnumerableETH)
+log "LSSVMPairEnumerableETH deployed at:" $LSSVMPairEnumerableETHAddr
 
-BeaconAmmV1MissingEnumerableETHAddr=$(deploy BeaconAmmV1MissingEnumerableETH)
-log "BeaconAmmV1MissingEnumerableETH deployed at:" $BeaconAmmV1MissingEnumerableETHAddr
+LSSVMPairMissingEnumerableETHAddr=$(deploy LSSVMPairMissingEnumerableETH)
+log "LSSVMPairMissingEnumerableETH deployed at:" $LSSVMPairMissingEnumerableETHAddr
 
-BeaconAmmV1EnumerableERC20Addr=$(deploy BeaconAmmV1EnumerableERC20)
-log "BeaconAmmV1EnumerableERC20 deployed at:" $BeaconAmmV1EnumerableERC20Addr
+LSSVMPairEnumerableERC20Addr=$(deploy LSSVMPairEnumerableERC20)
+log "LSSVMPairEnumerableERC20 deployed at:" $LSSVMPairEnumerableERC20Addr
 
-BeaconAmmV1MissingEnumerableERC20Addr=$(deploy BeaconAmmV1MissingEnumerableERC20)
-log "BeaconAmmV1MissingEnumerableERC20 deployed at:" $BeaconAmmV1MissingEnumerableERC20Addr
+LSSVMPairMissingEnumerableERC20Addr=$(deploy LSSVMPairMissingEnumerableERC20)
+log "LSSVMPairMissingEnumerableERC20 deployed at:" $LSSVMPairMissingEnumerableERC20Addr
 
 # Deploy factory
-BeaconAmmV1FactoryAddr=$(deploy BeaconAmmV1Factory $BeaconAmmV1EnumerableETHAddr $BeaconAmmV1MissingEnumerableETHAddr $BeaconAmmV1EnumerableERC20Addr $BeaconAmmV1MissingEnumerableERC20Addr $PROTOCOL_FEE_RECIPIENT $PROTOCOL_FEE_MULTIPLIER)
-log "BeaconAmmV1Factory deployed at:" $BeaconAmmV1FactoryAddr
+LSSVMPairFactoryAddr=$(deploy LSSVMPairFactory $LSSVMPairEnumerableETHAddr $LSSVMPairMissingEnumerableETHAddr $LSSVMPairEnumerableERC20Addr $LSSVMPairMissingEnumerableERC20Addr $PROTOCOL_FEE_RECIPIENT $PROTOCOL_FEE_MULTIPLIER)
+log "LSSVMPairFactory deployed at:" $LSSVMPairFactoryAddr
 
 # Deploy router
-BeaconAmmV1RouterAddr=$(deploy BeaconAmmV1Router $BeaconAmmV1FactoryAddr)
-log "BeaconAmmV1Router deployed at:" $BeaconAmmV1RouterAddr
+LSSVMRouterAddr=$(deploy LSSVMRouter $LSSVMPairFactoryAddr)
+log "LSSVMRouter deployed at:" $LSSVMRouterAddr
 
 # Whitelist router in factory
-send $BeaconAmmV1FactoryAddr "setRouterAllowed(address,bool)" $BeaconAmmV1RouterAddr true
+send $LSSVMPairFactoryAddr "setRouterAllowed(address,bool)" $LSSVMRouterAddr true
 log "Whitelisted router in factory"
 
 # Deploy bonding curves
@@ -38,11 +38,11 @@ LinearCurveAddr=$(deploy LinearCurve)
 log "LinearCurve deployed at:" $LinearCurveAddr
 
 # Whitelist bonding curves in factory
-send $BeaconAmmV1FactoryAddr "setBondingCurveAllowed(address,bool)" $ExponentialCurveAddr true
+send $LSSVMPairFactoryAddr "setBondingCurveAllowed(address,bool)" $ExponentialCurveAddr true
 log "Whitelisted exponential curve in factory"
-send $BeaconAmmV1FactoryAddr "setBondingCurveAllowed(address,bool)" $LinearCurveAddr true
+send $LSSVMPairFactoryAddr "setBondingCurveAllowed(address,bool)" $LinearCurveAddr true
 log "Whitelisted linear curve in factory"
 
 # Transfer factory ownership to admin
-send $BeaconAmmV1FactoryAddr "transferOwnership(address)" $ADMIN
+send $LSSVMPairFactoryAddr "transferOwnership(address)" $ADMIN
 log "Transferred factory ownership to:" $ADMIN

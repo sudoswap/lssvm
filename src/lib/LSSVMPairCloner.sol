@@ -7,9 +7,9 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {ICurve} from "../bonding-curves/ICurve.sol";
-import {IBeaconAmmV1Factory} from "../IBeaconAmmV1Factory.sol";
+import {ILSSVMPairFactoryLike} from "../ILSSVMPairFactoryLike.sol";
 
-library BeaconAmmV1Cloner {
+library LSSVMPairCloner {
     /**
      * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
      *
@@ -20,7 +20,7 @@ library BeaconAmmV1Cloner {
      */
     function cloneETHPair(
         address implementation,
-        IBeaconAmmV1Factory factory,
+        ILSSVMPairFactoryLike factory,
         ICurve bondingCurve,
         IERC721 nft,
         uint8 poolType
@@ -110,7 +110,7 @@ library BeaconAmmV1Cloner {
      */
     function cloneERC20Pair(
         address implementation,
-        IBeaconAmmV1Factory factory,
+        ILSSVMPairFactoryLike factory,
         ICurve bondingCurve,
         IERC721 nft,
         uint8 poolType,
@@ -193,10 +193,10 @@ library BeaconAmmV1Cloner {
     }
 
     /**
-     * @notice Checks if a contract is a clone of a BeaconAmmV1ETH.
+     * @notice Checks if a contract is a clone of a LSSVMPairETH.
      * @dev Only checks the runtime bytecode, does not check the extra data.
      * @param factory the factory that deployed the clone
-     * @param implementation the BeaconAmmV1ETH implementation contract
+     * @param implementation the LSSVMPairETH implementation contract
      * @param query the contract to check
      * @return result True if the contract is a clone, false otherwise
      */
@@ -233,9 +233,9 @@ library BeaconAmmV1Cloner {
     }
 
     /**
-     * @notice Checks if a contract is a clone of a BeaconAmmV1ERC20.
+     * @notice Checks if a contract is a clone of a LSSVMPairERC20.
      * @dev Only checks the runtime bytecode, does not check the extra data.
-     * @param implementation the BeaconAmmV1ERC20 implementation contract
+     * @param implementation the LSSVMPairERC20 implementation contract
      * @param query the contract to check
      * @return result True if the contract is a clone, false otherwise
      */
