@@ -7,4 +7,9 @@ import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RPFLinearCurveEnumerableETHTest is RouterPartialFill, UsingLinearCurve, UsingEnumerable, UsingETH {}
+contract RPFLinearCurveEnumerableETHTest is
+    RouterPartialFill,
+    UsingLinearCurve,
+    UsingEnumerable,
+    UsingETH
+{}

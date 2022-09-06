@@ -48,7 +48,7 @@ contract LSSVMRouter {
     }
 
     struct RobustPairNFTsFoTokenAndTokenforNFTsTrade {
-        RobustPairSwapSpecific[] tokenToNFTTrades;  
+        RobustPairSwapSpecific[] tokenToNFTTrades;
         RobustPairSwapSpecificForToken[] nftToTokenTrades;
         uint256 inputAmount;
         address payable tokenRecipient;
@@ -744,17 +744,21 @@ contract LSSVMRouter {
             uint256 numSwaps = params.tokenToNFTTrades.length;
             for (uint256 i; i < numSwaps; ) {
                 // Calculate actual cost per swap
-                (error, , , pairCost, ) = params.tokenToNFTTrades[i]
+                (error, , , pairCost, ) = params
+                    .tokenToNFTTrades[i]
                     .swapInfo
                     .pair
-                    .getBuyNFTQuote(params.tokenToNFTTrades[i].swapInfo.nftIds.length);
+                    .getBuyNFTQuote(
+                        params.tokenToNFTTrades[i].swapInfo.nftIds.length
+                    );
 
                 // If within our maxCost and no error, proceed
                 if (
                     pairCost <= params.tokenToNFTTrades[i].maxCost &&
                     error == CurveErrorCodes.Error.OK
                 ) {
-                    remainingValue -= params.tokenToNFTTrades[i]
+                    remainingValue -= params
+                        .tokenToNFTTrades[i]
                         .swapInfo
                         .pair
                         .swapTokenForSpecificNFTs(

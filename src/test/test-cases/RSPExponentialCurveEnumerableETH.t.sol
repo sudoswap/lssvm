@@ -7,4 +7,9 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingEnumerable} from "../mixins/UsingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RSPExponentialCurveEnumerableETHTest is RouterSinglePool, UsingExponentialCurve, UsingEnumerable, UsingETH {}
+contract RSPExponentialCurveEnumerableETHTest is
+    RouterSinglePool,
+    UsingExponentialCurve,
+    UsingEnumerable,
+    UsingETH
+{}

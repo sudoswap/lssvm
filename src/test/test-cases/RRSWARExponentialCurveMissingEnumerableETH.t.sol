@@ -7,4 +7,9 @@ import {UsingExponentialCurve} from "../mixins/UsingExponentialCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
 import {UsingETH} from "../mixins/UsingETH.sol";
 
-contract RRSWARExponentialCurveMissingEnumerableETHTest is RouterRobustSwapWithAssetRecipient, UsingExponentialCurve, UsingMissingEnumerable, UsingETH {}
+contract RRSWARExponentialCurveMissingEnumerableETHTest is
+    RouterRobustSwapWithAssetRecipient,
+    UsingExponentialCurve,
+    UsingMissingEnumerable,
+    UsingETH
+{}
