@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import {RouterPartialFill} from "../base/RouterPartialFill.sol";
+import {RouterSinglePoolWithRoyalties} from "../base/RouterSinglePoolWithRoyalties.sol";
 import {UsingLinearCurve} from "../mixins/UsingLinearCurve.sol";
 import {UsingMissingEnumerable} from "../mixins/UsingMissingEnumerable.sol";
-import {UsingETH} from "../mixins/UsingETH.sol";
+import {UsingERC20} from "../mixins/UsingERC20.sol";
 
-contract RPFLinearCurveMissingEnumerableETHTest is
-    RouterPartialFill,
+contract RSPWRLinearCurveMissingEnumerableERC20Test is
+    RouterSinglePoolWithRoyalties,
     UsingLinearCurve,
     UsingMissingEnumerable,
-    UsingETH
+    UsingERC20
 {}
