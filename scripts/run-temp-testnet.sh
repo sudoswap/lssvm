@@ -22,7 +22,7 @@ error() {
 # launch the testnet
 dapp testnet --dir "$TMPDIR" &
 # wait for it to launch (can't go <3s)
-sleep 3
+sleep 10
 
 # set the RPC URL to the local testnet
 export ETH_RPC_URL=http://127.0.0.1:8545

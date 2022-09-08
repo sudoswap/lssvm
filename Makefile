@@ -38,13 +38,13 @@ deploy-rinkeby: export ETH_RPC_URL = $(call network,rinkeby)
 deploy-rinkeby: check-api-key deploy
 
 check-api-key:
-ifndef ALCHEMY_API_KEY
-	$(error ALCHEMY_API_KEY is undefined)
+ifndef INFURA_API_KEY
+	$(error INFURA_API_KEY is undefined)
 endif
 
 # Returns the URL to deploy to a hosted node.
-# Requires the ALCHEMY_API_KEY env var to be set.
+# Requires the INFURA_API_KEY env var to be set.
 # The first argument determines the network (mainnet / rinkeby / ropsten / kovan / goerli)
 define network
-https://eth-$1.alchemyapi.io/v2/${ALCHEMY_API_KEY}
+https://rinkeby.infura.io/v3/${INFURA_API_KEY}
 endef

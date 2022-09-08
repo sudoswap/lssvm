@@ -71,10 +71,8 @@ Be careful of the [precedence in which env vars are read](https://github.com/dap
 We assume `ETH_FROM` is an address you own and is part of your keystore.
 If not, use `ethsign import` to import your private key.
 
-See the [`Makefile`](./Makefile#25) for more context on how this works under the hood
-
-We use Alchemy as a remote node provider for the Mainnet & Rinkeby network deployments.
-You must have set your API key as the `ALCHEMY_API_KEY` enviroment variable in order to
+We use Infura as a remote node provider for the Mainnet & Rinkeby network deployments.
+You must have set your API key as the `INFURA_API_KEY` enviroment variable in order to
 deploy to these networks
 
 ### Mainnet
