@@ -46,10 +46,6 @@ Our testing setup is compatible with both `forge` and `dapptools`. We recommend 
 
 # Built with DappTools Template
 
-**Template repository for getting started quickly with DappTools**
-
-![Github Actions](https://github.com/gakonst/dapptools-template/workflows/Tests/badge.svg)
-
 ## Building and testing
 
 ```sh
@@ -75,59 +71,16 @@ We use Infura as a remote node provider for the Mainnet & Rinkeby network deploy
 You must have set your API key as the `INFURA_API_KEY` enviroment variable in order to
 deploy to these networks
 
-### Mainnet
+## Deployments
 
-```
-ETH_FROM=0x3538b6eF447f244268BCb2A0E1796fEE7c45002D make deploy-mainnet
-```
 
 ### Rinkeby
 
-```
-ETH_FROM=0x3538b6eF447f244268BCb2A0E1796fEE7c45002D make deploy-rinkeby
-```
-
-### Custom Network
-
-```
-ETH_RPC_URL=<your network> make deploy
-```
-
-### Local Testnet
-
-```
-# on one terminal
-dapp testnet
-# get the printed account address from the testnet, and set it as ETH_FROM. Then:
-make deploy
-```
-
-## Installing the toolkit
-
-If you do not have DappTools already installed, you'll need to run the below
-commands
-
-### Install Nix
-
-```sh
-# User must be in sudoers
-curl -L https://nixos.org/nix/install | sh
-
-# Run this or login again to use Nix
-. "$HOME/.nix-profile/etc/profile.d/nix.sh"
-```
-
-### Install DappTools
-
-```sh
-curl https://dapp.tools/install | sh
-```
-
-## DappTools Resources
-
-* [DappTools](https://dapp.tools)
-    * [Hevm Docs](https://github.com/dapphub/dapptools/blob/master/src/hevm/README.md)
-    * [Dapp Docs](https://github.com/dapphub/dapptools/tree/master/src/dapp/README.md)
-    * [Seth Docs](https://github.com/dapphub/dapptools/tree/master/src/seth/README.md)
-* [DappTools Overview](https://www.youtube.com/watch?v=lPinWgaNceM)
-* [Awesome-DappTools](https://github.com/rajivpo/awesome-dapptools)
+- BeaconAmmV1PairEnumerableETH: `0x04B4aCCDEF81fe8a3a5921B3852E56310F138dE8`
+- BeaconAmmV1PairMissingEnumerableETH: `0x599dB4CD68A2e35dc012d42E88CB6310B3E3faf1`
+- BeaconAmmV1PairEnumerableERC20: `0xF00ca216c3173898708E1F73B29341c9fc294866`
+- BeaconAmmV1PairMissingEnumerableERC20: `0x827bB2dF10DC01952dcd3d4618228487c75ABb3A`
+- BeaconAmmV1PairFactory: `0x2617bF52D5f4a691a2c80977f5C19650FB63b396`
+- BeaconAmmV1Router: `0xDf6C360032Db856072447ac39a6B27957da6875c`
+- ExponentialCurve: `0x55484644379b5c5f7Ae34412e24b97f4D4a0819D`
+- LinearCurve: `0x4A7d86dcec1CD940d9449781FB99335Edfe0fdf6`
