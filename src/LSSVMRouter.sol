@@ -48,7 +48,7 @@ contract LSSVMRouter {
     }
 
     struct RobustPairNFTsFoTokenAndTokenforNFTsTrade {
-        RobustPairSwapSpecific[] tokenToNFTTrades;  
+        RobustPairSwapSpecific[] tokenToNFTTrades;
         RobustPairSwapSpecificForToken[] nftToTokenTrades;
         uint256 inputAmount;
         address payable tokenRecipient;
@@ -368,6 +368,7 @@ contract LSSVMRouter {
     )
         external
         payable
+        virtual
         checkDeadline(deadline)
         returns (uint256 remainingValue)
     {
@@ -425,7 +426,13 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) public payable checkDeadline(deadline) returns (uint256 remainingValue) {
+    )
+        public
+        payable
+        virtual
+        checkDeadline(deadline)
+        returns (uint256 remainingValue)
+    {
         remainingValue = msg.value;
         uint256 pairCost;
         CurveErrorCodes.Error error;
@@ -475,14 +482,19 @@ contract LSSVMRouter {
         @param nftRecipient The address that will receive the NFT output
         @param deadline The Unix timestamp (in seconds) at/after which the swap will revert
         @return remainingValue The unspent token amount
-        
+
      */
     function robustSwapERC20ForAnyNFTs(
         RobustPairSwapAny[] calldata swapList,
         uint256 inputAmount,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 remainingValue) {
+    )
+        external
+        virtual
+        checkDeadline(deadline)
+        returns (uint256 remainingValue)
+    {
         remainingValue = inputAmount;
         uint256 pairCost;
         CurveErrorCodes.Error error;
@@ -529,7 +541,7 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address nftRecipient,
         uint256 deadline
-    ) public checkDeadline(deadline) returns (uint256 remainingValue) {
+    ) public virtual checkDeadline(deadline) returns (uint256 remainingValue) {
         remainingValue = inputAmount;
         uint256 pairCost;
         CurveErrorCodes.Error error;
@@ -576,7 +588,7 @@ contract LSSVMRouter {
         RobustPairSwapSpecificForToken[] calldata swapList,
         address payable tokenRecipient,
         uint256 deadline
-    ) public checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) public virtual checkDeadline(deadline) returns (uint256 outputAmount) {
         // Try doing each swap
         uint256 numSwaps = swapList.length;
         for (uint256 i; i < numSwaps; ) {
@@ -627,7 +639,12 @@ contract LSSVMRouter {
      */
     function robustSwapETHForSpecificNFTsAndNFTsToToken(
         RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
-    ) external payable returns (uint256 remainingValue, uint256 outputAmount) {
+    )
+        external
+        payable
+        virtual
+        returns (uint256 remainingValue, uint256 outputAmount)
+    {
         {
             remainingValue = msg.value;
             uint256 pairCost;
@@ -734,7 +751,12 @@ contract LSSVMRouter {
      */
     function robustSwapERC20ForSpecificNFTsAndNFTsToToken(
         RobustPairNFTsFoTokenAndTokenforNFTsTrade calldata params
-    ) external payable returns (uint256 remainingValue, uint256 outputAmount) {
+    )
+        external
+        payable
+        virtual
+        returns (uint256 remainingValue, uint256 outputAmount)
+    {
         {
             remainingValue = params.inputAmount;
             uint256 pairCost;
@@ -744,17 +766,21 @@ contract LSSVMRouter {
             uint256 numSwaps = params.tokenToNFTTrades.length;
             for (uint256 i; i < numSwaps; ) {
                 // Calculate actual cost per swap
-                (error, , , pairCost, ) = params.tokenToNFTTrades[i]
+                (error, , , pairCost, ) = params
+                    .tokenToNFTTrades[i]
                     .swapInfo
                     .pair
-                    .getBuyNFTQuote(params.tokenToNFTTrades[i].swapInfo.nftIds.length);
+                    .getBuyNFTQuote(
+                        params.tokenToNFTTrades[i].swapInfo.nftIds.length
+                    );
 
                 // If within our maxCost and no error, proceed
                 if (
                     pairCost <= params.tokenToNFTTrades[i].maxCost &&
                     error == CurveErrorCodes.Error.OK
                 ) {
-                    remainingValue -= params.tokenToNFTTrades[i]
+                    remainingValue -= params
+                        .tokenToNFTTrades[i]
                         .swapInfo
                         .pair
                         .swapTokenForSpecificNFTs(
@@ -902,7 +928,7 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address payable ethRecipient,
         address nftRecipient
-    ) internal returns (uint256 remainingValue) {
+    ) internal virtual returns (uint256 remainingValue) {
         remainingValue = inputAmount;
 
         uint256 pairCost;
@@ -955,7 +981,7 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address payable ethRecipient,
         address nftRecipient
-    ) internal returns (uint256 remainingValue) {
+    ) internal virtual returns (uint256 remainingValue) {
         remainingValue = inputAmount;
 
         uint256 pairCost;
@@ -998,7 +1024,7 @@ contract LSSVMRouter {
     /**
         @notice Internal function used to swap an ERC20 token for any NFTs
         @dev Note that we don't need to query the pair's bonding curve first for pricing data because
-        we just calculate and take the required amount from the caller during swap time. 
+        we just calculate and take the required amount from the caller during swap time.
         However, we can't "pull" ETH, which is why for the ETH->NFT swaps, we need to calculate the pricing info
         to figure out how much the router should send to the pool.
         @param swapList The list of pairs and swap calldata
@@ -1010,7 +1036,7 @@ contract LSSVMRouter {
         PairSwapAny[] calldata swapList,
         uint256 inputAmount,
         address nftRecipient
-    ) internal returns (uint256 remainingValue) {
+    ) internal virtual returns (uint256 remainingValue) {
         remainingValue = inputAmount;
 
         // Do swaps
@@ -1036,7 +1062,7 @@ contract LSSVMRouter {
     /**
         @notice Internal function used to swap an ERC20 token for specific NFTs
         @dev Note that we don't need to query the pair's bonding curve first for pricing data because
-        we just calculate and take the required amount from the caller during swap time. 
+        we just calculate and take the required amount from the caller during swap time.
         However, we can't "pull" ETH, which is why for the ETH->NFT swaps, we need to calculate the pricing info
         to figure out how much the router should send to the pool.
         @param swapList The list of pairs and swap calldata
@@ -1048,7 +1074,7 @@ contract LSSVMRouter {
         PairSwapSpecific[] calldata swapList,
         uint256 inputAmount,
         address nftRecipient
-    ) internal returns (uint256 remainingValue) {
+    ) internal virtual returns (uint256 remainingValue) {
         remainingValue = inputAmount;
 
         // Do swaps
@@ -1073,10 +1099,10 @@ contract LSSVMRouter {
 
     /**
         @notice Swaps NFTs for tokens, designed to be used for 1 token at a time
-        @dev Calling with multiple tokens is permitted, BUT minOutput will be 
+        @dev Calling with multiple tokens is permitted, BUT minOutput will be
         far from enough of a safety check because different tokens almost certainly have different unit prices.
-        @param swapList The list of pairs and swap calldata 
-        @param minOutput The minimum number of tokens to be receieved frm the swaps 
+        @param swapList The list of pairs and swap calldata
+        @param minOutput The minimum number of tokens to be receieved from the swaps
         @param tokenRecipient The address that receives the tokens
         @return outputAmount The number of tokens to be received
      */
@@ -1084,7 +1110,7 @@ contract LSSVMRouter {
         PairSwapSpecific[] calldata swapList,
         uint256 minOutput,
         address payable tokenRecipient
-    ) internal returns (uint256 outputAmount) {
+    ) internal virtual returns (uint256 outputAmount) {
         // Do swaps
         uint256 numSwaps = swapList.length;
         for (uint256 i; i < numSwaps; ) {
