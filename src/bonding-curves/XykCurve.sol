@@ -4,11 +4,6 @@ pragma solidity ^0.8.0;
 import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {LSSVMPair} from "../LSSVMPair.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {LSSVMPairCloner} from "../lib/LSSVMPairCloner.sol";
-import {LSSVMPairERC20} from "../LSSVMPairERC20.sol";
-import {ILSSVMPairFactoryLike} from "../LSSVMPairFactory.sol";
 
 /*
     @author 0xacedia
