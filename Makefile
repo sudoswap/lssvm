@@ -33,9 +33,9 @@ deploy :; @./scripts/deploy.sh
 deploy-mainnet: export ETH_RPC_URL = $(call network,mainnet)
 deploy-mainnet: check-api-key deploy
 
-# rinkeby
-deploy-rinkeby: export ETH_RPC_URL = $(call network,rinkeby)
-deploy-rinkeby: check-api-key deploy
+# goerli
+deploy-goerli: export ETH_RPC_URL = $(call network,goerli)
+deploy-goerli: check-api-key deploy
 
 check-api-key:
 ifndef INFURA_API_KEY
@@ -44,7 +44,7 @@ endif
 
 # Returns the URL to deploy to a hosted node.
 # Requires the INFURA_API_KEY env var to be set.
-# The first argument determines the network (mainnet / rinkeby / ropsten / kovan / goerli)
+# The first argument determines the network (mainnet / goerli)
 define network
-https://rinkeby.infura.io/v3/${INFURA_API_KEY}
+https://goerli.infura.io/v3/${INFURA_API_KEY}
 endef
