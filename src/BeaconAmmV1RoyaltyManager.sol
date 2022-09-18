@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IBeaconAmmV1FeeManager} from "./IBeaconAmmV1FeeManager.sol";
+import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 
-contract BeaconAmmV1FeeManager is IBeaconAmmV1FeeManager, Ownable {
+contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     /* ========== STRUCTS ========== */
 
@@ -34,10 +34,6 @@ contract BeaconAmmV1FeeManager is IBeaconAmmV1FeeManager, Ownable {
     }
 
     /* ========== VIEWS ========== */
-
-    function hasRoyaltyFee(address _nft) external override returns (bool) {
-        return royalties[_nft].feeRecipient != address(0) && royalties[_nft].feeMultiplier != 0;
-    }
 
     function getCreator(address _nft) external override returns (address) {
         return royalties[_nft].creator;

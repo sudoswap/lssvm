@@ -3,11 +3,10 @@ pragma solidity ^0.8.0;
 
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
 
-interface IBeaconAmmV1FeeManager {
+interface IBeaconAmmV1RoyaltyManager {
 
     /* ========== VIEWS ========== */
 
-    function hasRoyaltyFee(address _nft) external returns (bool);
     function getCreator(address _nft) external returns (address);
     function getFeeMultiplier(address _nft) external returns (uint);
     function getFeeRecipient(address _nft) external returns (address payable);
