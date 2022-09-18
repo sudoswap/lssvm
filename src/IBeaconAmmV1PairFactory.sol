@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
+import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 
 interface IBeaconAmmV1PairFactory {
     enum PairVariant {
@@ -15,6 +16,8 @@ interface IBeaconAmmV1PairFactory {
 
     function protocolFeeRecipient() external view returns (address payable);
 
+    function royaltyManager() external view returns (IBeaconAmmV1RoyaltyManager);
+    
     function callAllowed(address target) external view returns (bool);
 
     function routerStatus(BeaconAmmV1Router router)

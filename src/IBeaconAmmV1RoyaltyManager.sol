@@ -7,6 +7,7 @@ interface IBeaconAmmV1RoyaltyManager {
 
     /* ========== VIEWS ========== */
 
+    function factory() external returns (IBeaconAmmV1PairFactory);
     function getCreator(address _nft) external returns (address);
     function getFeeMultiplier(address _nft) external returns (uint);
     function getFeeRecipient(address _nft) external returns (address payable);

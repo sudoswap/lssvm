@@ -19,6 +19,7 @@ import {ICurve} from "./bonding-curves/ICurve.sol";
 import {BeaconAmmV1PairERC20} from "./BeaconAmmV1PairERC20.sol";
 import {BeaconAmmV1PairCloner} from "./lib/BeaconAmmV1PairCloner.sol";
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
+import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 import {BeaconAmmV1PairEnumerableETH} from "./BeaconAmmV1PairEnumerableETH.sol";
 import {BeaconAmmV1PairEnumerableERC20} from "./BeaconAmmV1PairEnumerableERC20.sol";
 import {BeaconAmmV1PairMissingEnumerableETH} from "./BeaconAmmV1PairMissingEnumerableETH.sol";
@@ -43,6 +44,8 @@ contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactory {
 
     // Units are in base 1e18
     uint256 public override protocolFeeMultiplier;
+
+    IBeaconAmmV1RoyaltyManager public override royaltyManager;
 
     mapping(ICurve => bool) public bondingCurveAllowed;
     mapping(address => bool) public override callAllowed;
@@ -373,6 +376,14 @@ contract BeaconAmmV1PairFactory is Ownable, IBeaconAmmV1PairFactory {
         });
 
         emit RouterStatusUpdate(_router, isAllowed);
+    }
+
+    function setRoyaltyManager(IBeaconAmmV1RoyaltyManager _newManager)
+        external
+        onlyOwner
+    {
+        require(address(_newManager.factory()) == address(this), "Factory does not match");
+        royaltyManager = _newManager;
     }
 
     /**

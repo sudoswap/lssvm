@@ -9,6 +9,7 @@ import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {IMintable} from "../interfaces/IMintable.sol";
 import {Test20} from "../../mocks/Test20.sol";
 import {BeaconAmmV1PairFactory} from "../../BeaconAmmV1PairFactory.sol";
+import {BeaconAmmV1RoyaltyManager} from "../../BeaconAmmV1RoyaltyManager.sol";
 import {BeaconAmmV1Pair} from "../../BeaconAmmV1Pair.sol";
 import {BeaconAmmV1PairETH} from "../../BeaconAmmV1PairETH.sol";
 import {BeaconAmmV1PairERC20} from "../../BeaconAmmV1PairERC20.sol";
@@ -39,6 +40,7 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     uint256 constant protocolFeeMultiplier = 3e15;
     BeaconAmmV1Pair pair;
     TestPairManager pairManager;
+    BeaconAmmV1RoyaltyManager royaltyManager;
 
     function setUp() public {
         bondingCurve = setupCurve();
@@ -55,6 +57,8 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
             feeRecipient,
             protocolFeeMultiplier
         );
+        royaltyManager = new BeaconAmmV1RoyaltyManager(factory);
+        factory.setRoyaltyManager(royaltyManager);
         factory.setBondingCurveAllowed(bondingCurve, true);
         test721.setApprovalForAll(address(factory), true);
         for (uint256 i = 1; i <= numItems; i++) {
@@ -371,5 +375,11 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     function test_changeFeeMultiplier() public {
         factory.changeProtocolFeeMultiplier(5e15);
         assertEq(factory.protocolFeeMultiplier(), 5e15);
+    }
+
+    function test_setRoyaltyManager() public {
+        BeaconAmmV1RoyaltyManager newManager = new BeaconAmmV1RoyaltyManager(factory);
+        factory.setRoyaltyManager(newManager);
+        assertEq(address(factory.royaltyManager()), address(newManager));
     }
 }

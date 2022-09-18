@@ -20,7 +20,7 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     /* ========== STATE VARIABLES ========== */
 
-    IBeaconAmmV1PairFactory public immutable factory;
+    IBeaconAmmV1PairFactory public immutable override factory;
 
     mapping(address => bool) public override isOperator;
 
