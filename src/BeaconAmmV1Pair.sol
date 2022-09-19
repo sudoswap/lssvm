@@ -65,13 +65,13 @@ abstract contract BeaconAmmV1Pair is
     /**
       @notice Called during pair creation to set initial parameters
       @dev Only called once by factory to initialize.
-      We verify this by making sure that the current owner is address(0). 
+      We verify this by making sure that the current owner is address(0).
       The Ownable library we use disallows setting the owner to be address(0), so this condition
-      should only be valid before the first initialize call. 
+      should only be valid before the first initialize call.
       @param _owner The owner of the pair
       @param _assetRecipient The address that will receive the TOKEN or NFT sent to this pair during swaps. NOTE: If set to address(0), they will go to the pair itself.
       @param _delta The initial delta of the bonding curve
-      @param _fee The initial % fee taken, if this is a trade pair 
+      @param _fee The initial % fee taken, if this is a trade pair
       @param _spotPrice The initial price to sell an asset into the pair
      */
     function initialize(
@@ -153,19 +153,21 @@ abstract contract BeaconAmmV1Pair is
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(
+        uint256 tradeFee;
+        (inputAmount, protocolFee, tradeFee) = _calculateBuyInfoAndUpdatePoolParams(
             numNFTs,
             maxExpectedTokenInput,
             _bondingCurve,
             _factory
         );
 
-        _pullTokenInputAndPayProtocolFee(
+        _pullTokenInputAndPayFees(
             inputAmount,
             isRouter,
             routerCaller,
             _factory,
-            protocolFee
+            protocolFee,
+            tradeFee
         );
 
         _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
@@ -213,19 +215,21 @@ abstract contract BeaconAmmV1Pair is
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        (protocolFee, inputAmount) = _calculateBuyInfoAndUpdatePoolParams(
+        uint256 tradeFee;
+        (inputAmount, protocolFee, tradeFee) = _calculateBuyInfoAndUpdatePoolParams(
             nftIds.length,
             maxExpectedTokenInput,
             _bondingCurve,
             _factory
         );
 
-        _pullTokenInputAndPayProtocolFee(
+        _pullTokenInputAndPayFees(
             inputAmount,
             isRouter,
             routerCaller,
             _factory,
-            protocolFee
+            protocolFee,
+            tradeFee
         );
 
         _sendSpecificNFTsToRecipient(nft(), nftRecipient, nftIds);
@@ -271,7 +275,8 @@ abstract contract BeaconAmmV1Pair is
 
         // Call bonding curve for pricing information
         uint256 protocolFee;
-        (protocolFee, outputAmount) = _calculateSellInfoAndUpdatePoolParams(
+        uint256 tradeFee;
+        (outputAmount, protocolFee, tradeFee) = _calculateSellInfoAndUpdatePoolParams(
             nftIds.length,
             minExpectedTokenOutput,
             _bondingCurve,
@@ -280,7 +285,7 @@ abstract contract BeaconAmmV1Pair is
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payProtocolFeeFromPair(_factory, protocolFee);
+        _payFeesFromPair(_factory, protocolFee, tradeFee);
 
         _takeNFTsFromSender(nft(), nftIds, _factory, isRouter, routerCaller);
 
@@ -311,13 +316,15 @@ abstract contract BeaconAmmV1Pair is
             newSpotPrice,
             newDelta,
             inputAmount,
-            protocolFee
+            protocolFee,
         ) = bondingCurve().getBuyInfo(
-            spotPrice,
-            delta,
-            numNFTs,
-            fee,
-            factory().protocolFeeMultiplier()
+            ICurve.PriceInfoParams({
+                spotPrice: spotPrice,
+                delta: delta,
+                numItems: numNFTs,
+                feeMultiplier: fee,
+                protocolFeeMultiplier: factory().protocolFeeMultiplier()
+            })
         );
     }
 
@@ -341,13 +348,16 @@ abstract contract BeaconAmmV1Pair is
             newSpotPrice,
             newDelta,
             outputAmount,
-            protocolFee
+            protocolFee,
+
         ) = bondingCurve().getSellInfo(
-            spotPrice,
-            delta,
-            numNFTs,
-            fee,
-            factory().protocolFeeMultiplier()
+            ICurve.PriceInfoParams({
+                spotPrice: spotPrice,
+                delta: delta,
+                numItems: numNFTs,
+                feeMultiplier: fee,
+                protocolFeeMultiplier: factory().protocolFeeMultiplier()
+            })
         );
     }
 
@@ -448,15 +458,16 @@ abstract contract BeaconAmmV1Pair is
         @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
         amount is greater than this value, the transaction will be reverted.
         @param protocolFee The percentage of protocol fee to be taken, as a percentage
-        @return protocolFee The amount of tokens to send as protocol fee
         @return inputAmount The amount of tokens total tokens receive
+        @return protocolFee The amount of tokens to send as protocol fee
+        @return tradeFee The amount of tokens collected as trade fee
      */
     function _calculateBuyInfoAndUpdatePoolParams(
         uint256 numNFTs,
         uint256 maxExpectedTokenInput,
         ICurve _bondingCurve,
         IBeaconAmmV1PairFactory _factory
-    ) internal returns (uint256 protocolFee, uint256 inputAmount) {
+    ) internal returns (uint256 inputAmount, uint256 protocolFee, uint256 tradeFee) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
         uint128 currentSpotPrice = spotPrice;
@@ -468,13 +479,16 @@ abstract contract BeaconAmmV1Pair is
             newSpotPrice,
             newDelta,
             inputAmount,
-            protocolFee
+            protocolFee,
+            tradeFee
         ) = _bondingCurve.getBuyInfo(
-            currentSpotPrice,
-            currentDelta,
-            numNFTs,
-            fee,
-            _factory.protocolFeeMultiplier()
+            ICurve.PriceInfoParams({
+                spotPrice: currentSpotPrice,
+                delta: currentDelta,
+                numItems: numNFTs,
+                feeMultiplier: fee,
+                protocolFeeMultiplier: _factory.protocolFeeMultiplier()
+            })
         );
 
         // Revert if bonding curve had an error
@@ -507,16 +521,16 @@ abstract contract BeaconAmmV1Pair is
         @param numNFTs The amount of NFTs to send to the the pair
         @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
         amount is less than this value, the transaction will be reverted.
-        @param protocolFee The percentage of protocol fee to be taken, as a percentage
-        @return protocolFee The amount of tokens to send as protocol fee
         @return outputAmount The amount of tokens total tokens receive
+        @return protocolFee The amount of tokens to send as protocol fee
+        @return tradeFee The amount of tokens collected as trade fee
      */
     function _calculateSellInfoAndUpdatePoolParams(
         uint256 numNFTs,
         uint256 minExpectedTokenOutput,
         ICurve _bondingCurve,
         IBeaconAmmV1PairFactory _factory
-    ) internal returns (uint256 protocolFee, uint256 outputAmount) {
+    ) internal returns (uint256 outputAmount, uint256 protocolFee, uint256 tradeFee) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
         uint128 currentSpotPrice = spotPrice;
@@ -528,13 +542,16 @@ abstract contract BeaconAmmV1Pair is
             newSpotPrice,
             newDelta,
             outputAmount,
-            protocolFee
+            protocolFee,
+            tradeFee
         ) = _bondingCurve.getSellInfo(
-            currentSpotPrice,
-            currentDelta,
-            numNFTs,
-            fee,
-            _factory.protocolFeeMultiplier()
+            ICurve.PriceInfoParams({
+                spotPrice: currentSpotPrice,
+                delta: currentDelta,
+                numItems: numNFTs,
+                feeMultiplier: fee,
+                protocolFeeMultiplier: _factory.protocolFeeMultiplier()
+            })
         );
 
         // Revert if bonding curve had an error
@@ -566,34 +583,37 @@ abstract contract BeaconAmmV1Pair is
     }
 
     /**
-        @notice Pulls the token input of a trade from the trader and pays the protocol fee.
+        @notice Pulls the token input of a trade from the trader and pays the protocol and royalty fee.
         @param inputAmount The amount of tokens to be sent
         @param isRouter Whether or not the caller is BeaconAmmV1Router
         @param routerCaller If called from BeaconAmmV1Router, store the original caller
         @param _factory The BeaconAmmV1PairFactory which stores BeaconAmmV1Router allowlist info
         @param protocolFee The protocol fee to be paid
+        @param tradeFee The trade fee collected
      */
-    function _pullTokenInputAndPayProtocolFee(
+    function _pullTokenInputAndPayFees(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
         IBeaconAmmV1PairFactory _factory,
-        uint256 protocolFee
+        uint256 protocolFee,
+        uint256 tradeFee
     ) internal virtual;
 
     /**
         @notice Sends excess tokens back to the caller (if applicable)
-        @dev We send ETH back to the caller even when called from BeaconAmmV1Router because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller) 
+        @dev We send ETH back to the caller even when called from BeaconAmmV1Router because we do an aggregate slippage check for certain bulk swaps. (Instead of sending directly back to the router caller)
         Excess ETH sent for one swap can then be used to help pay for the next swap.
      */
     function _refundTokenToSender(uint256 inputAmount) internal virtual;
 
     /**
-        @notice Sends protocol fee (if it exists) back to the BeaconAmmV1PairFactory from the pair
+        @notice Sends protocol fee and royalty fee (if it exists)
      */
-    function _payProtocolFeeFromPair(
+    function _payFeesFromPair(
         IBeaconAmmV1PairFactory _factory,
-        uint256 protocolFee
+        uint256 protocolFee,
+        uint256 tradeFee
     ) internal virtual;
 
     /**
@@ -608,11 +628,11 @@ abstract contract BeaconAmmV1Pair is
 
     /**
         @notice Sends some number of NFTs to a recipient address, ID agnostic
-        @dev Even though we specify the NFT address here, this internal function is only 
+        @dev Even though we specify the NFT address here, this internal function is only
         used to send NFTs associated with this specific pool.
         @param _nft The address of the NFT to send
         @param nftRecipient The receiving address for the NFTs
-        @param numNFTs The number of NFTs to send  
+        @param numNFTs The number of NFTs to send
      */
     function _sendAnyNFTsToRecipient(
         IERC721 _nft,
@@ -622,11 +642,11 @@ abstract contract BeaconAmmV1Pair is
 
     /**
         @notice Sends specific NFTs to a recipient address
-        @dev Even though we specify the NFT address here, this internal function is only 
+        @dev Even though we specify the NFT address here, this internal function is only
         used to send NFTs associated with this specific pool.
         @param _nft The address of the NFT to send
         @param nftRecipient The receiving address for the NFTs
-        @param nftIds The specific IDs of NFTs to send  
+        @param nftIds The specific IDs of NFTs to send
      */
     function _sendSpecificNFTsToRecipient(
         IERC721 _nft,
@@ -636,7 +656,7 @@ abstract contract BeaconAmmV1Pair is
 
     /**
         @notice Takes NFTs from the caller and sends them into the pair's asset recipient
-        @dev This is used by the BeaconAmmV1Pair's swapNFTForToken function. 
+        @dev This is used by the BeaconAmmV1Pair's swapNFTForToken function.
         @param _nft The NFT collection to take from
         @param nftIds The specific NFT IDs to take
         @param isRouter True if calling from BeaconAmmV1Router, false otherwise. Not used for
@@ -835,7 +855,7 @@ abstract contract BeaconAmmV1Pair is
     }
 
     /**
-        @notice Allows owner to batch multiple calls, forked from: https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/BoringBatchable.sol 
+        @notice Allows owner to batch multiple calls, forked from: https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/BoringBatchable.sol
         @dev Intended for withdrawing/altering pool pricing in one tx, only callable by owner, cannot change owner
         @param calls The calldata for each call to make
         @param revertOnFail Whether or not to revert the entire tx if any of the calls fail

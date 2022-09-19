@@ -20,6 +20,10 @@ abstract contract UsingETH is Configurable, RouterCaller {
         return inputAmount;
     }
 
+    function getTestToken() public view override returns (address) {
+        return address(0);
+    }
+
     function getBalance(address a) public view override returns (uint256) {
         return a.balance;
     }

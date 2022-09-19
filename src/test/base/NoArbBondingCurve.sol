@@ -12,20 +12,28 @@ import {BeaconAmmV1PairMissingEnumerableETH} from "../../BeaconAmmV1PairMissingE
 import {BeaconAmmV1PairEnumerableERC20} from "../../BeaconAmmV1PairEnumerableERC20.sol";
 import {BeaconAmmV1PairMissingEnumerableERC20} from "../../BeaconAmmV1PairMissingEnumerableERC20.sol";
 import {BeaconAmmV1PairFactory} from "../../BeaconAmmV1PairFactory.sol";
+import {BeaconAmmV1RoyaltyManager} from "../../BeaconAmmV1RoyaltyManager.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
 import {Test721} from "../../mocks/Test721.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
+    using FixedPointMathLib for uint256;
+
     uint256[] idList;
     uint256 startingId;
     IERC721Mintable test721;
     ICurve bondingCurve;
     BeaconAmmV1PairFactory factory;
+    BeaconAmmV1RoyaltyManager royaltyManager;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
+    uint96 constant pairFee = 10e16;
+    uint256 constant royaltyFeeMultiplier = 1e17; // 10%
+    address payable constant royaltyFeeRecipient = payable(address(6));
 
     function setUp() public {
         bondingCurve = setupCurve();
@@ -102,13 +110,16 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 uint256 newSpotPrice,
                 ,
                 uint256 outputAmount,
-                uint256 protocolFee
+                uint256 protocolFee,
+
             ) = bondingCurve.getSellInfo(
-                    spotPrice,
-                    delta,
-                    numItems,
-                    0,
-                    protocolFeeMultiplier
+                    ICurve.PriceInfoParams({
+                        spotPrice: spotPrice,
+                        delta: delta,
+                        numItems: numItems,
+                        feeMultiplier: 0,
+                        protocolFeeMultiplier: protocolFeeMultiplier
+                    })
                 );
 
             // give the pair contract enough tokens to pay for the NFTs
@@ -129,12 +140,14 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy back the NFTs just sold to the pair
         {
-            (, , , uint256 inputAmount, ) = bondingCurve.getBuyInfo(
-                spotPrice,
-                delta,
-                numItems,
-                0,
-                protocolFeeMultiplier
+            (, , , uint256 inputAmount, , ) = bondingCurve.getBuyInfo(
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems,
+                    feeMultiplier: 0,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
             );
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
                 idList.length,
@@ -202,13 +215,15 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy all NFTs
         {
-            (, uint256 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
+            (, uint256 newSpotPrice, , uint256 inputAmount, , ) = bondingCurve
                 .getBuyInfo(
-                    spotPrice,
-                    delta,
-                    numItems,
-                    0,
-                    protocolFeeMultiplier
+                    ICurve.PriceInfoParams({
+                        spotPrice: spotPrice,
+                        delta: delta,
+                        numItems: numItems,
+                        feeMultiplier: 0,
+                        protocolFeeMultiplier: protocolFeeMultiplier
+                    })
                 );
 
             // buy NFTs
@@ -226,11 +241,13 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
         // sell back the NFTs
         {
             bondingCurve.getSellInfo(
-                spotPrice,
-                delta,
-                numItems,
-                0,
-                protocolFeeMultiplier
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems,
+                    feeMultiplier: 0,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
             );
             pair.swapNFTsForToken(
                 idList,
@@ -247,5 +264,177 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // withdraw the tokens in the pair back
         withdrawTokens(pair);
+    }
+
+    /**
+     * Test Royalty fee and protocol fee on buy and sell
+     */
+    function test_bondingCurveSellRoyaltyAndProtocolFee(
+       uint56 spotPrice,
+       uint64 delta,
+       uint8 numItems
+    ) public payable {
+       // modify spotPrice to be appropriate for the bonding curve
+       spotPrice = modifySpotPrice(spotPrice);
+
+       // modify delta to be appropriate for the bonding curve
+       delta = modifyDelta(delta);
+
+       // decrease the range of numItems to speed up testing
+       numItems = numItems % 3;
+
+       if (numItems == 0) {
+           return;
+       }
+
+       delete idList;
+
+       // initialize the pair
+       uint256[] memory empty;
+       BeaconAmmV1Pair pair = setupPair(
+           factory,
+           test721,
+           bondingCurve,
+           payable(address(0)),
+           BeaconAmmV1Pair.PoolType.TRADE,
+           delta,
+           pairFee,
+           spotPrice,
+           empty,
+           0,
+           address(0)
+       );
+
+       // Setup royalty
+       royaltyManager = setupRoyaltyManager(factory, address(pair.nft()), royaltyFeeMultiplier, royaltyFeeRecipient);
+       factory.setRoyaltyManager(royaltyManager);
+
+       // mint NFTs to sell to the pair
+       for (uint256 i = 0; i < numItems; i++) {
+           test721.mint(address(this), startingId);
+           idList.push(startingId);
+           startingId += 1;
+       }
+
+       // sell all NFTs minted to the pair
+       (
+           ,
+           uint256 newSpotPrice,
+           ,
+           uint256 outputAmount,
+           uint256 protocolFee,
+           uint256 tradeFee
+       ) = bondingCurve.getSellInfo(
+               ICurve.PriceInfoParams({
+                   spotPrice: spotPrice,
+                   delta: delta,
+                   numItems: numItems,
+                   feeMultiplier: pairFee,
+                   protocolFeeMultiplier: protocolFeeMultiplier
+               })
+           );
+
+       // give the pair contract enough tokens to pay for the NFTs
+       sendTokens(pair, outputAmount + protocolFee + tradeFee);
+
+       // sell NFTs
+       test721.setApprovalForAll(address(pair), true);
+       pair.swapNFTsForToken(
+           idList,
+           0,
+           payable(address(this)),
+           false,
+           address(0)
+       );
+
+       // factory should have protocol fee amount
+       assertEq(getBalance(address(factory)), protocolFee);
+       // royalty recipient should have royalty amount
+       uint256 royaltyFee = royaltyManager.calculateFee(address(pair.nft()), tradeFee);
+       address royaltyRecipient = royaltyManager.getFeeRecipient(address(pair.nft()));
+       assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
+       // pair should have trade fee amount
+       assertEq(getBalance(address(pair)), tradeFee - royaltyFee);
+       // should track royalty earning
+       assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
+    }
+
+    function test_bondingCurveBuyRoyaltyAndProtocolFee(
+        uint56 spotPrice,
+        uint64 delta,
+        uint8 numItems
+    ) public payable {
+        // modify spotPrice to be appropriate for the bonding curve
+        spotPrice = modifySpotPrice(spotPrice);
+
+        // modify delta to be appropriate for the bonding curve
+        delta = modifyDelta(delta);
+
+        // decrease the range of numItems to speed up testing
+        numItems = numItems % 3;
+
+        if (numItems == 0) {
+            return;
+        }
+
+        delete idList;
+
+        // initialize the pair
+        for (uint256 i = 0; i < numItems; i++) {
+            test721.mint(address(this), startingId);
+            idList.push(startingId);
+            startingId += 1;
+        }
+        BeaconAmmV1Pair pair = setupPair(
+            factory,
+            test721,
+            bondingCurve,
+            payable(address(0)),
+            BeaconAmmV1Pair.PoolType.TRADE,
+            delta,
+            pairFee,
+            spotPrice,
+            idList,
+            0,
+            address(0)
+        );
+        test721.setApprovalForAll(address(pair), true);
+
+        // Setup royalty
+        royaltyManager = setupRoyaltyManager(factory, address(pair.nft()), royaltyFeeMultiplier, royaltyFeeRecipient);
+        factory.setRoyaltyManager(royaltyManager);
+
+        // buy all NFTs
+        (, uint256 newSpotPrice, , uint256 inputAmount, uint256 protocolFee, uint256 tradeFee) = bondingCurve
+            .getBuyInfo(
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems,
+                    feeMultiplier: pairFee,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
+            );
+
+        // buy NFTs
+        pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+            numItems,
+            inputAmount,
+            address(this),
+            false,
+            address(0)
+        );
+        spotPrice = uint56(newSpotPrice);
+
+        // factory should have protocol fee amount
+        assertEq(getBalance(address(factory)), protocolFee);
+        // royalty recipient should have royalty amount
+        uint256 royaltyFee = royaltyManager.calculateFee(address(pair.nft()), tradeFee);
+        address royaltyRecipient = royaltyManager.getFeeRecipient(address(pair.nft()));
+        assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
+        // pair should have inputAmount - royaltyFee - protocolFee
+        assertEq(getBalance(address(pair)), inputAmount - royaltyFee - protocolFee);
+        // should track royalty earning
+        assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
     }
 }

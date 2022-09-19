@@ -279,13 +279,15 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     }
 
     function testFail_swapForNFTNotInPool() public {
-        (, uint128 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
+        (, uint128 newSpotPrice, , uint256 inputAmount, , ) = bondingCurve
             .getBuyInfo(
-                spotPrice,
-                delta,
-                numItems + 1,
-                0,
-                protocolFeeMultiplier
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems + 1,
+                    feeMultiplier: 0,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
             );
 
         // buy specific NFT not in pool
@@ -302,13 +304,15 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     }
 
     function testFail_swapForAnyNFTsPastBalance() public {
-        (, uint128 newSpotPrice, , uint256 inputAmount, ) = bondingCurve
+        (, uint128 newSpotPrice, , uint256 inputAmount, , ) = bondingCurve
             .getBuyInfo(
-                spotPrice,
-                delta,
-                numItems + 1,
-                0,
-                protocolFeeMultiplier
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems + 1,
+                    feeMultiplier: 0,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
             );
 
         // buy any NFTs past pool inventory
@@ -345,13 +349,16 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
                 uint128 newSpotPrice,
                 ,
                 uint256 inputAmount,
-                uint256 protocolFee
+                uint256 protocolFee,
+
             ) = bondingCurve.getBuyInfo(
-                    spotPrice,
-                    delta,
-                    numItems,
-                    0,
-                    protocolFeeMultiplier
+                    ICurve.PriceInfoParams({
+                        spotPrice: spotPrice,
+                        delta: delta,
+                        numItems: numItems,
+                        feeMultiplier: 0,
+                        protocolFeeMultiplier: protocolFeeMultiplier
+                    })
                 );
             totalProtocolFee += protocolFee;
 

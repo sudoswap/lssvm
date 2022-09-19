@@ -6,6 +6,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {BeaconAmmV1Pair} from "./BeaconAmmV1Pair.sol";
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
+import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
@@ -34,12 +35,13 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
     }
 
     /// @inheritdoc BeaconAmmV1Pair
-    function _pullTokenInputAndPayProtocolFee(
+    function _pullTokenInputAndPayFees(
         uint256 inputAmount,
         bool isRouter,
         address routerCaller,
         IBeaconAmmV1PairFactory _factory,
-        uint256 protocolFee
+        uint256 protocolFee,
+        uint256 tradeFee
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
@@ -84,12 +86,34 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
             // Note: no check for factory balance's because router is assumed to be set by factory owner
             // so there is no incentive to *not* pay protocol fee
         } else {
+            // Calculate royalty fee
+            uint256 royaltyFee;
+            IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+            if (address(royaltyManager) != address(0)) {
+                royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+            }
+
             // Transfer tokens directly
             _token.safeTransferFrom(
                 msg.sender,
                 _assetRecipient,
-                inputAmount - protocolFee
+                inputAmount - protocolFee - royaltyFee
             );
+
+            // Take royalty fee (if it exists)
+            if (royaltyFee > 0) {
+                _token.safeTransferFrom(
+                    msg.sender,
+                    royaltyManager.getFeeRecipient(address(nft())),
+                    royaltyFee
+                );
+                royaltyManager.recordEarning(
+                    pairVariant(),
+                    address(nft()),
+                    address(token()),
+                    royaltyFee
+                );
+            }
 
             // Take protocol fee (if it exists)
             if (protocolFee > 0) {
@@ -108,9 +132,10 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
     }
 
     /// @inheritdoc BeaconAmmV1Pair
-    function _payProtocolFeeFromPair(
+    function _payFeesFromPair(
         IBeaconAmmV1PairFactory _factory,
-        uint256 protocolFee
+        uint256 protocolFee,
+        uint256 tradeFee
     ) internal override {
         // Take protocol fee (if it exists)
         if (protocolFee > 0) {
@@ -123,6 +148,30 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
             }
             if (protocolFee > 0) {
                 _token.safeTransfer(address(_factory), protocolFee);
+            }
+        }
+
+        // Pay royalty fee (if it exists)
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+        if (address(royaltyManager) != address(0)) {
+            uint256 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+            if (royaltyFee > 0) {
+                ERC20 _token = token();
+
+                // Round down to the actual token balance if there are numerical stability issues with the bonding curve calculations
+                uint256 pairTokenBalance = _token.balanceOf(address(this));
+                if (royaltyFee > pairTokenBalance) {
+                    royaltyFee = pairTokenBalance;
+                }
+                if (royaltyFee > 0) {
+                    _token.safeTransfer(royaltyManager.getFeeRecipient(address(nft())), royaltyFee);
+                    royaltyManager.recordEarning(
+                        pairVariant(),
+                        address(nft()),
+                        address(token()),
+                        royaltyFee
+                    );
+                }
             }
         }
     }

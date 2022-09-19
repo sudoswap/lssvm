@@ -25,6 +25,10 @@ abstract contract UsingERC20 is Configurable, RouterCaller {
         return 0;
     }
 
+    function getTestToken() public view override returns (address) {
+        return address(test20);
+    }
+
     function getBalance(address a) public view override returns (uint256) {
         return test20.balanceOf(a);
     }

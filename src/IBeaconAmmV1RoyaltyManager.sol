@@ -7,11 +7,12 @@ interface IBeaconAmmV1RoyaltyManager {
 
     /* ========== VIEWS ========== */
 
-    function factory() external returns (IBeaconAmmV1PairFactory);
-    function getCreator(address _nft) external returns (address);
-    function getFeeMultiplier(address _nft) external returns (uint);
-    function getFeeRecipient(address _nft) external returns (address payable);
-    function getEarnings(address _nft, address _token) external returns (uint);
+    function calculateFee(address _nft, uint tradeFee) external view returns (uint);
+    function factory() external view returns (IBeaconAmmV1PairFactory);
+    function getCreator(address _nft) external view returns (address);
+    function getFeeMultiplier(address _nft) external view returns (uint);
+    function getFeeRecipient(address _nft) external view returns (address payable);
+    function getEarnings(address _nft, address _token) external view returns (uint);
     function isOperator(address _operator) external view returns (bool);
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -25,4 +26,5 @@ interface IBeaconAmmV1RoyaltyManager {
     function setCreator(address _nft, address _creator) external;
     function setRoyaltyFeeMultiplier(address _nft, uint _feeMultiplier) external;
     function setRoyaltyFeeRecipient(address _nft, address payable _feeRecipient) external;
+    function setMaxFeeMultiplier(uint _maxFeeMultiplier) external;
 }

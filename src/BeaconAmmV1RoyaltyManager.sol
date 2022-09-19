@@ -4,8 +4,10 @@ pragma solidity ^0.8.0;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
+      using FixedPointMathLib for uint256;
 
     /* ========== STRUCTS ========== */
 
@@ -24,30 +26,38 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     mapping(address => bool) public override isOperator;
 
-    uint256 internal constant MAX_ROYALTY_FEE = 0.20e18; // 20%
+    uint public maxFeeMultiplier;
     mapping(address => Royalty) public royalties; // NFT to royalty info
 
     /* ========== CONSTUCTOR ========== */
 
     constructor(IBeaconAmmV1PairFactory _factory) {
         factory = _factory;
+        maxFeeMultiplier = 2e17; // initialize to 20%
     }
 
     /* ========== VIEWS ========== */
 
-    function getCreator(address _nft) external override returns (address) {
+    function calculateFee(address _nft, uint tradeFee) external view override returns (uint) {
+        if (royalties[_nft].feeRecipient == address(0)) {
+            return 0;
+        }
+        return tradeFee.fmul(royalties[_nft].feeMultiplier, FixedPointMathLib.WAD);
+    }
+
+    function getCreator(address _nft) external view override returns (address) {
         return royalties[_nft].creator;
     }
 
-    function getFeeMultiplier(address _nft) external override returns (uint) {
+    function getFeeMultiplier(address _nft) external view override returns (uint) {
         return royalties[_nft].feeMultiplier;
     }
 
-    function getFeeRecipient(address _nft) external override returns (address payable) {
+    function getFeeRecipient(address _nft) external view override returns (address payable) {
         return royalties[_nft].feeRecipient;
     }
 
-    function getEarnings(address _nft, address _token) external override returns (uint) {
+    function getEarnings(address _nft, address _token) external view override returns (uint) {
         return royalties[_nft].earnings[_token];
     }
 
@@ -72,6 +82,11 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
     // Operator can set Creator
     // Creator can set royalty fee and recipient
 
+    function setMaxFeeMultiplier(uint _maxFeeMultiplier) external override onlyOwner {
+        require(_maxFeeMultiplier <= FixedPointMathLib.WAD, "Max multiplier too large");
+        maxFeeMultiplier = _maxFeeMultiplier;
+    }
+
     function addOperator(address _operator) external override onlyOwner {
         require(!isOperator[_operator], "already operator");
         isOperator[_operator] = true;
@@ -94,7 +109,7 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     function setRoyaltyFeeMultiplier(address _nft, uint _feeMultiplier) external override onlyCreator(_nft) {
         require(_nft != address(0), "invalid NFT");
-        require(_feeMultiplier <= MAX_ROYALTY_FEE, "Fee too large");
+        require(_feeMultiplier <= maxFeeMultiplier, "Fee too large");
         uint oldFeeMultiplier = royalties[_nft].feeMultiplier;
         royalties[_nft].feeMultiplier = _feeMultiplier;
         emit SetRoyaltyFeeMultiplier(_nft, oldFeeMultiplier, _feeMultiplier);

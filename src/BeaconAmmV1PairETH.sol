@@ -6,6 +6,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {BeaconAmmV1Pair} from "./BeaconAmmV1Pair.sol";
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
+import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 
 /**
@@ -19,19 +20,27 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
     uint256 internal constant IMMUTABLE_PARAMS_LENGTH = 61;
 
     /// @inheritdoc BeaconAmmV1Pair
-    function _pullTokenInputAndPayProtocolFee(
+    function _pullTokenInputAndPayFees(
         uint256 inputAmount,
         bool, /*isRouter*/
         address, /*routerCaller*/
         IBeaconAmmV1PairFactory _factory,
-        uint256 protocolFee
+        uint256 protocolFee,
+        uint256 tradeFee
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
+
+        // Calculate royalty fee
+        uint256 royaltyFee;
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+        if (address(royaltyManager) != address(0)) {
+            royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+        }
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
         address payable _assetRecipient = getAssetRecipient();
         if (_assetRecipient != address(this)) {
-            _assetRecipient.safeTransferETH(inputAmount - protocolFee);
+            _assetRecipient.safeTransferETH(inputAmount - protocolFee - royaltyFee);
         }
 
         // Take protocol fee
@@ -43,6 +52,23 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
 
             if (protocolFee > 0) {
                 payable(address(_factory)).safeTransferETH(protocolFee);
+            }
+        }
+
+        // Pay royalty fee
+        if (royaltyFee > 0) {
+            // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
+            if (royaltyFee > address(this).balance) {
+                royaltyFee = address(this).balance;
+            }
+            if (royaltyFee > 0) {
+                royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
+                royaltyManager.recordEarning(
+                    pairVariant(),
+                    address(nft()),
+                    address(0),
+                    royaltyFee
+                );
             }
         }
     }
@@ -56,9 +82,10 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
     }
 
     /// @inheritdoc BeaconAmmV1Pair
-    function _payProtocolFeeFromPair(
+    function _payFeesFromPair(
         IBeaconAmmV1PairFactory _factory,
-        uint256 protocolFee
+        uint256 protocolFee,
+        uint256 tradeFee
     ) internal override {
         // Take protocol fee
         if (protocolFee > 0) {
@@ -69,6 +96,27 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
 
             if (protocolFee > 0) {
                 payable(address(_factory)).safeTransferETH(protocolFee);
+            }
+        }
+
+        // Pay royalty fee
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+        if (address(royaltyManager) != address(0)) {
+            uint256 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+            if (royaltyFee > 0) {
+                // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
+                if (royaltyFee > address(this).balance) {
+                    royaltyFee = address(this).balance;
+                }
+                if (royaltyFee > 0) {
+                    royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
+                    royaltyManager.recordEarning(
+                        pairVariant(),
+                        address(nft()),
+                        address(0),
+                        royaltyFee
+                    );
+                }
             }
         }
     }
@@ -134,7 +182,7 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
      */
     fallback() external payable {
         // Only allow calls without function selector
-        require (msg.data.length == _immutableParamsLength()); 
+        require (msg.data.length == _immutableParamsLength());
         emit TokenDeposit(msg.value);
     }
 }

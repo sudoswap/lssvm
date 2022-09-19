@@ -4,6 +4,15 @@ pragma solidity ^0.8.0;
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 
 interface ICurve {
+
+    struct PriceInfoParams {
+        uint128 spotPrice;
+        uint128 delta;
+        uint256 numItems;
+        uint256 feeMultiplier;
+        uint256 protocolFeeMultiplier;
+    }
+
     /**
         @notice Validates if a delta value is valid for the curve. The criteria for
         validity can be different for each type of curve, for instance ExponentialCurve
@@ -26,11 +35,7 @@ interface ICurve {
     /**
         @notice Given the current state of the pair and the trade, computes how much the user
         should pay to purchase an NFT from the pair, the new spot price, and other values.
-        @param spotPrice The current selling spot price of the pair, in tokens
-        @param delta The delta parameter of the pair, what it means depends on the curve
-        @param numItems The number of NFTs the user is buying from the pair
-        @param feeMultiplier Determines how much fee the LP takes from this trade, 18 decimals
-        @param protocolFeeMultiplier Determines how much fee the protocol takes from this trade, 18 decimals
+        @param priceInfoParams get price info params
         @return error Any math calculation errors, only Error.OK means the returned values are valid
         @return newSpotPrice The updated selling spot price, in tokens
         @return newDelta The updated delta, used to parameterize the bonding curve
@@ -38,11 +43,7 @@ interface ICurve {
         @return protocolFee The amount of fee to send to the protocol, in tokens
      */
     function getBuyInfo(
-        uint128 spotPrice,
-        uint128 delta,
-        uint256 numItems,
-        uint256 feeMultiplier,
-        uint256 protocolFeeMultiplier
+        PriceInfoParams calldata priceInfoParams
     )
         external
         view
@@ -51,17 +52,14 @@ interface ICurve {
             uint128 newSpotPrice,
             uint128 newDelta,
             uint256 inputValue,
-            uint256 protocolFee
+            uint256 protocolFee,
+            uint256 tradeFee
         );
 
     /**
         @notice Given the current state of the pair and the trade, computes how much the user
         should receive when selling NFTs to the pair, the new spot price, and other values.
-        @param spotPrice The current selling spot price of the pair, in tokens
-        @param delta The delta parameter of the pair, what it means depends on the curve
-        @param numItems The number of NFTs the user is selling to the pair
-        @param feeMultiplier Determines how much fee the LP takes from this trade, 18 decimals
-        @param protocolFeeMultiplier Determines how much fee the protocol takes from this trade, 18 decimals
+        @param priceInfoParams get price info params
         @return error Any math calculation errors, only Error.OK means the returned values are valid
         @return newSpotPrice The updated selling spot price, in tokens
         @return newDelta The updated delta, used to parameterize the bonding curve
@@ -69,11 +67,7 @@ interface ICurve {
         @return protocolFee The amount of fee to send to the protocol, in tokens
      */
     function getSellInfo(
-        uint128 spotPrice,
-        uint128 delta,
-        uint256 numItems,
-        uint256 feeMultiplier,
-        uint256 protocolFeeMultiplier
+        PriceInfoParams calldata priceInfoParams
     )
         external
         view
@@ -82,6 +76,7 @@ interface ICurve {
             uint128 newSpotPrice,
             uint128 newDelta,
             uint256 outputValue,
-            uint256 protocolFee
+            uint256 protocolFee,
+            uint256 tradeFee
         );
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {DSTest} from "ds-test/test.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
+import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {ExponentialCurve} from "../../bonding-curves/ExponentialCurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
 
@@ -31,13 +32,15 @@ contract ExponentialCurveTest is DSTest {
             uint256 newSpotPrice,
             uint256 newDelta,
             uint256 inputValue,
-            uint256 protocolFee
+            uint256 protocolFee,
         ) = curve.getBuyInfo(
-                spotPrice,
-                delta,
-                numItems,
-                feeMultiplier,
-                protocolFeeMultiplier
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems,
+                    feeMultiplier: feeMultiplier,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
             );
         assertEq(
             uint256(error),
@@ -69,8 +72,16 @@ contract ExponentialCurveTest is DSTest {
             uint256 newSpotPrice,
             uint256 newDelta,
             uint256 inputValue,
-
-        ) = curve.getBuyInfo(spotPrice, delta, numItems, 0, 0);
+            ,
+        ) = curve.getBuyInfo(
+            ICurve.PriceInfoParams({
+                spotPrice: spotPrice,
+                delta: delta,
+                numItems: numItems,
+                feeMultiplier: 0,
+                protocolFeeMultiplier: 0
+            })
+        );
         uint256 deltaPowN = uint256(delta).fpow(
             numItems,
             FixedPointMathLib.WAD
@@ -121,13 +132,16 @@ contract ExponentialCurveTest is DSTest {
             uint256 newSpotPrice,
             uint256 newDelta,
             uint256 outputValue,
-            uint256 protocolFee
+            uint256 protocolFee,
+
         ) = curve.getSellInfo(
-                spotPrice,
-                delta,
-                numItems,
-                feeMultiplier,
-                protocolFeeMultiplier
+                ICurve.PriceInfoParams({
+                    spotPrice: spotPrice,
+                    delta: delta,
+                    numItems: numItems,
+                    feeMultiplier: feeMultiplier,
+                    protocolFeeMultiplier: protocolFeeMultiplier
+                })
             );
         assertEq(
             uint256(error),
@@ -158,8 +172,16 @@ contract ExponentialCurveTest is DSTest {
             uint256 newSpotPrice,
             ,
             uint256 outputValue,
-
-        ) = curve.getSellInfo(spotPrice, delta, numItems, 0, 0);
+            ,
+        ) = curve.getSellInfo(
+            ICurve.PriceInfoParams({
+                spotPrice: spotPrice,
+                delta: delta,
+                numItems: numItems,
+                feeMultiplier: 0,
+                protocolFeeMultiplier: 0
+            })
+        );
         assertEq(
             uint256(error),
             uint256(CurveErrorCodes.Error.OK),

@@ -6,9 +6,24 @@ import {BeaconAmmV1Pair} from "../../BeaconAmmV1Pair.sol";
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {IERC721Mintable} from "../interfaces/IERC721Mintable.sol";
 import {BeaconAmmV1PairFactory} from "../../BeaconAmmV1PairFactory.sol";
+import {BeaconAmmV1RoyaltyManager} from "../../BeaconAmmV1RoyaltyManager.sol";
 
 abstract contract Configurable {
     function getBalance(address a) public virtual returns (uint256);
+
+    function setupRoyaltyManager(
+        BeaconAmmV1PairFactory _factory,
+        address _nft,
+        uint256 _feeMultiplier,
+        address payable _feeRecipient
+    ) public returns (BeaconAmmV1RoyaltyManager) {
+        BeaconAmmV1RoyaltyManager royaltyManager = new BeaconAmmV1RoyaltyManager(_factory);
+        royaltyManager.addOperator(address(this));
+        royaltyManager.setCreator(_nft, address(this));
+        royaltyManager.setRoyaltyFeeMultiplier(_nft, _feeMultiplier);
+        royaltyManager.setRoyaltyFeeRecipient(_nft, _feeRecipient);
+        return royaltyManager;
+    }
 
     function setupPair(
         BeaconAmmV1PairFactory factory,
@@ -43,5 +58,7 @@ abstract contract Configurable {
 
     function withdrawProtocolFees(BeaconAmmV1PairFactory factory) public virtual;
 
+    function getTestToken() public virtual returns (address);
+    
     receive() external payable {}
 }
