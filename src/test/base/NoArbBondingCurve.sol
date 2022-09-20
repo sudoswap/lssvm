@@ -111,14 +111,15 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
                 ,
                 uint256 outputAmount,
                 uint256 protocolFee,
-
+                ,
             ) = bondingCurve.getSellInfo(
                     ICurve.PriceInfoParams({
                         spotPrice: spotPrice,
                         delta: delta,
                         numItems: numItems,
                         feeMultiplier: 0,
-                        protocolFeeMultiplier: protocolFeeMultiplier
+                        protocolFeeMultiplier: protocolFeeMultiplier,
+                        royaltyFeeMultiplier: 0
                     })
                 );
 
@@ -140,13 +141,14 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy back the NFTs just sold to the pair
         {
-            (, , , uint256 inputAmount, , ) = bondingCurve.getBuyInfo(
+            (, , , uint256 inputAmount, , , ) = bondingCurve.getBuyInfo(
                 ICurve.PriceInfoParams({
                     spotPrice: spotPrice,
                     delta: delta,
                     numItems: numItems,
                     feeMultiplier: 0,
-                    protocolFeeMultiplier: protocolFeeMultiplier
+                    protocolFeeMultiplier: protocolFeeMultiplier,
+                    royaltyFeeMultiplier: 0
                 })
             );
             pair.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
@@ -215,14 +217,15 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // buy all NFTs
         {
-            (, uint256 newSpotPrice, , uint256 inputAmount, , ) = bondingCurve
+            (, uint256 newSpotPrice, , uint256 inputAmount, , , ) = bondingCurve
                 .getBuyInfo(
                     ICurve.PriceInfoParams({
                         spotPrice: spotPrice,
                         delta: delta,
                         numItems: numItems,
                         feeMultiplier: 0,
-                        protocolFeeMultiplier: protocolFeeMultiplier
+                        protocolFeeMultiplier: protocolFeeMultiplier,
+                        royaltyFeeMultiplier: 0
                     })
                 );
 
@@ -240,15 +243,6 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
 
         // sell back the NFTs
         {
-            bondingCurve.getSellInfo(
-                ICurve.PriceInfoParams({
-                    spotPrice: spotPrice,
-                    delta: delta,
-                    numItems: numItems,
-                    feeMultiplier: 0,
-                    protocolFeeMultiplier: protocolFeeMultiplier
-                })
-            );
             pair.swapNFTsForToken(
                 idList,
                 0,
@@ -323,19 +317,21 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
            ,
            uint256 outputAmount,
            uint256 protocolFee,
-           uint256 tradeFee
+           uint256 tradeFee,
+           uint256 royaltyFee
        ) = bondingCurve.getSellInfo(
                ICurve.PriceInfoParams({
                    spotPrice: spotPrice,
                    delta: delta,
                    numItems: numItems,
                    feeMultiplier: pairFee,
-                   protocolFeeMultiplier: protocolFeeMultiplier
+                   protocolFeeMultiplier: protocolFeeMultiplier,
+                   royaltyFeeMultiplier: royaltyFeeMultiplier
                })
            );
 
        // give the pair contract enough tokens to pay for the NFTs
-       sendTokens(pair, outputAmount + protocolFee + tradeFee);
+       sendTokens(pair, outputAmount + protocolFee + tradeFee + royaltyFee);
 
        // sell NFTs
        test721.setApprovalForAll(address(pair), true);
@@ -350,11 +346,10 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
        // factory should have protocol fee amount
        assertEq(getBalance(address(factory)), protocolFee);
        // royalty recipient should have royalty amount
-       uint256 royaltyFee = royaltyManager.calculateFee(address(pair.nft()), tradeFee);
        address royaltyRecipient = royaltyManager.getFeeRecipient(address(pair.nft()));
        assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
        // pair should have trade fee amount
-       assertEq(getBalance(address(pair)), tradeFee - royaltyFee);
+       assertEq(getBalance(address(pair)), tradeFee);
        // should track royalty earning
        assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
     }
@@ -405,14 +400,15 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
         factory.setRoyaltyManager(royaltyManager);
 
         // buy all NFTs
-        (, uint256 newSpotPrice, , uint256 inputAmount, uint256 protocolFee, uint256 tradeFee) = bondingCurve
+        (, uint256 newSpotPrice, , uint256 inputAmount, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee) = bondingCurve
             .getBuyInfo(
                 ICurve.PriceInfoParams({
                     spotPrice: spotPrice,
                     delta: delta,
                     numItems: numItems,
                     feeMultiplier: pairFee,
-                    protocolFeeMultiplier: protocolFeeMultiplier
+                    protocolFeeMultiplier: protocolFeeMultiplier,
+                    royaltyFeeMultiplier: royaltyFeeMultiplier
                 })
             );
 
@@ -429,7 +425,6 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
         // factory should have protocol fee amount
         assertEq(getBalance(address(factory)), protocolFee);
         // royalty recipient should have royalty amount
-        uint256 royaltyFee = royaltyManager.calculateFee(address(pair.nft()), tradeFee);
         address royaltyRecipient = royaltyManager.getFeeRecipient(address(pair.nft()));
         assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
         // pair should have inputAmount - royaltyFee - protocolFee

@@ -47,18 +47,19 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             uint128 newDelta,
             uint256 inputValue,
             uint256 protocolFee,
-            uint256 tradeFee
+            uint256 tradeFee,
+            uint256 royaltyFee
         )
     {
         // We only calculate changes for buying 1 or more NFTs
         if (priceInfoParams.numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0, 0);
         }
 
         // For a linear curve, the spot price increases by delta for each item bought
         uint256 newSpotPrice_ = priceInfoParams.spotPrice + priceInfoParams.delta * priceInfoParams.numItems;
         if (newSpotPrice_ > type(uint128).max) {
-            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0, 0);
+            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0, 0, 0);
         }
         newSpotPrice = uint128(newSpotPrice_);
 
@@ -90,6 +91,10 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         tradeFee = inputValue.fmul(priceInfoParams.feeMultiplier, FixedPointMathLib.WAD);
         inputValue += tradeFee;
 
+        // Calculate royaltyFee, and reduce from tradeFee
+        royaltyFee = tradeFee.fmul(priceInfoParams.royaltyFeeMultiplier, FixedPointMathLib.WAD);
+        tradeFee -= royaltyFee;
+
         // Add the protocol fee to the required input amount
         inputValue += protocolFee;
 
@@ -115,12 +120,13 @@ contract LinearCurve is ICurve, CurveErrorCodes {
             uint128 newDelta,
             uint256 outputValue,
             uint256 protocolFee,
-            uint256 tradeFee
+            uint256 tradeFee,
+            uint256 royaltyFee
         )
     {
         // We only calculate changes for selling 1 or more NFTs
         if (priceInfoParams.numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0, 0);
         }
 
         // We first calculate the change in spot price after selling all of the items
@@ -161,6 +167,10 @@ contract LinearCurve is ICurve, CurveErrorCodes {
         // Account for the trade fee, only for Trade pools
         tradeFee = outputValue.fmul(priceInfoParams.feeMultiplier, FixedPointMathLib.WAD);
         outputValue -= tradeFee;
+
+        // Calculate royaltyFee, and reduce from tradeFee
+        royaltyFee = tradeFee.fmul(priceInfoParams.royaltyFeeMultiplier, FixedPointMathLib.WAD);
+        tradeFee -= royaltyFee;
 
         // Subtract the protocol fee from the output amount to the seller
         outputValue -= protocolFee;

@@ -27,6 +27,20 @@ abstract contract BeaconAmmV1Pair is
         TRADE
     }
 
+    struct CalculateBuyInfo {
+        uint256 numNFTs;
+        uint256 maxExpectedTokenInput;
+        ICurve bondingCurve;
+        IBeaconAmmV1PairFactory factory;
+    }
+
+    struct CalculateSellInfo {
+        uint256 numNFTs;
+        uint256 minExpectedTokenOutput;
+        ICurve bondingCurve;
+        IBeaconAmmV1PairFactory factory;
+    }
+
     // 90%, must <= 1 - MAX_PROTOCOL_FEE (set in BeaconAmmV1PairFactory)
     uint256 internal constant MAX_FEE = 0.90e18;
 
@@ -155,11 +169,14 @@ abstract contract BeaconAmmV1Pair is
         // Call bonding curve for pricing information
         uint256 protocolFee;
         uint256 tradeFee;
-        (inputAmount, protocolFee, tradeFee) = _calculateBuyInfoAndUpdatePoolParams(
-            numNFTs,
-            maxExpectedTokenInput,
-            _bondingCurve,
-            _factory
+        uint256 royaltyFee;
+        (inputAmount, protocolFee, tradeFee, royaltyFee) = _calculateBuyInfoAndUpdatePoolParams(
+            CalculateBuyInfo({
+                numNFTs: numNFTs,
+                maxExpectedTokenInput: maxExpectedTokenInput,
+                bondingCurve: _bondingCurve,
+                factory: _factory
+            })
         );
 
         _pullTokenInputAndPayFees(
@@ -168,7 +185,7 @@ abstract contract BeaconAmmV1Pair is
             routerCaller,
             _factory,
             protocolFee,
-            tradeFee
+            royaltyFee
         );
 
         _sendAnyNFTsToRecipient(_nft, nftRecipient, numNFTs);
@@ -217,11 +234,14 @@ abstract contract BeaconAmmV1Pair is
         // Call bonding curve for pricing information
         uint256 protocolFee;
         uint256 tradeFee;
-        (inputAmount, protocolFee, tradeFee) = _calculateBuyInfoAndUpdatePoolParams(
-            nftIds.length,
-            maxExpectedTokenInput,
-            _bondingCurve,
-            _factory
+        uint256 royaltyFee;
+        (inputAmount, protocolFee, tradeFee, royaltyFee) = _calculateBuyInfoAndUpdatePoolParams(
+            CalculateBuyInfo({
+                numNFTs: nftIds.length,
+                maxExpectedTokenInput: maxExpectedTokenInput,
+                bondingCurve: _bondingCurve,
+                factory: _factory
+            })
         );
 
         _pullTokenInputAndPayFees(
@@ -230,7 +250,7 @@ abstract contract BeaconAmmV1Pair is
             routerCaller,
             _factory,
             protocolFee,
-            tradeFee
+            royaltyFee
         );
 
         _sendSpecificNFTsToRecipient(nft(), nftRecipient, nftIds);
@@ -277,16 +297,19 @@ abstract contract BeaconAmmV1Pair is
         // Call bonding curve for pricing information
         uint256 protocolFee;
         uint256 tradeFee;
-        (outputAmount, protocolFee, tradeFee) = _calculateSellInfoAndUpdatePoolParams(
-            nftIds.length,
-            minExpectedTokenOutput,
-            _bondingCurve,
-            _factory
+        uint256 royaltyFee;
+        (outputAmount, protocolFee, tradeFee, royaltyFee) = _calculateSellInfoAndUpdatePoolParams(
+            CalculateSellInfo({
+                numNFTs: nftIds.length,
+                minExpectedTokenOutput: minExpectedTokenOutput,
+                bondingCurve: _bondingCurve,
+                factory: _factory
+            })
         );
 
         _sendTokenOutput(tokenRecipient, outputAmount);
 
-        _payFeesFromPair(_factory, protocolFee, tradeFee);
+        _payFeesFromPair(_factory, protocolFee, royaltyFee);
 
         _takeNFTsFromSender(nft(), nftIds, _factory, isRouter, routerCaller);
 
@@ -314,28 +337,25 @@ abstract contract BeaconAmmV1Pair is
             uint256 royaltyFee
         )
     {
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
         (
             error,
             newSpotPrice,
             newDelta,
             inputAmount,
             protocolFee,
-            tradeFee
+            tradeFee,
+            royaltyFee
         ) = bondingCurve().getBuyInfo(
             ICurve.PriceInfoParams({
                 spotPrice: spotPrice,
                 delta: delta,
                 numItems: numNFTs,
                 feeMultiplier: fee,
-                protocolFeeMultiplier: factory().protocolFeeMultiplier()
+                protocolFeeMultiplier: factory().protocolFeeMultiplier(),
+                royaltyFeeMultiplier: address(royaltyManager) == address(0) ? 0 : royaltyManager.getFeeMultiplier(address(nft()))
             })
         );
-
-        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-        if (address(royaltyManager) != address(0)) {
-            royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
-            tradeFee -= royaltyFee;
-        }
     }
 
     /**
@@ -355,28 +375,25 @@ abstract contract BeaconAmmV1Pair is
             uint256 royaltyFee
         )
     {
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
         (
             error,
             newSpotPrice,
             newDelta,
             outputAmount,
             protocolFee,
-
+            tradeFee,
+            royaltyFee
         ) = bondingCurve().getSellInfo(
             ICurve.PriceInfoParams({
                 spotPrice: spotPrice,
                 delta: delta,
                 numItems: numNFTs,
                 feeMultiplier: fee,
-                protocolFeeMultiplier: factory().protocolFeeMultiplier()
+                protocolFeeMultiplier: factory().protocolFeeMultiplier(),
+                royaltyFeeMultiplier: address(royaltyManager) == address(0) ? 0 : royaltyManager.getFeeMultiplier(address(nft()))
             })
         );
-
-        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-        if (address(royaltyManager) != address(0)) {
-            royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
-            tradeFee -= royaltyFee;
-        }
     }
 
     /**
@@ -472,20 +489,14 @@ abstract contract BeaconAmmV1Pair is
 
     /**
         @notice Calculates the amount needed to be sent into the pair for a buy and adjusts spot price or delta if necessary
-        @param numNFTs The amount of NFTs to purchase from the pair
-        @param maxExpectedTokenInput The maximum acceptable cost from the sender. If the actual
-        amount is greater than this value, the transaction will be reverted.
-        @param protocolFee The percentage of protocol fee to be taken, as a percentage
         @return inputAmount The amount of tokens total tokens receive
         @return protocolFee The amount of tokens to send as protocol fee
         @return tradeFee The amount of tokens collected as trade fee
+        @return royaltyFee The amount of tokens collected as royalty fee
      */
     function _calculateBuyInfoAndUpdatePoolParams(
-        uint256 numNFTs,
-        uint256 maxExpectedTokenInput,
-        ICurve _bondingCurve,
-        IBeaconAmmV1PairFactory _factory
-    ) internal returns (uint256 inputAmount, uint256 protocolFee, uint256 tradeFee) {
+        CalculateBuyInfo memory buyInfo
+    ) internal returns (uint256 inputAmount, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
         uint128 currentSpotPrice = spotPrice;
@@ -498,14 +509,16 @@ abstract contract BeaconAmmV1Pair is
             newDelta,
             inputAmount,
             protocolFee,
-            tradeFee
-        ) = _bondingCurve.getBuyInfo(
+            tradeFee,
+            royaltyFee
+        ) = buyInfo.bondingCurve.getBuyInfo(
             ICurve.PriceInfoParams({
                 spotPrice: currentSpotPrice,
                 delta: currentDelta,
-                numItems: numNFTs,
+                numItems: buyInfo.numNFTs,
                 feeMultiplier: fee,
-                protocolFeeMultiplier: _factory.protocolFeeMultiplier()
+                protocolFeeMultiplier: buyInfo.factory.protocolFeeMultiplier(),
+                royaltyFeeMultiplier: address(buyInfo.factory.royaltyManager()) == address(0) ? 0 : buyInfo.factory.royaltyManager().getFeeMultiplier(address(nft()))
             })
         );
 
@@ -515,7 +528,7 @@ abstract contract BeaconAmmV1Pair is
         }
 
         // Revert if input is more than expected
-        require(inputAmount <= maxExpectedTokenInput, "In too many tokens");
+        require(inputAmount <= buyInfo.maxExpectedTokenInput, "In too many tokens");
 
         // Consolidate writes to save gas
         if (currentSpotPrice != newSpotPrice || currentDelta != newDelta) {
@@ -536,19 +549,14 @@ abstract contract BeaconAmmV1Pair is
 
     /**
         @notice Calculates the amount needed to be sent by the pair for a sell and adjusts spot price or delta if necessary
-        @param numNFTs The amount of NFTs to send to the the pair
-        @param minExpectedTokenOutput The minimum acceptable token received by the sender. If the actual
-        amount is less than this value, the transaction will be reverted.
         @return outputAmount The amount of tokens total tokens receive
         @return protocolFee The amount of tokens to send as protocol fee
         @return tradeFee The amount of tokens collected as trade fee
+        @return royaltyFee The amount of tokens collected as royalty fee
      */
     function _calculateSellInfoAndUpdatePoolParams(
-        uint256 numNFTs,
-        uint256 minExpectedTokenOutput,
-        ICurve _bondingCurve,
-        IBeaconAmmV1PairFactory _factory
-    ) internal returns (uint256 outputAmount, uint256 protocolFee, uint256 tradeFee) {
+        CalculateSellInfo memory sellInfo
+    ) internal returns (uint256 outputAmount, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee) {
         CurveErrorCodes.Error error;
         // Save on 2 SLOADs by caching
         uint128 currentSpotPrice = spotPrice;
@@ -561,14 +569,16 @@ abstract contract BeaconAmmV1Pair is
             newDelta,
             outputAmount,
             protocolFee,
-            tradeFee
-        ) = _bondingCurve.getSellInfo(
+            tradeFee,
+            royaltyFee
+        ) = sellInfo.bondingCurve.getSellInfo(
             ICurve.PriceInfoParams({
                 spotPrice: currentSpotPrice,
                 delta: currentDelta,
-                numItems: numNFTs,
+                numItems: sellInfo.numNFTs,
                 feeMultiplier: fee,
-                protocolFeeMultiplier: _factory.protocolFeeMultiplier()
+                protocolFeeMultiplier: sellInfo.factory.protocolFeeMultiplier(),
+                royaltyFeeMultiplier: address(sellInfo.factory.royaltyManager()) == address(0) ? 0 : sellInfo.factory.royaltyManager().getFeeMultiplier(address(nft()))
             })
         );
 
@@ -579,7 +589,7 @@ abstract contract BeaconAmmV1Pair is
 
         // Revert if output is too little
         require(
-            outputAmount >= minExpectedTokenOutput,
+            outputAmount >= sellInfo.minExpectedTokenOutput,
             "Out too little tokens"
         );
 

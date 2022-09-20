@@ -279,14 +279,15 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     }
 
     function testFail_swapForNFTNotInPool() public {
-        (, uint128 newSpotPrice, , uint256 inputAmount, , ) = bondingCurve
+        (, uint128 newSpotPrice, , uint256 inputAmount, , , ) = bondingCurve
             .getBuyInfo(
                 ICurve.PriceInfoParams({
                     spotPrice: spotPrice,
                     delta: delta,
                     numItems: numItems + 1,
                     feeMultiplier: 0,
-                    protocolFeeMultiplier: protocolFeeMultiplier
+                    protocolFeeMultiplier: protocolFeeMultiplier,
+                    royaltyFeeMultiplier: 0
                 })
             );
 
@@ -304,14 +305,15 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
     }
 
     function testFail_swapForAnyNFTsPastBalance() public {
-        (, uint128 newSpotPrice, , uint256 inputAmount, , ) = bondingCurve
+        (, uint128 newSpotPrice, , uint256 inputAmount, , , ) = bondingCurve
             .getBuyInfo(
                 ICurve.PriceInfoParams({
                     spotPrice: spotPrice,
                     delta: delta,
                     numItems: numItems + 1,
                     feeMultiplier: 0,
-                    protocolFeeMultiplier: protocolFeeMultiplier
+                    protocolFeeMultiplier: protocolFeeMultiplier,
+                    royaltyFeeMultiplier: 0
                 })
             );
 
@@ -350,14 +352,15 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
                 ,
                 uint256 inputAmount,
                 uint256 protocolFee,
-
+                ,
             ) = bondingCurve.getBuyInfo(
                     ICurve.PriceInfoParams({
                         spotPrice: spotPrice,
                         delta: delta,
                         numItems: numItems,
                         feeMultiplier: 0,
-                        protocolFeeMultiplier: protocolFeeMultiplier
+                        protocolFeeMultiplier: protocolFeeMultiplier,
+                        royaltyFeeMultiplier: 0
                     })
                 );
             totalProtocolFee += protocolFee;

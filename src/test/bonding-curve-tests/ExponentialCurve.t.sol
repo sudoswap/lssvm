@@ -33,13 +33,15 @@ contract ExponentialCurveTest is DSTest {
             uint256 newDelta,
             uint256 inputValue,
             uint256 protocolFee,
+            ,
         ) = curve.getBuyInfo(
                 ICurve.PriceInfoParams({
                     spotPrice: spotPrice,
                     delta: delta,
                     numItems: numItems,
                     feeMultiplier: feeMultiplier,
-                    protocolFeeMultiplier: protocolFeeMultiplier
+                    protocolFeeMultiplier: protocolFeeMultiplier,
+                    royaltyFeeMultiplier: 0
                 })
             );
         assertEq(
@@ -73,13 +75,15 @@ contract ExponentialCurveTest is DSTest {
             uint256 newDelta,
             uint256 inputValue,
             ,
+            ,
         ) = curve.getBuyInfo(
             ICurve.PriceInfoParams({
                 spotPrice: spotPrice,
                 delta: delta,
                 numItems: numItems,
                 feeMultiplier: 0,
-                protocolFeeMultiplier: 0
+                protocolFeeMultiplier: 0,
+                royaltyFeeMultiplier: 0
             })
         );
         uint256 deltaPowN = uint256(delta).fpow(
@@ -133,14 +137,15 @@ contract ExponentialCurveTest is DSTest {
             uint256 newDelta,
             uint256 outputValue,
             uint256 protocolFee,
-
+            ,
         ) = curve.getSellInfo(
                 ICurve.PriceInfoParams({
                     spotPrice: spotPrice,
                     delta: delta,
                     numItems: numItems,
                     feeMultiplier: feeMultiplier,
-                    protocolFeeMultiplier: protocolFeeMultiplier
+                    protocolFeeMultiplier: protocolFeeMultiplier,
+                    royaltyFeeMultiplier: 0
                 })
             );
         assertEq(
@@ -173,13 +178,15 @@ contract ExponentialCurveTest is DSTest {
             ,
             uint256 outputValue,
             ,
+            ,
         ) = curve.getSellInfo(
             ICurve.PriceInfoParams({
                 spotPrice: spotPrice,
                 delta: delta,
                 numItems: numItems,
                 feeMultiplier: 0,
-                protocolFeeMultiplier: 0
+                protocolFeeMultiplier: 0,
+                royaltyFeeMultiplier: 0
             })
         );
         assertEq(

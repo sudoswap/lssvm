@@ -41,7 +41,7 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
         address routerCaller,
         IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee,
-        uint256 tradeFee
+        uint256 royaltyFee
     ) internal override {
         require(msg.value == 0, "ERC20 pair");
 
@@ -63,33 +63,32 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
             // Take royalty fee if exist
             // Locally scoped to avoid stack too deep
             {
-                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-                if (address(royaltyManager) != address(0)) {
-                    uint256 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
-                    if (royaltyFee > 0) {
-                        beforeBalance = _token.balanceOf(royaltyManager.getFeeRecipient(address(nft())));
-                        router.pairTransferERC20From(
-                            _token,
-                            routerCaller,
-                            royaltyManager.getFeeRecipient(address(nft())),
+                if (royaltyFee > 0) {
+                    // no need to check manager is address(0) since royalty fee cannot be > 0 if so
+                    IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+                    address royaltyFeeRecipient = royaltyManager.getFeeRecipient(address(nft()));
+                    beforeBalance = _token.balanceOf(royaltyFeeRecipient);
+                    router.pairTransferERC20From(
+                        _token,
+                        routerCaller,
+                        royaltyFeeRecipient,
+                        royaltyFee,
+                        pairVariant()
+                    );
+                    royaltyManager.recordEarning(
+                        pairVariant(),
+                        address(nft()),
+                        address(token()),
+                        royaltyFee
+                    );
+                    // Verify token transfer (protect creator against malicious router)
+                    require(
+                        _token.balanceOf(royaltyFeeRecipient) - beforeBalance ==
                             royaltyFee,
-                            pairVariant()
-                        );
-                        // Verify token transfer (protect creator against malicious router)
-                        require(
-                            _token.balanceOf(royaltyManager.getFeeRecipient(address(nft()))) - beforeBalance ==
-                                royaltyFee,
-                            "Royalty fee not transferred in"
-                        );
-                        royaltyManager.recordEarning(
-                            pairVariant(),
-                            address(nft()),
-                            address(_token),
-                            royaltyFee
-                        );
-                        // Reduce royalty fee from inputAmount
-                        inputAmount -= royaltyFee;
-                    }
+                        "Royalty fee not transferred in"
+                    );
+                    // Reduce royalty from input amount
+                    inputAmount -= royaltyFee;
                 }
             }
 
@@ -120,27 +119,24 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
             // Note: no check for factory balance's because router is assumed to be set by factory owner
             // so there is no incentive to *not* pay protocol fee
         } else {
-            // Calculate royalty fee
-            uint256 royaltyFee;
-            IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-            if (address(royaltyManager) != address(0)) {
-                royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
-                // Take royalty fee (if it exists)
-                if (royaltyFee > 0) {
-                    _token.safeTransferFrom(
-                        msg.sender,
-                        royaltyManager.getFeeRecipient(address(nft())),
-                        royaltyFee
-                    );
-                    royaltyManager.recordEarning(
-                        pairVariant(),
-                        address(nft()),
-                        address(token()),
-                        royaltyFee
-                    );
-                    // reduce royaltyfee from inputamount
-                    inputAmount -= royaltyFee;
-                }
+            // Take royalty fee (if it exists)
+            if (royaltyFee > 0) {
+                // no need to check manager is address(0) since royalty fee cannot be > 0 if so
+                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+                address royaltyFeeRecipient = royaltyManager.getFeeRecipient(address(nft()));
+                _token.safeTransferFrom(
+                    msg.sender,
+                    royaltyFeeRecipient,
+                    royaltyFee
+                );
+                royaltyManager.recordEarning(
+                    pairVariant(),
+                    address(nft()),
+                    address(token()),
+                    royaltyFee
+                );
+                // Reduce royalty from input amount
+                inputAmount -= royaltyFee;
             }
 
             // Transfer tokens directly
@@ -170,11 +166,12 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
     function _payFeesFromPair(
         IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee,
-        uint256 tradeFee
+        uint256 royaltyFee
     ) internal override {
+        ERC20 _token = token();
+
         // Take protocol fee (if it exists)
         if (protocolFee > 0) {
-            ERC20 _token = token();
 
             // Round down to the actual token balance if there are numerical stability issues with the bonding curve calculations
             uint256 pairTokenBalance = _token.balanceOf(address(this));
@@ -187,26 +184,22 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
         }
 
         // Pay royalty fee (if it exists)
-        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-        if (address(royaltyManager) != address(0)) {
-            uint256 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+        if (royaltyFee > 0) {
+            // Round down to the actual token balance if there are numerical stability issues with the bonding curve calculations
+            uint256 pairTokenBalance = _token.balanceOf(address(this));
+            if (royaltyFee > pairTokenBalance) {
+                royaltyFee = pairTokenBalance;
+            }
             if (royaltyFee > 0) {
-                ERC20 _token = token();
-
-                // Round down to the actual token balance if there are numerical stability issues with the bonding curve calculations
-                uint256 pairTokenBalance = _token.balanceOf(address(this));
-                if (royaltyFee > pairTokenBalance) {
-                    royaltyFee = pairTokenBalance;
-                }
-                if (royaltyFee > 0) {
-                    _token.safeTransfer(royaltyManager.getFeeRecipient(address(nft())), royaltyFee);
-                    royaltyManager.recordEarning(
-                        pairVariant(),
-                        address(nft()),
-                        address(token()),
-                        royaltyFee
-                    );
-                }
+                // no need to check manager is address(0) since royalty fee cannot be > 0 if so
+                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+                _token.safeTransfer(royaltyManager.getFeeRecipient(address(nft())), royaltyFee);
+                royaltyManager.recordEarning(
+                    pairVariant(),
+                    address(nft()),
+                    address(token()),
+                    royaltyFee
+                );
             }
         }
     }

@@ -54,13 +54,14 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint128 newDelta,
             uint256 inputValue,
             uint256 protocolFee,
-            uint256 tradeFee
+            uint256 tradeFee,
+            uint256 royaltyFee
         )
     {
         // NOTE: we assume delta is > 1, as checked by validateDelta()
         // We only calculate changes for buying 1 or more NFTs
         if (priceInfoParams.numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0, 0);
         }
 
         uint256 deltaPowN = uint256(priceInfoParams.delta).fpow(
@@ -74,7 +75,7 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             FixedPointMathLib.WAD
         );
         if (newSpotPrice_ > type(uint128).max) {
-            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0, 0);
+            return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0, 0, 0);
         }
         newSpotPrice = uint128(newSpotPrice_);
 
@@ -110,6 +111,10 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         tradeFee = inputValue.fmul(priceInfoParams.feeMultiplier, FixedPointMathLib.WAD);
         inputValue += tradeFee;
 
+        // Calculate royaltyFee, and reduce from tradeFee
+        royaltyFee = tradeFee.fmul(priceInfoParams.royaltyFeeMultiplier, FixedPointMathLib.WAD);
+        tradeFee -= royaltyFee;
+
         // Add the protocol fee to the required input amount
         inputValue += protocolFee;
 
@@ -138,14 +143,15 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
             uint128 newDelta,
             uint256 outputValue,
             uint256 protocolFee,
-            uint256 tradeFee
+            uint256 tradeFee,
+            uint256 royaltyFee
         )
     {
         // NOTE: we assume delta is > 1, as checked by validateDelta()
 
         // We only calculate changes for buying 1 or more NFTs
         if (priceInfoParams.numItems == 0) {
-            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0);
+            return (Error.INVALID_NUMITEMS, 0, 0, 0, 0, 0, 0);
         }
 
         uint256 invDelta = FixedPointMathLib.WAD.fdiv(
@@ -184,6 +190,10 @@ contract ExponentialCurve is ICurve, CurveErrorCodes {
         // Account for the trade fee, only for Trade pools
         tradeFee = outputValue.fmul(priceInfoParams.feeMultiplier, FixedPointMathLib.WAD);
         outputValue -= tradeFee;
+
+        // Calculate royaltyFee, and reduce from tradeFee
+        royaltyFee = tradeFee.fmul(priceInfoParams.royaltyFeeMultiplier, FixedPointMathLib.WAD);
+        tradeFee -= royaltyFee;
 
         // Remove the protocol fee from the output amount
         outputValue -= protocolFee;

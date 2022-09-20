@@ -11,6 +11,7 @@ interface ICurve {
         uint256 numItems;
         uint256 feeMultiplier;
         uint256 protocolFeeMultiplier;
+        uint256 royaltyFeeMultiplier;
     }
 
     /**
@@ -53,7 +54,8 @@ interface ICurve {
             uint128 newDelta,
             uint256 inputValue,
             uint256 protocolFee,
-            uint256 tradeFee
+            uint256 tradeFee,
+            uint256 royaltyFee
         );
 
     /**
@@ -77,6 +79,7 @@ interface ICurve {
             uint128 newDelta,
             uint256 outputValue,
             uint256 protocolFee,
-            uint256 tradeFee
+            uint256 tradeFee,
+            uint256 royaltyFee
         );
 }

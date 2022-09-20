@@ -20,8 +20,7 @@ abstract contract Configurable {
         BeaconAmmV1RoyaltyManager royaltyManager = new BeaconAmmV1RoyaltyManager(_factory);
         royaltyManager.addOperator(address(this));
         royaltyManager.setCreator(_nft, address(this));
-        royaltyManager.setRoyaltyFeeMultiplier(_nft, _feeMultiplier);
-        royaltyManager.setRoyaltyFeeRecipient(_nft, _feeRecipient);
+        royaltyManager.setRoyaltyInfo(_nft, _feeMultiplier, _feeRecipient);
         return royaltyManager;
     }
 
@@ -59,6 +58,6 @@ abstract contract Configurable {
     function withdrawProtocolFees(BeaconAmmV1PairFactory factory) public virtual;
 
     function getTestToken() public virtual returns (address);
-    
+
     receive() external payable {}
 }

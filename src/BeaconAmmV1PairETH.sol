@@ -26,39 +26,14 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
         address, /*routerCaller*/
         IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee,
-        uint256 tradeFee
+        uint256 royaltyFee
     ) internal override {
         require(msg.value >= inputAmount, "Sent too little ETH");
-
-        // Calculate royalty fee
-        uint256 royaltyFee;
-        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-        if (address(royaltyManager) != address(0)) {
-            royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
-            // Pay royalty fee
-            if (royaltyFee > 0) {
-                // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
-                if (royaltyFee > address(this).balance) {
-                    royaltyFee = address(this).balance;
-                }
-                if (royaltyFee > 0) {
-                    royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
-                    royaltyManager.recordEarning(
-                        pairVariant(),
-                        address(nft()),
-                        address(0),
-                        royaltyFee
-                    );
-                    // reduce royaltyfee from inputamount
-                    inputAmount -= royaltyFee;
-                }
-            }
-        }
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
         address payable _assetRecipient = getAssetRecipient();
         if (_assetRecipient != address(this)) {
-            _assetRecipient.safeTransferETH(inputAmount - protocolFee);
+            _assetRecipient.safeTransferETH(inputAmount - protocolFee - royaltyFee);
         }
 
         // Take protocol fee
@@ -70,6 +45,25 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
 
             if (protocolFee > 0) {
                 payable(address(_factory)).safeTransferETH(protocolFee);
+            }
+        }
+
+        // Take protocol fee
+        if (royaltyFee > 0) {
+            // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
+            if (royaltyFee > address(this).balance) {
+                royaltyFee = address(this).balance;
+            }
+            if (royaltyFee > 0) {
+                // no need to check manager is address(0) since royalty fee cannot be > 0 if so
+                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+                royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
+                royaltyManager.recordEarning(
+                    pairVariant(),
+                    address(nft()),
+                    address(0),
+                    royaltyFee
+                );
             }
         }
     }
@@ -86,7 +80,7 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
     function _payFeesFromPair(
         IBeaconAmmV1PairFactory _factory,
         uint256 protocolFee,
-        uint256 tradeFee
+        uint256 royaltyFee
     ) internal override {
         // Take protocol fee
         if (protocolFee > 0) {
@@ -100,24 +94,22 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
             }
         }
 
-        // Pay royalty fee
-        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-        if (address(royaltyManager) != address(0)) {
-            uint256 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+        // Take protocol fee
+        if (royaltyFee > 0) {
+            // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
+            if (royaltyFee > address(this).balance) {
+                royaltyFee = address(this).balance;
+            }
             if (royaltyFee > 0) {
-                // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
-                if (royaltyFee > address(this).balance) {
-                    royaltyFee = address(this).balance;
-                }
-                if (royaltyFee > 0) {
-                    royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
-                    royaltyManager.recordEarning(
-                        pairVariant(),
-                        address(nft()),
-                        address(0),
-                        royaltyFee
-                    );
-                }
+                // no need to check manager is address(0) since royalty fee cannot be > 0 if so
+                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+                royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
+                royaltyManager.recordEarning(
+                    pairVariant(),
+                    address(nft()),
+                    address(0),
+                    royaltyFee
+                );
             }
         }
     }
