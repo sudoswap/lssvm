@@ -9,6 +9,7 @@ import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
 import {ICurve} from "./bonding-curves/ICurve.sol";
 import {BeaconAmmV1Router} from "./BeaconAmmV1Router.sol";
 import {IBeaconAmmV1PairFactory} from "./IBeaconAmmV1PairFactory.sol";
+import {IBeaconAmmV1RoyaltyManager} from "./IBeaconAmmV1RoyaltyManager.sol";
 import {CurveErrorCodes} from "./bonding-curves/CurveErrorCodes.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
@@ -308,7 +309,9 @@ abstract contract BeaconAmmV1Pair is
             uint256 newSpotPrice,
             uint256 newDelta,
             uint256 inputAmount,
-            uint256 protocolFee
+            uint256 protocolFee,
+            uint256 tradeFee,
+            uint256 royaltyFee
         )
     {
         (
@@ -317,6 +320,7 @@ abstract contract BeaconAmmV1Pair is
             newDelta,
             inputAmount,
             protocolFee,
+            tradeFee
         ) = bondingCurve().getBuyInfo(
             ICurve.PriceInfoParams({
                 spotPrice: spotPrice,
@@ -326,6 +330,12 @@ abstract contract BeaconAmmV1Pair is
                 protocolFeeMultiplier: factory().protocolFeeMultiplier()
             })
         );
+
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+        if (address(royaltyManager) != address(0)) {
+            royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+            tradeFee -= royaltyFee;
+        }
     }
 
     /**
@@ -340,7 +350,9 @@ abstract contract BeaconAmmV1Pair is
             uint256 newSpotPrice,
             uint256 newDelta,
             uint256 outputAmount,
-            uint256 protocolFee
+            uint256 protocolFee,
+            uint256 tradeFee,
+            uint256 royaltyFee
         )
     {
         (
@@ -359,6 +371,12 @@ abstract contract BeaconAmmV1Pair is
                 protocolFeeMultiplier: factory().protocolFeeMultiplier()
             })
         );
+
+        IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+        if (address(royaltyManager) != address(0)) {
+            royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+            tradeFee -= royaltyFee;
+        }
     }
 
     /**

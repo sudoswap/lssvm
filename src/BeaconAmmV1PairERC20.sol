@@ -47,6 +47,8 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
 
         ERC20 _token = token();
         address _assetRecipient = getAssetRecipient();
+        // Cache state
+        uint256 beforeBalance;
 
         if (isRouter) {
             // Verify if router is allowed
@@ -58,8 +60,40 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
                 require(routerAllowed, "Not router");
             }
 
-            // Cache state and then call router to transfer tokens from user
-            uint256 beforeBalance = _token.balanceOf(_assetRecipient);
+            // Take royalty fee if exist
+            // Locally scoped to avoid stack too deep
+            {
+                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
+                if (address(royaltyManager) != address(0)) {
+                    uint256 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+                    if (royaltyFee > 0) {
+                        beforeBalance = _token.balanceOf(royaltyManager.getFeeRecipient(address(nft())));
+                        router.pairTransferERC20From(
+                            _token,
+                            routerCaller,
+                            royaltyManager.getFeeRecipient(address(nft())),
+                            royaltyFee,
+                            pairVariant()
+                        );
+                        // Verify token transfer (protect creator against malicious router)
+                        require(
+                            _token.balanceOf(royaltyManager.getFeeRecipient(address(nft()))) - beforeBalance ==
+                                royaltyFee,
+                            "Royalty fee not transferred in"
+                        );
+                        royaltyManager.recordEarning(
+                            pairVariant(),
+                            address(nft()),
+                            address(_token),
+                            royaltyFee
+                        );
+                        // Reduce royalty fee from inputAmount
+                        inputAmount -= royaltyFee;
+                    }
+                }
+            }
+
+            beforeBalance = _token.balanceOf(_assetRecipient);
             router.pairTransferERC20From(
                 _token,
                 routerCaller,
@@ -91,29 +125,30 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
             IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
             if (address(royaltyManager) != address(0)) {
                 royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+                // Take royalty fee (if it exists)
+                if (royaltyFee > 0) {
+                    _token.safeTransferFrom(
+                        msg.sender,
+                        royaltyManager.getFeeRecipient(address(nft())),
+                        royaltyFee
+                    );
+                    royaltyManager.recordEarning(
+                        pairVariant(),
+                        address(nft()),
+                        address(token()),
+                        royaltyFee
+                    );
+                    // reduce royaltyfee from inputamount
+                    inputAmount -= royaltyFee;
+                }
             }
 
             // Transfer tokens directly
             _token.safeTransferFrom(
                 msg.sender,
                 _assetRecipient,
-                inputAmount - protocolFee - royaltyFee
+                inputAmount - protocolFee
             );
-
-            // Take royalty fee (if it exists)
-            if (royaltyFee > 0) {
-                _token.safeTransferFrom(
-                    msg.sender,
-                    royaltyManager.getFeeRecipient(address(nft())),
-                    royaltyFee
-                );
-                royaltyManager.recordEarning(
-                    pairVariant(),
-                    address(nft()),
-                    address(token()),
-                    royaltyFee
-                );
-            }
 
             // Take protocol fee (if it exists)
             if (protocolFee > 0) {

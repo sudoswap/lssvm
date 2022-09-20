@@ -117,7 +117,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             memory swapList = new BeaconAmmV1Router.PairSwapAny[](1);
         swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: sellPair, numItems: 1});
         uint256 inputAmount;
-        (, , , inputAmount, ) = sellPair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = sellPair.getBuyNFTQuote(1);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -139,7 +139,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             nftIds: nftIds
         });
         uint256 inputAmount;
-        (, , , inputAmount, ) = sellPair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = sellPair.getBuyNFTQuote(1);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -192,7 +192,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             numItems: 1
         });
         uint256 sellAmount;
-        (, , , sellAmount, ) = sellPair.getBuyNFTQuote(1);
+        (, , , sellAmount, , , ) = sellPair.getBuyNFTQuote(1);
         // Note: we send a little bit of tokens with the call because the exponential curve increases price ever so slightly
         uint256 inputAmount = 0.01 ether;
         this.swapNFTsForAnyNFTsThroughToken{
@@ -234,7 +234,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             nftIds: buyNFTIds
         });
         uint256 sellAmount;
-        (, , , sellAmount, ) = sellPair.getBuyNFTQuote(1);
+        (, , , sellAmount, , , ) = sellPair.getBuyNFTQuote(1);
         // Note: we send a little bit of tokens with the call because the exponential curve increases price ever so slightly
         uint256 inputAmount = 0.01 ether;
         this.swapNFTsForSpecificNFTsThroughToken{
@@ -261,7 +261,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
         swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: sellPair, numItems: 5});
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
-        (, , , inputAmount, ) = sellPair.getBuyNFTQuote(5);
+        (, , , inputAmount, , , ) = sellPair.getBuyNFTQuote(5);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -290,7 +290,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
         });
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
-        (, , , inputAmount, ) = sellPair.getBuyNFTQuote(5);
+        (, , , inputAmount, , , ) = sellPair.getBuyNFTQuote(5);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -362,7 +362,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             nftIds: nftIds
         });
         uint256 inputAmount;
-        (, , , inputAmount, ) = sellPair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = sellPair.getBuyNFTQuote(1);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -386,7 +386,7 @@ abstract contract RouterSinglePoolWithAssetRecipient is
             memory swapList = new BeaconAmmV1Router.PairSwapAny[](1);
         swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: sellPair, numItems: 1});
         uint256 inputAmount;
-        (, , , inputAmount, ) = sellPair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = sellPair.getBuyNFTQuote(1);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,

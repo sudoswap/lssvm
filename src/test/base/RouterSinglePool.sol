@@ -7,6 +7,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {ICurve} from "../../bonding-curves/ICurve.sol";
 import {BeaconAmmV1PairFactory} from "../../BeaconAmmV1PairFactory.sol";
+import {BeaconAmmV1RoyaltyManager} from "../../BeaconAmmV1RoyaltyManager.sol";
 import {BeaconAmmV1Pair} from "../../BeaconAmmV1Pair.sol";
 import {BeaconAmmV1PairETH} from "../../BeaconAmmV1PairETH.sol";
 import {BeaconAmmV1PairERC20} from "../../BeaconAmmV1PairERC20.sol";
@@ -28,11 +29,15 @@ abstract contract RouterSinglePool is
     IERC721Mintable test721;
     ICurve bondingCurve;
     BeaconAmmV1PairFactory factory;
+    BeaconAmmV1RoyaltyManager royaltyManager;
     BeaconAmmV1Router router;
     BeaconAmmV1Pair pair;
     address payable constant feeRecipient = payable(address(69));
     uint256 constant protocolFeeMultiplier = 3e15;
     uint256 constant numInitialNFTs = 10;
+    uint96 constant pairFee = 10e16;
+    uint256 constant royaltyFeeMultiplier = 1e17; // 10%
+    address payable constant royaltyFeeRecipient = payable(address(6));
 
     function setUp() public {
         bondingCurve = setupCurve();
@@ -92,7 +97,7 @@ abstract contract RouterSinglePool is
             memory swapList = new BeaconAmmV1Router.PairSwapAny[](1);
         swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: pair, numItems: 1});
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(1);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -113,7 +118,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(1);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -242,7 +247,7 @@ abstract contract RouterSinglePool is
         swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: pair, numItems: 5});
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(5);
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(5);
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -270,7 +275,7 @@ abstract contract RouterSinglePool is
         });
         uint256 startBalance = test721.balanceOf(address(this));
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(5);
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(5);
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
             swapList,
@@ -307,7 +312,7 @@ abstract contract RouterSinglePool is
             memory swapList = new BeaconAmmV1Router.PairSwapAny[](1);
         swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: pair, numItems: 1});
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(1);
         inputAmount = inputAmount - 1 wei;
         this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
             router,
@@ -329,7 +334,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(1);
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(1);
         inputAmount = inputAmount - 1 wei;
         this.swapTokenForSpecificNFTs{value: modifyInputAmount(inputAmount)}(
             router,
@@ -351,7 +356,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 sellAmount;
-        (, , , sellAmount, ) = pair.getSellNFTQuote(1);
+        (, , , sellAmount, , , ) = pair.getSellNFTQuote(1);
         sellAmount = sellAmount + 1 wei;
         router.swapNFTsForToken(
             swapList,
@@ -371,7 +376,7 @@ abstract contract RouterSinglePool is
             numItems: test721.balanceOf(address(pair)) + 1
         });
         uint256 inputAmount;
-        (, , , inputAmount, ) = pair.getBuyNFTQuote(
+        (, , , inputAmount, , , ) = pair.getBuyNFTQuote(
             test721.balanceOf(address(pair)) + 1
         );
         inputAmount = inputAmount + 1 wei;
@@ -394,7 +399,7 @@ abstract contract RouterSinglePool is
             nftIds: nftIds
         });
         uint256 sellAmount;
-        (, , , sellAmount, ) = pair.getSellNFTQuote(1);
+        (, , , sellAmount, , , ) = pair.getSellNFTQuote(1);
         sellAmount = sellAmount + 1 wei;
         router.swapNFTsForToken(
             swapList,
@@ -402,5 +407,60 @@ abstract contract RouterSinglePool is
             payable(address(this)),
             block.timestamp
         );
+    }
+
+    /**
+     * Test royalty fee buy
+     */
+    function test_buyNFTRoyaltyFee() public {
+        // Setup royalty
+        royaltyManager = setupRoyaltyManager(factory, address(pair.nft()), royaltyFeeMultiplier, royaltyFeeRecipient);
+        factory.setRoyaltyManager(royaltyManager);
+
+        // Create a pair with a spot price of 1 eth, 1 NFTs, no price increases, and pair fee
+        uint128 delta = 0 ether;
+        uint128 spotPrice = 1 ether;
+        uint256[] memory idList = new uint256[](1);
+        uint256 tokenId = 999;
+        test721.mint(address(this), tokenId);
+        idList[0] = tokenId;
+        pair = this.setupPair{value: modifyInputAmount(0)}(
+            factory,
+            test721,
+            bondingCurve,
+            payable(address(0)),
+            BeaconAmmV1Pair.PoolType.TRADE,
+            modifyDelta(uint64(delta)),
+            pairFee,
+            spotPrice,
+            idList,
+            0,
+            address(router)
+        );
+
+        BeaconAmmV1Router.PairSwapAny[]
+            memory swapList = new BeaconAmmV1Router.PairSwapAny[](1);
+        swapList[0] = BeaconAmmV1Router.PairSwapAny({pair: pair, numItems: 1});
+        uint256 inputAmount;
+        uint256 protocolFee;
+        uint256 tradeFee;
+        uint256 royaltyFee;
+        (, , , inputAmount, protocolFee, tradeFee, royaltyFee) = pair.getBuyNFTQuote(1);
+        this.swapTokenForAnyNFTs{value: modifyInputAmount(inputAmount)}(
+            router,
+            swapList,
+            payable(address(this)),
+            address(this),
+            block.timestamp,
+            inputAmount
+        );
+
+        // royalty recipient should have royalty amount
+        address royaltyRecipient = royaltyManager.getFeeRecipient(address(pair.nft()));
+        assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
+        // pair should have inputAmount - royaltyFee - protocolFee
+        assertEq(getBalance(address(pair)), inputAmount - royaltyFee - protocolFee);
+        // should track royalty earning
+        assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
     }
 }

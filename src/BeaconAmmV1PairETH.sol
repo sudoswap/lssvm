@@ -35,12 +35,30 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
         IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
         if (address(royaltyManager) != address(0)) {
             royaltyFee = royaltyManager.calculateFee(address(nft()), tradeFee);
+            // Pay royalty fee
+            if (royaltyFee > 0) {
+                // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
+                if (royaltyFee > address(this).balance) {
+                    royaltyFee = address(this).balance;
+                }
+                if (royaltyFee > 0) {
+                    royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
+                    royaltyManager.recordEarning(
+                        pairVariant(),
+                        address(nft()),
+                        address(0),
+                        royaltyFee
+                    );
+                    // reduce royaltyfee from inputamount
+                    inputAmount -= royaltyFee;
+                }
+            }
         }
 
         // Transfer inputAmount ETH to assetRecipient if it's been set
         address payable _assetRecipient = getAssetRecipient();
         if (_assetRecipient != address(this)) {
-            _assetRecipient.safeTransferETH(inputAmount - protocolFee - royaltyFee);
+            _assetRecipient.safeTransferETH(inputAmount - protocolFee);
         }
 
         // Take protocol fee
@@ -52,23 +70,6 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
 
             if (protocolFee > 0) {
                 payable(address(_factory)).safeTransferETH(protocolFee);
-            }
-        }
-
-        // Pay royalty fee
-        if (royaltyFee > 0) {
-            // Round down to the actual ETH balance if there are numerical stability issues with the bonding curve calculations
-            if (royaltyFee > address(this).balance) {
-                royaltyFee = address(this).balance;
-            }
-            if (royaltyFee > 0) {
-                royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
-                royaltyManager.recordEarning(
-                    pairVariant(),
-                    address(nft()),
-                    address(0),
-                    royaltyFee
-                );
             }
         }
     }

@@ -142,7 +142,7 @@ abstract contract RouterRobustSwapWithAssetRecipient is
     // Swapping tokens for any NFT on sellPair1 works, but fails silently on sellPair2 if slippage is too tight
     function test_robustSwapTokenForAnyNFTs() public {
         uint256 sellPair1Price;
-        (, , , sellPair1Price, ) = sellPair1.getBuyNFTQuote(1);
+        (, , , sellPair1Price, , , ) = sellPair1.getBuyNFTQuote(1);
         BeaconAmmV1Router.RobustPairSwapAny[]
             memory swapList = new BeaconAmmV1Router.RobustPairSwapAny[](2);
         swapList[0] = BeaconAmmV1Router.RobustPairSwapAny({
@@ -170,7 +170,7 @@ abstract contract RouterRobustSwapWithAssetRecipient is
     // Swapping tokens to a specific NFT with sellPair2 works, but fails silently on sellPair1 if slippage is too tight
     function test_robustSwapTokenForSpecificNFTs() public {
         uint256 sellPair1Price;
-        (, , , sellPair1Price, ) = sellPair2.getBuyNFTQuote(1);
+        (, , , sellPair1Price, , , ) = sellPair2.getBuyNFTQuote(1);
         BeaconAmmV1Router.RobustPairSwapSpecific[]
             memory swapList = new BeaconAmmV1Router.RobustPairSwapSpecific[](2);
         uint256[] memory nftIds1 = new uint256[](1);
@@ -208,7 +208,7 @@ abstract contract RouterRobustSwapWithAssetRecipient is
     // Swapping NFTs to tokens with buyPair1 works, but buyPair2 silently fails due to slippage
     function test_robustSwapNFTsForToken() public {
         uint256 buyPair1Price;
-        (, , , buyPair1Price, ) = buyPair1.getSellNFTQuote(1);
+        (, , , buyPair1Price, , , ) = buyPair1.getSellNFTQuote(1);
         uint256[] memory nftIds1 = new uint256[](1);
         nftIds1[0] = 5;
         uint256[] memory nftIds2 = new uint256[](1);
