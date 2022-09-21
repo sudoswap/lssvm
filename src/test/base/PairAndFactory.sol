@@ -204,32 +204,6 @@ abstract contract PairAndFactory is DSTest, ERC721Holder, Configurable, ERC1155H
         withdrawTokens(pair);
     }
 
-    function testFail_callMint721() public {
-        bytes memory data = abi.encodeWithSelector(
-            Test721.mint.selector,
-            address(this),
-            1000
-        );
-        pair.call(payable(address(test721)), data);
-    }
-
-    function test_callMint721() public {
-        // arbitrary call (just call mint on Test721) works as expected
-
-        // add to whitelist
-        factory.setCallAllowed(payable(address(test721)), true);
-
-        bytes memory data = abi.encodeWithSelector(
-            Test721.mint.selector,
-            address(this),
-            1000
-        );
-        pair.call(payable(address(test721)), data);
-
-        // verify NFT ownership
-        assertEq(test721.ownerOf(1000), address(this));
-    }
-
     function test_withdraw1155() public {
         test1155.mint(address(pair), 1, 2);
         uint256[] memory ids = new uint256[](1);

@@ -64,8 +64,8 @@ abstract contract BeaconAmmV1Pair is
     address payable public assetRecipient;
 
     // Events
-    event SwapNFTInPair(uint256 swapOutTokenAmount, address tokenRecipient, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee);
-    event SwapNFTOutPair(uint256 swapInTokenAmount, address nftRecipient, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee);
+    event SwapNFTInPair(uint256 tokenSwapOutAmount, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee);
+    event SwapNFTOutPair(uint256 tokenSwapInAmount, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee);
     event SpotPriceUpdate(uint128 newSpotPrice);
     event TokenDeposit(uint256 amount);
     event TokenWithdrawal(uint256 amount);
@@ -192,7 +192,7 @@ abstract contract BeaconAmmV1Pair is
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapNFTOutPair(inputAmount, nftRecipient, protocolFee, tradeFee, royaltyFee);
+        emit SwapNFTOutPair(inputAmount, protocolFee, tradeFee, royaltyFee);
     }
 
     /**
@@ -257,7 +257,7 @@ abstract contract BeaconAmmV1Pair is
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapNFTOutPair(inputAmount, nftRecipient, protocolFee, tradeFee, royaltyFee);
+        emit SwapNFTOutPair(inputAmount, protocolFee, tradeFee, royaltyFee);
     }
 
     /**
@@ -313,7 +313,7 @@ abstract contract BeaconAmmV1Pair is
 
         _takeNFTsFromSender(nft(), nftIds, _factory, isRouter, routerCaller);
 
-        emit SwapNFTInPair(outputAmount, tokenRecipient, protocolFee, tradeFee, royaltyFee);
+        emit SwapNFTInPair(outputAmount, protocolFee, tradeFee, royaltyFee);
     }
 
     /**
@@ -864,22 +864,6 @@ abstract contract BeaconAmmV1Pair is
             assetRecipient = newRecipient;
             emit AssetRecipientChange(newRecipient);
         }
-    }
-
-    /**
-        @notice Allows the pair to make arbitrary external calls to contracts
-        whitelisted by the protocol. Only callable by the owner.
-        @param target The contract to call
-        @param data The calldata to pass to the contract
-     */
-    function call(address payable target, bytes calldata data)
-        external
-        onlyOwner
-    {
-        IBeaconAmmV1PairFactory _factory = factory();
-        require(_factory.callAllowed(target), "Target must be whitelisted");
-        (bool result, ) = target.call{value: 0}(data);
-        require(result, "Call failed");
     }
 
     /**

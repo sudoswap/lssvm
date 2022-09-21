@@ -47,8 +47,6 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
 
         ERC20 _token = token();
         address _assetRecipient = getAssetRecipient();
-        // Cache state
-        uint256 beforeBalance;
 
         if (isRouter) {
             // Verify if router is allowed
@@ -66,7 +64,6 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
                 if (royaltyFee > 0) {
                     // no need to check manager is address(0) since royalty fee cannot be > 0 if so
                     address royaltyFeeRecipient = factory().royaltyManager().getFeeRecipient(address(nft()));
-                    beforeBalance = _token.balanceOf(royaltyFeeRecipient);
                     router.pairTransferERC20From(
                         _token,
                         routerCaller,
@@ -74,18 +71,13 @@ abstract contract BeaconAmmV1PairERC20 is BeaconAmmV1Pair {
                         royaltyFee,
                         pairVariant()
                     );
-                    // Verify token transfer (protect creator against malicious router)
-                    require(
-                        _token.balanceOf(royaltyFeeRecipient) - beforeBalance ==
-                            royaltyFee,
-                        "Royalty fee not transferred in"
-                    );
                     // Reduce royalty from input amount
                     inputAmount -= royaltyFee;
                 }
             }
 
-            beforeBalance = _token.balanceOf(_assetRecipient);
+            // Cache state
+            uint256 beforeBalance = _token.balanceOf(_assetRecipient);
             router.pairTransferERC20From(
                 _token,
                 routerCaller,

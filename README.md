@@ -67,20 +67,20 @@ Be careful of the [precedence in which env vars are read](https://github.com/dap
 We assume `ETH_FROM` is an address you own and is part of your keystore.
 If not, use `ethsign import` to import your private key.
 
-We use Infura as a remote node provider for the Mainnet & Rinkeby network deployments.
+We use Infura as a remote node provider for the Mainnet & Goerli network deployments.
 You must have set your API key as the `INFURA_API_KEY` enviroment variable in order to
 deploy to these networks
 
 ## Deployments
 
 
-### Rinkeby
+### Goerli
 
-- BeaconAmmV1PairEnumerableETH: `0x04B4aCCDEF81fe8a3a5921B3852E56310F138dE8`
-- BeaconAmmV1PairMissingEnumerableETH: `0x599dB4CD68A2e35dc012d42E88CB6310B3E3faf1`
-- BeaconAmmV1PairEnumerableERC20: `0xF00ca216c3173898708E1F73B29341c9fc294866`
-- BeaconAmmV1PairMissingEnumerableERC20: `0x827bB2dF10DC01952dcd3d4618228487c75ABb3A`
-- BeaconAmmV1PairFactory: `0x2617bF52D5f4a691a2c80977f5C19650FB63b396`
-- BeaconAmmV1Router: `0xDf6C360032Db856072447ac39a6B27957da6875c`
-- ExponentialCurve: `0x55484644379b5c5f7Ae34412e24b97f4D4a0819D`
-- LinearCurve: `0x4A7d86dcec1CD940d9449781FB99335Edfe0fdf6`
+- BeaconAmmV1PairEnumerableETH: ``
+- BeaconAmmV1PairMissingEnumerableETH: ``
+- BeaconAmmV1PairEnumerableERC20: ``
+- BeaconAmmV1PairMissingEnumerableERC20: ``
+- BeaconAmmV1PairFactory: ``
+- BeaconAmmV1Router: ``
+- ExponentialCurve: ``
+- LinearCurve: ``
