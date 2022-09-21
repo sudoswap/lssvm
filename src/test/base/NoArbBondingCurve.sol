@@ -350,8 +350,6 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
        assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
        // pair should have trade fee amount
        assertEq(getBalance(address(pair)), tradeFee);
-       // should track royalty earning
-       assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
     }
 
     function test_bondingCurveBuyRoyaltyAndProtocolFee(
@@ -429,7 +427,5 @@ abstract contract NoArbBondingCurve is DSTest, ERC721Holder, Configurable {
         assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
         // pair should have inputAmount - royaltyFee - protocolFee
         assertEq(getBalance(address(pair)), inputAmount - royaltyFee - protocolFee);
-        // should track royalty earning
-        assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
     }
 }

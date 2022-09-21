@@ -460,7 +460,5 @@ abstract contract RouterSinglePool is
         assertEq(getBalance(address(royaltyRecipient)), royaltyFee);
         // pair should have inputAmount - royaltyFee - protocolFee
         assertEq(getBalance(address(pair)), inputAmount - royaltyFee - protocolFee);
-        // should track royalty earning
-        assertEq(royaltyManager.getEarnings(address(pair.nft()), getTestToken()), royaltyFee);
     }
 }

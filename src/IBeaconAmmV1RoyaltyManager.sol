@@ -11,12 +11,7 @@ interface IBeaconAmmV1RoyaltyManager {
     function getCreator(address _nft) external view returns (address);
     function getFeeMultiplier(address _nft) external view returns (uint);
     function getFeeRecipient(address _nft) external view returns (address payable);
-    function getEarnings(address _nft, address _token) external view returns (uint);
     function isOperator(address _operator) external view returns (bool);
-
-    /* ========== MUTATIVE FUNCTIONS ========== */
-
-    function recordEarning(IBeaconAmmV1PairFactory.PairVariant variant, address _nft, address _token, uint _earned) external;
 
     /* ========== ADMIN FUNCTIONS ========== */
 

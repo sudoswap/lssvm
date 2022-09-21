@@ -56,14 +56,7 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
             }
             if (royaltyFee > 0) {
                 // no need to check manager is address(0) since royalty fee cannot be > 0 if so
-                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-                royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
-                royaltyManager.recordEarning(
-                    pairVariant(),
-                    address(nft()),
-                    address(0),
-                    royaltyFee
-                );
+                factory().royaltyManager().getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
             }
         }
     }
@@ -102,14 +95,7 @@ abstract contract BeaconAmmV1PairETH is BeaconAmmV1Pair {
             }
             if (royaltyFee > 0) {
                 // no need to check manager is address(0) since royalty fee cannot be > 0 if so
-                IBeaconAmmV1RoyaltyManager royaltyManager = factory().royaltyManager();
-                royaltyManager.getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
-                royaltyManager.recordEarning(
-                    pairVariant(),
-                    address(nft()),
-                    address(0),
-                    royaltyFee
-                );
+                factory().royaltyManager().getFeeRecipient(address(nft())).safeTransferETH(royaltyFee);
             }
         }
     }

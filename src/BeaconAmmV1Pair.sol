@@ -64,8 +64,8 @@ abstract contract BeaconAmmV1Pair is
     address payable public assetRecipient;
 
     // Events
-    event SwapNFTInPair();
-    event SwapNFTOutPair();
+    event SwapNFTInPair(uint256 swapOutTokenAmount, address tokenRecipient, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee);
+    event SwapNFTOutPair(uint256 swapInTokenAmount, address nftRecipient, uint256 protocolFee, uint256 tradeFee, uint256 royaltyFee);
     event SpotPriceUpdate(uint128 newSpotPrice);
     event TokenDeposit(uint256 amount);
     event TokenWithdrawal(uint256 amount);
@@ -192,7 +192,7 @@ abstract contract BeaconAmmV1Pair is
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapNFTOutPair();
+        emit SwapNFTOutPair(inputAmount, nftRecipient, protocolFee, tradeFee, royaltyFee);
     }
 
     /**
@@ -257,7 +257,7 @@ abstract contract BeaconAmmV1Pair is
 
         _refundTokenToSender(inputAmount);
 
-        emit SwapNFTOutPair();
+        emit SwapNFTOutPair(inputAmount, nftRecipient, protocolFee, tradeFee, royaltyFee);
     }
 
     /**
@@ -313,7 +313,7 @@ abstract contract BeaconAmmV1Pair is
 
         _takeNFTsFromSender(nft(), nftIds, _factory, isRouter, routerCaller);
 
-        emit SwapNFTInPair();
+        emit SwapNFTInPair(outputAmount, tokenRecipient, protocolFee, tradeFee, royaltyFee);
     }
 
     /**

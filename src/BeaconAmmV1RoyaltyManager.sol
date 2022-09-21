@@ -15,7 +15,6 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
         // Units are in base 1e18, example royal fee of 10% = 0.10e18 feeMultiplier
         uint feeMultiplier;
         address payable feeRecipient;
-        mapping(address => uint) earnings; // token to earnings
     }
 
     /* ========== STATE VARIABLES ========== */
@@ -46,25 +45,6 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     function getFeeRecipient(address _nft) external view override returns (address payable) {
         return royalties[_nft].feeRecipient;
-    }
-
-    function getEarnings(address _nft, address _token) external view override returns (uint) {
-        return royalties[_nft].earnings[_token];
-    }
-
-    /* ========== MUTATIVE FUNCTIONS ========== */
-
-    function recordEarning(
-        IBeaconAmmV1PairFactory.PairVariant variant,
-        address _nft,
-        address _token,
-        uint _earned
-    ) external
-      override {
-        // verify caller is a trusted pair contract
-        require(factory.isPair(msg.sender, variant), "Not pair");
-        royalties[_nft].earnings[_token] += _earned;
-        emit FeeEarned(msg.sender, _nft, _token, _earned);
     }
 
     /* ========== ADMIN FUNCTIONS ========== */
@@ -127,5 +107,4 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
     event RemoveOperator(address _operator);
     event SetCreator(address _nft, address _oldCreator, address _newCreator);
     event SetRoyaltyInfo(address _nft, uint _oldFeeMultiplier, uint _newFeeMultiplier, address _oldFeeRecipient, address _newFeeRecipient);
-    event FeeEarned(address _pair, address _nft, address _token, uint _earned);
 }
