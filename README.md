@@ -76,11 +76,15 @@ deploy to these networks
 
 ### Goerli
 
-- BeaconAmmV1PairEnumerableETH: ``
-- BeaconAmmV1PairMissingEnumerableETH: ``
-- BeaconAmmV1PairEnumerableERC20: ``
-- BeaconAmmV1PairMissingEnumerableERC20: ``
-- BeaconAmmV1PairFactory: ``
-- BeaconAmmV1Router: ``
-- ExponentialCurve: ``
-- LinearCurve: ``
+{
+  "DEPLOYER": "0x1277057C301c120aeC09Cf1a47eEf59993fA6F56",
+  "BeaconAmmV1PairEnumerableETH": "0x6f08339AEFA011872E32D89Ab03B67EEB9ee20A0",
+  "BeaconAmmV1PairMissingEnumerableETH": "0xDcEb908CA98483bCa04f00f45CA8518105fD5DC9",
+  "BeaconAmmV1PairEnumerableERC20": "0x7EA65Fb3D49299308C0D69D81f94129823B8092C",
+  "BeaconAmmV1PairMissingEnumerableERC20": "0xa0717e113275cbe5666299649D36a48625C70108",
+  "BeaconAmmV1PairFactory": "0x5e703991f17Cb8196E7aB682446e7D8a911Bf869",
+  "BeaconAmmV1Router": "0xceA94a45895eCcBc38Cf44faC2148912F3BF0873",
+  "ExponentialCurve": "0x993d49b33A47D7791720C73d4B707FDcD9a8d497",
+  "LinearCurve": "0xc1410471fB65F7152B170a6328031CAbcD5d8BF8",
+  "BeaconAmmV1RoyaltyManager": "0xcdDd4D80eB2cFC7D3ABcC9B067a592fC461E655d"
+}

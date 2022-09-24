@@ -76,6 +76,9 @@ deploy() {
 	# estimate gas
 	GAS=$(seth estimate --create "$BYTECODE" "$SIG" $ARGS --rpc-url "$ETH_RPC_URL")
 
+	# wait for it to launch (can't go <3s)
+	sleep 10
+
 	# deploy
 	ADDRESS=$(dapp create "$NAME" $ARGS -- --gas "$GAS" --rpc-url "$ETH_RPC_URL")
 

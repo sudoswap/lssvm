@@ -43,6 +43,14 @@ log "Whitelisted exponential curve in factory"
 send $BeaconAmmV1PairFactoryAddr "setBondingCurveAllowed(address,bool)" $LinearCurveAddr true
 log "Whitelisted linear curve in factory"
 
+# Deploy royalty manager
+BeaconAmmV1RoyaltyManagerAddr=$(deploy BeaconAmmV1RoyaltyManager $BeaconAmmV1PairFactoryAddr)
+log "BeaconAmmV1RoyaltyManager deployed at:" $BeaconAmmV1RoyaltyManagerAddr
+
+# Add royalty manager in factory
+send $BeaconAmmV1PairFactoryAddr "setRoyaltyManager(address)" $BeaconAmmV1RoyaltyManagerAddr
+log "Added royalty manager in factory"
+
 # Transfer factory ownership to admin
 send $BeaconAmmV1PairFactoryAddr "transferOwnership(address)" $ADMIN
 log "Transferred factory ownership to:" $ADMIN
