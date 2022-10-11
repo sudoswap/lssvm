@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {PNMBase} from "./PNMBase.sol";
 import {BaseRouterRobustSwap} from "../../base/BaseRouterRobustSwap.sol";
 
-abstract contract RouterRobustSwap is PNMBase, BaseRouterRobustSwap {
+abstract contract PNMRouterRobustSwap is PNMBase, BaseRouterRobustSwap {
     function setUp() public override {
         super.setUp();
         targetPair = pair1;
