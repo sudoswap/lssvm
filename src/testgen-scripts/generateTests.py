@@ -6,6 +6,8 @@ CURVE_TYPE = ['ExponentialCurve', 'LinearCurve']
 TOKEN_TYPE = ['ETH', 'ERC20']
 FILE_OUT_PATH_BASE = '../test/test-cases/'
 PNM_FILE_OUT_PATH_BASE = '../test/PNM/'
+NEXT_LINE_WITH_INDENT = """
+    """
 
 def writeToFiles(path, content):
 	f = open(path, "w")
@@ -28,7 +30,12 @@ def generateAllTests(base_test, prefix):
 				content += f"import {{{file_curve_type}}} from \"../mixins/{file_curve_type}.sol\";\n"
 				content += f"import {{{file_enumerable_type}}} from \"../mixins/{file_enumerable_type}.sol\";\n"
 				content += f"import {{{file_token_type}}} from \"../mixins/{file_token_type}.sol\";\n\n"
-				content += f"contract {file_name}Test is {base_test}, {file_curve_type}, {file_enumerable_type}, {file_token_type} {{}}\n"
+				content += f"""contract {file_name}Test is
+    {base_test},
+    {file_curve_type},
+    {file_enumerable_type},
+    {file_token_type}
+{{}}\n"""
 
 				writeToFiles(file_path, content)
 
@@ -49,7 +56,12 @@ def generateAllPNMTests(base_test, prefix):
 				content += f"import {{{file_curve_type}}} from \"../mixins/{file_curve_type}.sol\";\n"
 				content += f"import {{{file_enumerable_type}}} from \"../mixins/{file_enumerable_type}.sol\";\n"
 				content += f"import {{{file_token_type}}} from \"../mixins/{file_token_type}.sol\";\n\n"
-				content += f"contract {file_name}Test is {base_test}, {file_curve_type}, {file_enumerable_type}, {file_token_type} {{}}\n"
+				content += f"""contract {file_name}Test is
+    {base_test},
+    {file_curve_type},
+    {file_enumerable_type},
+    {file_token_type}
+{{}}\n"""
 
 				writeToFiles(file_path, content)
 
