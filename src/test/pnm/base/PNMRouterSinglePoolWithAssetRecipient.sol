@@ -11,5 +11,6 @@ abstract contract PNMRouterSinglePoolWithAssetRecipient is
     function setUp() public override {
         super.setUp();
         targetPair = sellPair;
+        useDefaultAgent();
     }
 }

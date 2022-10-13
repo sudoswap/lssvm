@@ -11,5 +11,6 @@ abstract contract PNMRouterRobustSwapWithAssetRecipient is
     function setUp() public override {
         super.setUp();
         targetPair = sellPair1;
+        useDefaultAgent();
     }
 }

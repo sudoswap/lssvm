@@ -9,5 +9,6 @@ abstract contract PNMRouterMultiPool is PNMBase, BaseRouterMultiPool {
     function setUp() public override {
         super.setUp();
         targetPair = pairs[0];
+        useDefaultAgent();
     }
 }

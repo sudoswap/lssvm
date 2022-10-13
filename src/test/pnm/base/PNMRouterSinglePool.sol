@@ -8,5 +8,6 @@ abstract contract PNMRouterSinglePool is PNMBase, BaseRouterSinglePool {
     function setUp() public override {
         super.setUp();
         targetPair = pair;
+        useDefaultAgent();
     }
 }

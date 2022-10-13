@@ -8,5 +8,6 @@ abstract contract PNMPairAndFactory is PNMBase, BasePairAndFactory {
     function setUp() public override {
         super.setUp();
         targetPair = pair;
+        useDefaultAgent();
     }
 }
