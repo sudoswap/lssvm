@@ -86,5 +86,5 @@ deploy to these networks
   "BeaconAmmV1Router": "0xceA94a45895eCcBc38Cf44faC2148912F3BF0873",
   "ExponentialCurve": "0x993d49b33A47D7791720C73d4B707FDcD9a8d497",
   "LinearCurve": "0xc1410471fB65F7152B170a6328031CAbcD5d8BF8",
-  "BeaconAmmV1RoyaltyManager": "0xcdDd4D80eB2cFC7D3ABcC9B067a592fC461E655d"
+  "BeaconAmmV1RoyaltyManager": "0xb1a05b4dceded5e37ab2b2c45b9a3b50f8603448"
 }

@@ -25,6 +25,7 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     uint public maxFeeMultiplier;
     mapping(address => Royalty) public royalties; // NFT to royalty info
+    mapping(address => address[]) public creatorCollections; // mapping of creators to their collections
 
     /* ========== CONSTUCTOR ========== */
 
@@ -45,6 +46,10 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     function getFeeRecipient(address _nft) external view override returns (address payable) {
         return royalties[_nft].feeRecipient;
+    }
+
+    function getCreatorCollections(address _creator) external view override returns (address[] memory) {
+        return creatorCollections[_creator];
     }
 
     /* ========== ADMIN FUNCTIONS ========== */
@@ -70,12 +75,41 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
         emit RemoveOperator(_operator);
     }
 
-    function setCreator(address _nft, address _creator) external override onlyOperator {
+    function addCreator(address _nft, address _creator) external override onlyOperator {
+        _addCreator(_nft, _creator);
+    }
+
+    function _addCreator(address _nft, address _creator) internal {
         require(_nft != address(0), "invalid NFT");
         require(_creator != address(0), "invalid creator");
-        address oldCreator = royalties[_nft].creator;
         royalties[_nft].creator = _creator;
-        emit SetCreator(_nft, oldCreator, _creator);
+        creatorCollections[_creator].push(_nft);
+        emit AddCreator(_nft, _creator);
+    }
+
+    function removeCreator(address _nft) external override onlyOperator {
+        _removeCreator(_nft);
+    }
+
+    function _removeCreator(address _nft) internal {
+        require(_nft != address(0), "invalid NFT");
+        address creator = royalties[_nft].creator;
+        require(creator != address(0), "no creatored added");
+        royalties[_nft].creator = address(0);
+        uint256 totalCollections = creatorCollections[creator].length;
+        for (uint i=0; i<totalCollections; i++) {
+            if (creatorCollections[creator][i] == _nft) {
+                creatorCollections[creator][i] = creatorCollections[creator][totalCollections - 1];
+                creatorCollections[creator].pop();
+                break;
+            }
+        }
+        emit RemoveCreator(_nft, creator);
+    }
+
+    function transferCreator(address _nft, address _newCreator) external override onlyCreator(_nft) {
+        _removeCreator(_nft);
+        _addCreator(_nft, _newCreator);
     }
 
     function setRoyaltyInfo(address _nft, uint _feeMultiplier, address payable _feeRecipient) external override onlyCreator(_nft) {
@@ -105,6 +139,7 @@ contract BeaconAmmV1RoyaltyManager is IBeaconAmmV1RoyaltyManager, Ownable {
 
     event AddOperator(address _operator);
     event RemoveOperator(address _operator);
-    event SetCreator(address _nft, address _oldCreator, address _newCreator);
+    event AddCreator(address _nft, address _creator);
+    event RemoveCreator(address _nft, address _creator);
     event SetRoyaltyInfo(address _nft, uint _oldFeeMultiplier, uint _newFeeMultiplier, address _oldFeeRecipient, address _newFeeRecipient);
 }

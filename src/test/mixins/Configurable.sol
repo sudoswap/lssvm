@@ -19,7 +19,7 @@ abstract contract Configurable {
     ) public returns (BeaconAmmV1RoyaltyManager) {
         BeaconAmmV1RoyaltyManager royaltyManager = new BeaconAmmV1RoyaltyManager(_factory);
         royaltyManager.addOperator(address(this));
-        royaltyManager.setCreator(_nft, address(this));
+        royaltyManager.addCreator(_nft, address(this));
         royaltyManager.setRoyaltyInfo(_nft, _feeMultiplier, _feeRecipient);
         return royaltyManager;
     }
