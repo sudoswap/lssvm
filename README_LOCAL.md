@@ -1,15 +1,31 @@
 # Installation
 
 ## Requirements
+`make`, `node`, `npm`, `yarn`, `jq`
 
-#### Install Forge
+### Install Forge
 https://github.com/foundry-rs/foundry/blob/master/README.md
 
-#### Install Nix
+Requires: `curl` and `git`
+
+### Install Nix
 https://nixos.org/download.html
 
-#### Install Dapptools
+Requires: `xz-utils`
+
+Choose single user installation for simplicity.
+
+
+### Install Dapptools
 https://github.com/dapphub/dapptools
+
+
+### Preparation
+Please make sure your wallet is in you keystore. If you have to import a private key string, use the `ethsign` command.
+```
+ethsign import
+```
+Make sure that you set a passphrase and save the passphrase to a `password.txt` file in the root of this project directory.
 
 
 Once these packages are installed, please copy `.env.local` into `.env`. And set your preferred wallet address and keystores.
@@ -34,10 +50,3 @@ make deploy
 ```
 
 Once deployed, all the addresses are saved in `out/addresses.json` file.
-
-## Notes:
-To import your custom private key string into your keystore, please use the `ethsign` command.
-```
-ethsign import
-```
-Make sure that you set a passphrase and save the passphrase to a `password.txt` file in the root of this project directory.
