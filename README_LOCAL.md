@@ -43,6 +43,8 @@ export ETH_KEYSTORE_FILE=/home/[YOUR_USERNAME]/.ethereum/keystore/UTC--****--[YO
 ```
 
 ## Deployment
+
+### Contracts
 ```
 make
 make build
@@ -50,3 +52,9 @@ make deploy
 ```
 
 Once deployed, all the addresses are saved in `out/addresses.json` file.
+
+### Fake Router and Test tokens (ERC20, ERC721, ERC721Enumerable)
+```
+make deploy_extra
+```
+Once deployed, all token and router addresses are saved in `out/addresses_extra.json` file. This should be executed after contracts deployment above.
