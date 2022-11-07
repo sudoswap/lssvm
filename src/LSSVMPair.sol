@@ -108,6 +108,14 @@ abstract contract LSSVMPair is
         spotPrice = _spotPrice;
     }
 
+    modifier swapAllowed() {
+        require(
+            ILSSVMPairFactoryLike(factory()).swapAllowed(msg.sender),
+            "swap not allowed"
+        );
+        _;
+    }
+
     /**
      * External state-changing functions
      */
@@ -132,7 +140,14 @@ abstract contract LSSVMPair is
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
+    )
+        external
+        payable
+        virtual
+        nonReentrant
+        swapAllowed
+        returns (uint256 inputAmount)
+    {
         // Store locally to remove extra calls
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
@@ -196,7 +211,14 @@ abstract contract LSSVMPair is
         address nftRecipient,
         bool isRouter,
         address routerCaller
-    ) external payable virtual nonReentrant returns (uint256 inputAmount) {
+    )
+        external
+        payable
+        virtual
+        nonReentrant
+        swapAllowed
+        returns (uint256 inputAmount)
+    {
         // Store locally to remove extra calls
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
@@ -254,7 +276,7 @@ abstract contract LSSVMPair is
         address payable tokenRecipient,
         bool isRouter,
         address routerCaller
-    ) external virtual nonReentrant returns (uint256 outputAmount) {
+    ) external virtual nonReentrant swapAllowed returns (uint256 outputAmount) {
         // Store locally to remove extra calls
         ILSSVMPairFactoryLike _factory = factory();
         ICurve _bondingCurve = bondingCurve();
