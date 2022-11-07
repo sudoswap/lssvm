@@ -5,7 +5,8 @@
 install: update npm solc
 
 # deps
-update:; forge update
+update:; forge update && \
+	cd lib/solmate && git checkout v6 && cd - # fix solmate version issue
 
 # npm deps for linting etc.
 npm:; yarn install
