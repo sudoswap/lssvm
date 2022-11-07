@@ -29,6 +29,7 @@ test-deploy :; ./scripts/test-deploy.sh
 
 # Deployment helpers
 deploy :; @./scripts/deploy.sh
+deploy_extra :; @./scripts/deploy_extra.sh
 
 # mainnet
 deploy-mainnet: export ETH_RPC_URL = $(call network,mainnet)
