@@ -44,6 +44,18 @@ export ETH_KEYSTORE_FILE=/home/[YOUR_USERNAME]/.ethereum/keystore/UTC--****--[YO
 
 ## Deployment
 
+### Local RPC Node
+
+We recommend you to use `anvil` that comes with foundry during forge installation. Create a fork of mainnet and deploy a local node.
+
+```bash
+anvil \
+    --fork-url https://rpc.ankr.com/eth \
+    --chain-id 31337 \
+    --block-time 3 \
+    --block-base-fee-per-gas 1000000000
+```
+
 ### Contracts
 ```
 make
