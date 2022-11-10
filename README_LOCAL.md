@@ -21,6 +21,19 @@ https://github.com/dapphub/dapptools
 
 
 ### Preparation
+### Local RPC Node
+
+We recommend you to use `anvil` that comes with foundry during forge installation. Create a fork of mainnet and deploy a local node.
+
+```bash
+anvil \
+    --fork-url https://rpc.ankr.com/eth \
+    --chain-id 31337 \
+    --block-time 3 \
+    --block-base-fee-per-gas 1000000000
+```
+It will list default wallets that has balances. You can import one of them into your keystore and use it as a deployer to deploy contracts.
+
 Please make sure your wallet is in you keystore. If you have to import a private key string, use the `ethsign` command.
 ```
 ethsign import
@@ -40,21 +53,10 @@ export ETH_GAS_PRICE=1000000000
 export ETH_KEYSTORE=/home/[YOUR_USERNAME]/.ethereum/keystore      # your keystore directory used by ethsign/seth commands, should contain your $ETH_KEYSTORE_FILE
 export ETH_PASSWORD=password.txt                                  # passphrase of your $ETH_KEYSTORE_FILE wallet
 export ETH_KEYSTORE_FILE=/home/[YOUR_USERNAME]/.ethereum/keystore/UTC--****--[YOUR_WALLET_ADDRESS]
+export ROYALTY_RECIPIENT=[YOUR_ROYALTY_RECIPIENT_ADDRESS] # Royalty recipient for Test NFTs
 ```
 
 ## Deployment
-
-### Local RPC Node
-
-We recommend you to use `anvil` that comes with foundry during forge installation. Create a fork of mainnet and deploy a local node.
-
-```bash
-anvil \
-    --fork-url https://rpc.ankr.com/eth \
-    --chain-id 31337 \
-    --block-time 3 \
-    --block-base-fee-per-gas 1000000000
-```
 
 ### Contracts
 ```
