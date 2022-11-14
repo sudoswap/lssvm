@@ -3,3 +3,4 @@
 ds-test/=lib/ds-test/src/
 solmate/=lib/solmate/src/
 @pwnednomore/contracts/=node_modules/@pwnednomore/contracts/
+forge-std/=node_modules/@pwnednomore/contracts/lib/forge-std/src/

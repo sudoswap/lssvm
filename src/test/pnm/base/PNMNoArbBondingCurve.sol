@@ -9,14 +9,15 @@ abstract contract PNMNoArbBondingCurve is PNMBase, BaseNoArbBondingCurve {
     function setUp() public override {
         super.setUp();
         _initPair();
+        agent = getAgent();
     }
 
     function _initPair() internal {
         address owner = address(0x1011);
 
-        uint56 spotPrice = 10 gwei;
-        uint64 delta = 10;
-        uint8 numItems = 3;
+        uint56 spotPrice = modifySpotPrice(500 gwei);
+        uint64 delta = modifyDelta(1.1 ether);
+        uint8 numItems = 2;
 
         delete idList;
 
@@ -62,20 +63,22 @@ abstract contract PNMNoArbBondingCurve is PNMBase, BaseNoArbBondingCurve {
 
             // give the pair contract enough tokens to pay for the NFTs
             sendTokens(targetPair, outputAmount + protocolFee);
-
-            // sell NFTs
-            test721.setApprovalForAll(address(targetPair), true);
-            targetPair.swapNFTsForToken(
-                idList,
-                0,
-                payable(address(this)),
-                false,
-                address(0)
+            require(
+                address(targetPair).balance >= outputAmount + protocolFee,
+                "pair should have enough eth"
             );
-            spotPrice = uint56(newSpotPrice);
+
+            // // sell NFTs
+            // test721.setApprovalForAll(address(targetPair), true);
+            // targetPair.swapNFTsForToken(
+            //     idList,
+            //     0,
+            //     payable(address(this)),
+            //     false,
+            //     address(0)
+            // );
+            // spotPrice = uint56(newSpotPrice);
         }
         vm.stopPrank();
-
-        useDefaultAgent();
     }
 }

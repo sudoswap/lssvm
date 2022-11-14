@@ -23,10 +23,10 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@pwnednomore/contracts@^0.2.0":
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/@pwnednomore/contracts/-/contracts-0.2.2.tgz#1ab21f0b69e7ca3da24e9c3297aaab98f1ca61a3"
-  integrity sha512-M6pVgA8mg7P5oxO/eEs97Z0TWbu7HKHry7RkNtgWIzX5JdEV1iZ69ZMxs2Q9kOeU20uUEVQGtG3rq2r0S5u3Lw==
+"@pwnednomore/contracts@^0.2.12":
+  version "0.2.12"
+  resolved "https://registry.yarnpkg.com/@pwnednomore/contracts/-/contracts-0.2.12.tgz#fe9e972ddefb2e5a09865f1a15689bc3ed14128d"
+  integrity sha512-KDB2g8u6EJnF4A1bPz5GsGAmTzIvHf4njohrL1itoACARLNDavweiLikDHoIU5tz6PUMklxyICzCq4ZTTxa5Ow==
 
 "@solidity-parser/parser@^0.13.2":
   version "0.13.2"

@@ -6,6 +6,7 @@ import {LSSVMPair} from "../../../LSSVMPair.sol";
 
 abstract contract PNMBase is PTest {
     LSSVMPair targetPair;
+    address agent;
 
     // test if there's a way for someone that is not the pool owner to withdraw
     // either ETH or NFTs deposited into a pool

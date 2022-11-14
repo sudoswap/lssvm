@@ -8,6 +8,6 @@ abstract contract PNMRouterRobustSwap is PNMBase, BaseRouterRobustSwap {
     function setUp() public override {
         super.setUp();
         targetPair = pair1;
-        useDefaultAgent();
+        agent = getAgent();
     }
 }
