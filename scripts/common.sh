@@ -53,9 +53,44 @@ cat >"$ADDRESSES_FILE" <<EOF
 }
 EOF
 
+deploy() {
+	NAME=$1
+	ARGS=(${@:2})
+
+	local flags=("--json")
+
+	flags+=("--rpc-url $ETH_RPC_URL")
+
+	if [ "$LEGACY_TX" != "" ]; then
+		flags+=("--legacy")
+	fi
+
+	if [ "$ETH_PRIVATE_KEY" != "" ]; then
+		flags+=("--private-key" "$ETH_PRIVATE_KEY")
+	elif [ "$ETH_KEYSTORE_FILE" != "" ]; then
+		flags+=("--keystore" "$ETH_KEYSTORE_FILE")
+		if [ "$ETH_PASSWORD" != "" ]; then
+			flags+=("--password" "$(cat $ETH_PASSWORD)")
+		fi
+	elif [ "$ETH_RPC_ACCOUNTS" != "" ]; then
+		flags+=("--unlocked")
+	fi
+
+	if [ "${#ARGS[@]}" != 0 ]; then
+		flags+=("--constructor-args")
+		flags+=(${ARGS[@]})
+	fi
+
+	ADDRESS=$(forge create ${flags[@]} -- "$NAME" | jq -r .deployedTo)
+
+	saveContract "$NAME" "$ADDRESS"
+
+	echo "$ADDRESS"
+}
+
 # Call as `ETH_FROM=0x... ETH_RPC_URL=<url> deploy ContractName arg1 arg2 arg3`
 # (or omit the env vars if you have already set them)
-deploy() {
+_deploy() {
 	NAME=$1
 	ARGS=${@:2}
 

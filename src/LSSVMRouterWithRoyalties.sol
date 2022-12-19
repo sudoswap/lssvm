@@ -36,8 +36,9 @@ contract LSSVMRouterWithRoyalties is LSSVMRouter {
         uint256 royaltyAmount
     );
 
-    IRoyaltyRegistry public constant ROYALTY_REGISTRY =
-        IRoyaltyRegistry(0xaD2184FB5DBcfC05d8f056542fB25b04fa32A95D);
+    // IRoyaltyRegistry public constant ROYALTY_REGISTRY =
+    //     IRoyaltyRegistry(0xaD2184FB5DBcfC05d8f056542fB25b04fa32A95D);
+    IRoyaltyRegistry public ROYALTY_REGISTRY = IRoyaltyRegistry(address(0));
 
     uint256 public immutable FETCH_TOKEN_ID;
 
@@ -45,6 +46,18 @@ contract LSSVMRouterWithRoyalties is LSSVMRouter {
         // used to query the default royalty for a NFT collection
         // allows collection owner to set a particular royalty for this router
         FETCH_TOKEN_ID = uint256(keccak256(abi.encode(address(this))));
+    }
+
+    function initializeRoyaltyRegistry(address _royaltyRegistry) external {
+        if (address(ROYALTY_REGISTRY) == address(0)) {
+            if (_royaltyRegistry == address(0)) {
+                ROYALTY_REGISTRY = IRoyaltyRegistry(
+                    0xaD2184FB5DBcfC05d8f056542fB25b04fa32A95D // mainnet
+                );
+            } else {
+                ROYALTY_REGISTRY = IRoyaltyRegistry(_royaltyRegistry);
+            }
+        }
     }
 
     function supportsRoyalty(address collection) external view returns (bool) {

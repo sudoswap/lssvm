@@ -157,4 +157,13 @@ abstract contract LSSVMPairERC20 is LSSVMPair {
             emit TokenWithdrawal(amount);
         }
     }
+
+    function depositERC20(ERC20 a, uint256 amount) external {
+        a.safeTransferFrom(msg.sender, address(this), amount);
+
+        if (a == token()) {
+            // emit event since it is the pair token
+            emit TokenDeposit(amount);
+        }
+    }
 }

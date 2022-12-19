@@ -112,14 +112,19 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
             bondingCurveAllowed[_bondingCurve],
             "Bonding curve not whitelisted"
         );
-        
+
         // Check to see if the NFT supports Enumerable to determine which template to use
         address template;
-        try IERC165(address(_nft)).supportsInterface(INTERFACE_ID_ERC721_ENUMERABLE) returns (bool isEnumerable) {
-          template = isEnumerable ? address(enumerableETHTemplate)
-            : address(missingEnumerableETHTemplate);
+        try
+            IERC165(address(_nft)).supportsInterface(
+                INTERFACE_ID_ERC721_ENUMERABLE
+            )
+        returns (bool isEnumerable) {
+            template = isEnumerable
+                ? address(enumerableETHTemplate)
+                : address(missingEnumerableETHTemplate);
         } catch {
-          template = address(missingEnumerableETHTemplate);
+            template = address(missingEnumerableETHTemplate);
         }
 
         pair = LSSVMPairETH(
@@ -185,11 +190,16 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
 
         // Check to see if the NFT supports Enumerable to determine which template to use
         address template;
-        try IERC165(address(params.nft)).supportsInterface(INTERFACE_ID_ERC721_ENUMERABLE) returns (bool isEnumerable) {
-          template = isEnumerable ? address(enumerableERC20Template)
-            : address(missingEnumerableERC20Template);
+        try
+            IERC165(address(params.nft)).supportsInterface(
+                INTERFACE_ID_ERC721_ENUMERABLE
+            )
+        returns (bool isEnumerable) {
+            template = isEnumerable
+                ? address(enumerableERC20Template)
+                : address(missingEnumerableERC20Template);
         } catch {
-          template = address(missingEnumerableERC20Template);
+            template = address(missingEnumerableERC20Template);
         }
 
         pair = LSSVMPairERC20(
@@ -216,6 +226,15 @@ contract LSSVMPairFactory is Ownable, ILSSVMPairFactoryLike {
             params.initialTokenBalance
         );
         emit NewPair(address(pair));
+    }
+
+    /**
+        @notice Checks if swap is allows for given caller. Used by LLSVMPair to only serve allowed callers
+        @param caller The address of swap function caller
+        @return True if the address is allows to execute swaps in LSSVMPair contract, false otherwise
+     */
+    function swapAllowed(address caller) external view override returns (bool) {
+        return routerStatus[LSSVMRouter(payable(caller))].allowed;
     }
 
     /**

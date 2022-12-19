@@ -17,6 +17,8 @@ interface ILSSVMPairFactoryLike {
 
     function callAllowed(address target) external view returns (bool);
 
+    function swapAllowed(address caller) external view returns (bool);
+
     function routerStatus(LSSVMRouter router)
         external
         view

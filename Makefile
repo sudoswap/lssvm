@@ -5,7 +5,8 @@
 install: update npm solc
 
 # deps
-update:; forge update
+update:; forge update && \
+	cd lib/solmate && git checkout v6 && cd - # fix solmate version issue
 
 # npm deps for linting etc.
 npm:; yarn install
@@ -28,6 +29,7 @@ test-deploy :; ./scripts/test-deploy.sh
 
 # Deployment helpers
 deploy :; @./scripts/deploy.sh
+deploy_extra :; @./scripts/deploy_extra.sh
 
 # mainnet
 deploy-mainnet: export ETH_RPC_URL = $(call network,mainnet)
