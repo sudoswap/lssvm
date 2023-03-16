@@ -5,6 +5,7 @@ import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import "forge-std/Test.sol";
 
 /*
     @author 0xmons and boredGenius
@@ -14,6 +15,9 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 contract GDACurve is ICurve, CurveErrorCodes {
     using PRBMathUD60x18 for uint256;
     using FixedPointMathLib for uint256;
+
+    uint256 internal constant _HALF_SCALE = 1e9;
+    uint128 internal constant _BITMASK_TIMESTAMP = (1 << 48) - 1;
 
     // minimum price to prevent numerical issues
     uint256 public constant MIN_PRICE = 1 gwei;
@@ -70,29 +74,32 @@ contract GDACurve is ICurve, CurveErrorCodes {
             return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
-        (uint256 alpha, , ) = _parseDelta(delta);
+        uint256 spotPrice_ = uint256(spotPrice);
 
+        (uint256 alpha, , ) = _parseDelta(delta);
         uint256 alphaPowN = uint256(alpha).fpow(
             numItems,
             FixedPointMathLib.WAD
         );
 
-        // For an exponential curve, the spot price is multiplied by alpha for each item bought
-        {
-            uint256 newSpotPrice_ = uint256(spotPrice).fmul(
-                alphaPowN,
-                FixedPointMathLib.WAD
-            );
-            if (newSpotPrice_ > type(uint128).max) {
-                return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0);
-            }
-            newSpotPrice = uint128(newSpotPrice_);
-        }
-
         uint256 decayFactor;
         {
             (, uint256 lambda, uint256 startTime) = _parseDelta(delta);
             decayFactor = ((block.timestamp - startTime) * lambda).exp();
+        }
+
+        // The new spot price is multiplied by alpha^n and divided by the time decay so future
+        // calculations do not need to track number of items sold or T_0.
+        {
+            uint256 newSpotPrice_ = spotPrice_.fmul(
+                alphaPowN,
+                FixedPointMathLib.WAD
+            );
+            newSpotPrice_ = newSpotPrice_.fdiv(decayFactor, FixedPointMathLib.WAD);
+            if (newSpotPrice_ > type(uint128).max) {
+                return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0);
+            }
+            newSpotPrice = uint128(newSpotPrice_);
         }
 
         // Spot price is assumed to be the instant sell price. To avoid arbitraging LPs, we adjust the buy price upwards.
@@ -109,27 +116,29 @@ contract GDACurve is ICurve, CurveErrorCodes {
         // buySpotPrice + (alpha * buySpotPrice) + (alpha^2 * buySpotPrice) + ... (alpha^(numItems - 1) * buySpotPrice)
         // This is equal to buySpotPrice * (alpha^n - 1) / (alpha - 1)
         // We then divide the value by e^(lambda * timeElapsed) to factor in the exponential decay
-        inputValue = uint256(spotPrice).fmul(alpha, FixedPointMathLib.WAD);
-        inputValue = inputValue.fmul(
-            (alphaPowN - FixedPointMathLib.WAD),
-            alpha - FixedPointMathLib.WAD
-        );
-        inputValue = inputValue.fdiv(decayFactor, FixedPointMathLib.WAD);
+        // inputValue = uint256(spotPrice).fmul(alpha, FixedPointMathLib.WAD);
+        {
+            inputValue = spotPrice_.fmul(
+                (alphaPowN - FixedPointMathLib.WAD),
+                alpha - FixedPointMathLib.WAD
+            );
+            inputValue = inputValue.fdiv(decayFactor, FixedPointMathLib.WAD);
 
-        // Account for the protocol fee, a flat percentage of the buy amount
-        protocolFee = inputValue.fmul(
-            protocolFeeMultiplier,
-            FixedPointMathLib.WAD
-        );
+            // Account for the protocol fee, a flat percentage of the buy amount
+            protocolFee = inputValue.fmul(
+                protocolFeeMultiplier,
+                FixedPointMathLib.WAD
+            );
 
-        // Account for the trade fee, only for Trade pools
-        inputValue += inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
+            // Account for the trade fee, only for Trade pools
+            inputValue += inputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
 
-        // Add the protocol fee to the required input amount
-        inputValue += protocolFee;
+            // Add the protocol fee to the required input amount
+            inputValue += protocolFee;
+        }
 
-        // Keep delta the same
-        newDelta = delta;
+        // Update delta with the current timestamp
+        newDelta = _getNewDelta(delta);
 
         // If we got all the way here, no math error happened
         error = Error.OK;
@@ -173,7 +182,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
         uint256 invAlphaPowN = invAlpha.fpow(numItems, FixedPointMathLib.WAD);
 
-        // For an exponential curve, the spot price is divided by alpha for each item sold
+        // For a GDA curve, the spot price is divided by alpha for each item sold
         // safe to convert newSpotPrice directly into uint128 since we know newSpotPrice <= spotPrice
         // and spotPrice <= type(uint128).max
         newSpotPrice = uint128(
@@ -211,8 +220,8 @@ contract GDACurve is ICurve, CurveErrorCodes {
         // Remove the protocol fee from the output amount
         outputValue -= protocolFee;
 
-        // Keep delta the same
-        newDelta = delta;
+        // Update delta with the current timestamp
+        newDelta = _getNewDelta(delta);
 
         // If we got all the way here, no math error happened
         error = Error.OK;
@@ -222,24 +231,31 @@ contract GDACurve is ICurve, CurveErrorCodes {
         internal
         pure
         returns (
-            uint40 alpha,
-            uint40 lambda,
-            uint48 startTime
+            uint256 alpha,
+            uint256 lambda,
+            uint256 startTime
         )
     {
         // the highest 40 bits are alpha
         // which is the same as delta in ExponentialCurve
-        alpha = uint40(delta >> 88);
+        alpha = uint40(delta >> 88) * _HALF_SCALE;
 
-        // the lower 40 bits are lambda
+        // the middle 40 bits are lambda
         // lambda determines the exponential decay over time
         // see https://www.paradigm.xyz/2022/04/gda
-        lambda = uint40(delta >> 48);
+        lambda = uint40(delta >> 48) * _HALF_SCALE;
 
         // the lowest 48 bits are the start timestamp
         // this works because solidity cuts off higher bits when converting
         // from a larger type to a smaller type
         // see https://docs.soliditylang.org/en/latest/types.html#explicit-conversions
-        startTime = uint48(delta);
+        startTime = uint256(uint48(delta));
+    }
+
+    function _getNewDelta(uint128 delta) internal view returns (uint128) {
+        // Clear lower 48 bits
+        delta = (delta >> 48) << 48;
+        // Set lower 48 bits to be the current timestamp
+        return delta | uint48(block.timestamp);
     }
 }
