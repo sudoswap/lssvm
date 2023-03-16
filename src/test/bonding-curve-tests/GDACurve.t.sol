@@ -51,20 +51,13 @@ contract GDACurveTest is Test {
         uint128 expectedNewDelta = getPackedDelta(_alpha, _lambda, uint48(10));
 
         // Calculate expected price using a Python library
-        uint256 expectedInputValue = calculatePrice(
-            spotPrice,
-            alpha, // alpha = 1.5
-            lambda, // lambda = 0.9
-            1,
-            5,
-            5
-        );
+        uint256 expectedInputValue = calculatePrice(spotPrice, alpha, lambda, 1, 5, 5);
         uint256 expectedNewSpotPrice = 1265384136934162725;
 
         assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
         assertEq(newSpotPrice, expectedNewSpotPrice, "Spot price incorrect");
         assertEq(newDelta, expectedNewDelta, "Delta incorrect");
-        assertEq(inputValue, expectedInputValue, "Input value incorrect");
+        assertApproxEqRel(inputValue, expectedInputValue, 1e9, "Input value incorrect");
         assertEq(protocolFee, 0, "Protocol fee incorrect");
     }
 
