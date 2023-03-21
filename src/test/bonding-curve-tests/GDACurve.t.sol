@@ -54,7 +54,7 @@ contract GDACurveTest is Test {
             adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
         }
 
-        // Checks outputs against Python script
+        // Check outputs against Python script
         {
             uint128 numItemsToBuy = 5;
             (
@@ -83,10 +83,11 @@ contract GDACurveTest is Test {
             delta = newDelta;
         }
 
-        // Adjust time
+        // Move time forward
         vm.warp(t2);
         expectedNewDelta = getPackedDelta(uint48(t2));
 
+        // Validate that the new values are correct
         {
             uint128 numItemsToBuy = 2;
             (CurveErrorCodes.Error error, uint128 newSpotPrice, uint128 newDelta, uint256 inputValue,) =
@@ -98,8 +99,6 @@ contract GDACurveTest is Test {
             uint256 expectedInputValue = calculateValue("exp_discrete", args);
             uint256 expectedNewSpotPrice = calculateValue("calculate_new_spot_price", args);
 
-            console.log(expectedNewSpotPrice);
-
             assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
             assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
             assertEq(newDelta, expectedNewDelta, "Delta incorrect");
@@ -107,7 +106,52 @@ contract GDACurveTest is Test {
         }
     }
 
-    // call out to python script for price computation
+    function test_getBuyInfoFuzz(uint48 t1) public {
+        t1 = uint48(bound(t1, 1, type(uint32).max));
+        uint48 t0 = 0;
+        vm.warp(t1);
+
+        uint128 delta = getPackedDelta(t0);
+        uint128 expectedNewDelta = getPackedDelta(uint48(t1));
+        uint128 numItemsAlreadyPurchased = 0;
+        uint128 initialPrice = 10 ether;
+        uint128 adjustedSpotPrice;
+        {
+            uint256 alphaPowM = alpha.powu(numItemsAlreadyPurchased);
+            adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
+        }
+
+        // Check outputs against Python script
+        {
+            uint128 numItemsToBuy = 5;
+            (
+                CurveErrorCodes.Error error,
+                uint128 newSpotPrice,
+                uint128 newDelta,
+                uint256 inputValue,
+                uint256 protocolFee
+            ) = curve.getBuyInfo(adjustedSpotPrice, delta, numItemsToBuy, 0, 0);
+
+            uint48 tDelta = t1 - t0;
+            ScriptArgs memory args =
+                ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadyPurchased, tDelta, numItemsToBuy);
+            uint256 expectedInputValue = calculateValue("exp_discrete", args);
+            uint256 expectedNewSpotPrice = calculateValue("calculate_new_spot_price", args);
+
+            assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+            assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
+            assertEq(newDelta, expectedNewDelta, "Delta incorrect");
+            assertApproxEqRel(inputValue, expectedInputValue, 1e9, "Input value incorrect");
+            assertEq(protocolFee, 0, "Protocol fee incorrect");
+
+            // Update values
+            adjustedSpotPrice = newSpotPrice;
+            numItemsAlreadyPurchased += numItemsToBuy;
+            delta = newDelta;
+        }
+    }
+
+    // Call python script for price computation
     function calculateValue(string memory functionName, ScriptArgs memory args) private returns (uint256) {
         string[] memory inputs = new string[](15);
         inputs[0] = "python3";
