@@ -50,12 +50,12 @@ contract GDACurveTest is Test {
         // Expected delta should have the same alpha and lambda, but different timestamp
         uint128 expectedNewDelta = getPackedDelta(_alpha, _lambda, uint48(10));
 
-        // Calculate expected price using a Python library
+        // Calculate expected values using a Python library
         uint256 expectedInputValue = calculatePrice(spotPrice, alpha, lambda, 1, 5, 5);
-        uint256 expectedNewSpotPrice = 1265384136934162725;
+        uint256 expectedNewSpotPrice = calculateNewSpotPrice(spotPrice, alpha, lambda, 1, 5, 5);
 
         assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
-        assertEq(newSpotPrice, expectedNewSpotPrice, "Spot price incorrect");
+        assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
         assertEq(newDelta, expectedNewDelta, "Delta incorrect");
         assertApproxEqRel(inputValue, expectedInputValue, 1e9, "Input value incorrect");
         assertEq(protocolFee, 0, "Protocol fee incorrect");
@@ -74,6 +74,35 @@ contract GDACurveTest is Test {
         inputs[0] = "python3";
         inputs[1] = "src/test/gda-analysis/compute_price.py";
         inputs[2] = "exp_discrete";
+        inputs[3] = "--initial_price";
+        inputs[4] = uint256(_initialPrice).toString();
+        inputs[5] = "--scale_factor";
+        inputs[6] = uint256(_scaleFactor).toString();
+        inputs[7] = "--decay_constant";
+        inputs[8] = uint256(_decayConstant).toString();
+        inputs[9] = "--num_total_purchases";
+        inputs[10] = _numTotalPurchases.toString();
+        inputs[11] = "--time_since_start";
+        inputs[12] = _timeSinceStart.toString();
+        inputs[13] = "--quantity";
+        inputs[14] = _quantity.toString();
+        bytes memory res = vm.ffi(inputs);
+        uint256 price = abi.decode(res, (uint256));
+        return price;
+    }
+
+    function calculateNewSpotPrice(
+        uint256 _initialPrice,
+        uint256 _scaleFactor,
+        uint256 _decayConstant,
+        uint256 _numTotalPurchases,
+        uint256 _timeSinceStart,
+        uint256 _quantity
+    ) private returns (uint256) {
+        string[] memory inputs = new string[](15);
+        inputs[0] = "python3";
+        inputs[1] = "src/test/gda-analysis/compute_price.py";
+        inputs[2] = "calculate_new_spot_price";
         inputs[3] = "--initial_price";
         inputs[4] = uint256(_initialPrice).toString();
         inputs[5] = "--scale_factor";
