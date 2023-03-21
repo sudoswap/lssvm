@@ -8,6 +8,8 @@ def main(args):
         calculate_exp_discrete(args)
     elif args.type == "calculate_new_spot_price":
         calculate_new_spot_price(args)
+    elif args.type == "calculate_unadjusted_spot_price":
+        calculate_unadjusted_spot_price(args)
 
 
 def calculate_exp_discrete(args):
@@ -29,6 +31,14 @@ def calculate_new_spot_price(args):
     print("0x" + enc.hex())
 
 
+def calculate_unadjusted_spot_price(args):
+    k = args.initial_price / (10**18)
+    alpha_pow_m_n = math.pow(args.scale_factor / (10 ** 18), args.num_total_purchases + args.quantity)
+    unadjusted_spot_price = k * alpha_pow_m_n * (10 ** 18)
+    enc = encode_single('uint256', int(unadjusted_spot_price))
+    print("0x" + enc.hex())
+
+
 def parse_args(): 
     parser = argparse.ArgumentParser()
     parser.add_argument("type")
@@ -38,7 +48,6 @@ def parse_args():
     parser.add_argument("--initial_price", type=int)
     parser.add_argument("--num_total_purchases", type=int)
     parser.add_argument("--time_since_start", type=int)
-    parser.add_argument("--age_last_auction", type=int)
     parser.add_argument("--quantity", type=int)
     return parser.parse_args()
 
