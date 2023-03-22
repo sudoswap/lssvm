@@ -24,7 +24,7 @@ contract GDACurveTest is Test {
     uint256 internal constant _SCALE_FACTOR = 1e9;
 
     uint256 internal alpha = PRBMathUD60x18.fromUint(15).div(PRBMathUD60x18.fromUint(10));
-    uint256 internal lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(10));
+    uint256 internal lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
 
     GDACurve curve;
 
@@ -67,8 +67,8 @@ contract GDACurveTest is Test {
             uint48 tDelta = t1 - t0;
             ScriptArgs memory args =
                 ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadyPurchased, tDelta, numItemsToBuy);
-            uint256 expectedInputValue = calculateValue("exp_discrete", args);
-            uint256 expectedNewSpotPrice = calculateValue("calculate_new_spot_price", args);
+            uint256 expectedInputValue = calculateValue("buy_input_value", args);
+            uint256 expectedNewSpotPrice = calculateValue("buy_spot_price", args);
 
             assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
             assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
@@ -96,8 +96,8 @@ contract GDACurveTest is Test {
             uint48 tDelta = t2 - t0;
             ScriptArgs memory args =
                 ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadyPurchased, tDelta, numItemsToBuy);
-            uint256 expectedInputValue = calculateValue("exp_discrete", args);
-            uint256 expectedNewSpotPrice = calculateValue("calculate_new_spot_price", args);
+            uint256 expectedInputValue = calculateValue("buy_input_value", args);
+            uint256 expectedNewSpotPrice = calculateValue("buy_spot_price", args);
 
             assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
             assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
@@ -123,10 +123,8 @@ contract GDACurveTest is Test {
             uint48 tDelta = t3 - t0;
             ScriptArgs memory args =
                 ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadyPurchased, tDelta, numItemsToBuy);
-            uint256 expectedInputValue = calculateValue("exp_discrete", args);
-            uint256 expectedNewSpotPrice = calculateValue("calculate_new_spot_price", args);
-
-            console.log(expectedInputValue);
+            uint256 expectedInputValue = calculateValue("buy_input_value", args);
+            uint256 expectedNewSpotPrice = calculateValue("buy_spot_price", args);
 
             assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
             assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
@@ -153,6 +151,77 @@ contract GDACurveTest is Test {
         (CurveErrorCodes.Error error,,,,) = curve.getBuyInfo(adjustedSpotPrice, delta, numItemsToBuy, 0, 0);
 
         assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+    }
+
+    function test_getSellInfoExample() public {
+        uint48 t0 = 5;
+        uint48 t1 = 10;
+        vm.warp(t1);
+
+        uint128 delta = getPackedDelta(t0);
+        uint128 expectedNewDelta = getPackedDelta(uint48(t1));
+        uint128 numItemsAlreadySold = 0;
+        uint128 initialPrice = 1 ether;
+        uint128 adjustedSpotPrice;
+        {
+            uint256 alphaPowM = alpha.powu(numItemsAlreadySold);
+            adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
+        }
+
+        // Check outputs against Python script
+        {
+            uint128 numItemsToSell = 1;
+            (
+                CurveErrorCodes.Error error,
+                uint128 newSpotPrice,
+                uint128 newDelta,
+                uint256 outputValue,
+                uint256 protocolFee
+            ) = curve.getSellInfo(adjustedSpotPrice, delta, numItemsToSell, 0, 0);
+
+            uint48 tDelta = t1 - t0;
+            ScriptArgs memory args =
+                ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadySold, tDelta, numItemsToSell);
+            uint256 expectedOutputValue = calculateValue("sell_output_value", args);
+            uint256 expectedNewSpotPrice = calculateValue("sell_spot_price", args);
+
+            assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+            assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
+            assertEq(newDelta, expectedNewDelta, "Delta incorrect");
+            assertApproxEqRel(outputValue, expectedOutputValue, 1e9, "Output value incorrect");
+            assertEq(protocolFee, 0, "Protocol fee incorrect");
+
+            // Update values
+            adjustedSpotPrice = newSpotPrice;
+            numItemsAlreadySold += numItemsToSell;
+            delta = newDelta;
+        }
+
+        // Validate that the new values are correct
+        {
+            // Move time forward
+            uint48 t2 = 13;
+            vm.warp(t2);
+            expectedNewDelta = getPackedDelta(uint48(t2));
+
+            uint128 numItemsToSell = 4;
+            (CurveErrorCodes.Error error, uint128 newSpotPrice, uint128 newDelta, uint256 outputValue,) =
+                curve.getBuyInfo(adjustedSpotPrice, delta, numItemsToSell, 0, 0);
+
+            uint48 tDelta = t2 - t0;
+            ScriptArgs memory args =
+                ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadySold, tDelta, numItemsToSell);
+            uint256 expectedOutputValue = calculateValue("sell_output_value", args);
+            uint256 expectedNewSpotPrice = calculateValue("sell_spot_price", args);
+
+            console.log(expectedOutputValue);
+            console.log(outputValue);
+
+            assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+            assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
+            assertEq(newDelta, expectedNewDelta, "Delta incorrect");
+            assertApproxEqRel(outputValue, expectedOutputValue, 1e9, "Output value incorrect");
+        }
     }
 
     // Call python script for price computation

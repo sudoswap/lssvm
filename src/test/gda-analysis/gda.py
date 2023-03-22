@@ -19,3 +19,11 @@ class ExponentialDiscreteGDA(DiscreteGDA):
         t3 = math.exp(self.decay_constant * time_since_start) # e ** (lambda * T)
         t4 = self.scale_factor - 1 # alpha - 1
         return t1 * t2 / (t3 * t4)
+    
+    # This is equal to spotPrice * (1 - (1 / alpha^n)) / (1 - (1 / alpha))
+    def get_cumulative_selling_price(self, num_total_purchases, time_since_start, quantity):
+        t1 = self.initial_price * math.pow(self.scale_factor, num_total_purchases) # k * (a ** m)
+        t2 = 1 - 1 / math.pow(self.scale_factor, quantity) # 1 - (1 / alpha ** n)
+        t3 = math.exp(self.decay_constant * time_since_start) # e ** (lambda * T)
+        t4 = 1 - 1 / self.scale_factor # 1 - 1 / alpha
+        return t1 * t3 * (t2 / t4)

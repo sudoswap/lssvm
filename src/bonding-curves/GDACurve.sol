@@ -60,6 +60,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
         (uint256 alpha,,) = _parseDelta(delta);
         uint256 alphaPowN = uint256(alpha).powu(numItems);
 
+        // TODO: should we cap the time elapsed or decay factor?
         uint256 decayFactor;
         {
             (, uint256 lambda, uint256 prevTime) = _parseDelta(delta);
@@ -77,24 +78,14 @@ contract GDACurve is ICurve, CurveErrorCodes {
             newSpotPrice = uint128(newSpotPrice_);
         }
 
-        // Spot price is assumed to be the instant sell price. To avoid arbitraging LPs, we adjust the buy price upwards.
-        // If spot price for buy and sell were the same, then someone could buy 1 NFT and then sell for immediate profit.
-        // EX: Let S be spot price. Then buying 1 NFT costs S ETH, now new spot price is (S * alpha).
-        // The same person could then sell for (S * alpha) ETH, netting them alpha ETH profit.
-        // If spot price for buy and sell differ by alpha, then buying costs (S * alpha) ETH.
-        // The new spot price would become (S * alpha), so selling would also yield (S * alpha) ETH.
-        /// uint256 buySpotPrice = uint256(spotPrice).fmul(
-        ///     alpha,
-        ///     FixedPointMathLib.WAD
-        /// );
         // If the user buys n items, then the total cost is equal to:
         // buySpotPrice + (alpha * buySpotPrice) + (alpha^2 * buySpotPrice) + ... (alpha^(numItems - 1) * buySpotPrice)
         // This is equal to buySpotPrice * (alpha^n - 1) / (alpha - 1)
         // We then divide the value by e^(lambda * timeElapsed) to factor in the exponential decay
         // inputValue = uint256(spotPrice).fmul(alpha, FixedPointMathLib.WAD);
         {
-            inputValue = spotPrice_.mul(alphaPowN - PRBMathUD60x18.fromUint(1));
-            inputValue = inputValue.div(alpha - PRBMathUD60x18.fromUint(1));
+            inputValue = spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD);
+            inputValue = inputValue.div(alpha - FixedPointMathLib.WAD);
             inputValue = inputValue.div(decayFactor);
 
             // Account for the protocol fee, a flat percentage of the buy amount
@@ -139,20 +130,9 @@ contract GDACurve is ICurve, CurveErrorCodes {
             return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
         }
 
-        uint256 invAlpha;
-        {
-            (uint256 alpha,,) = _parseDelta(delta);
-            invAlpha = FixedPointMathLib.WAD.fdiv(alpha, FixedPointMathLib.WAD);
-        }
-        uint256 invAlphaPowN = invAlpha.fpow(numItems, FixedPointMathLib.WAD);
-
-        // For a GDA curve, the spot price is divided by alpha for each item sold
-        // safe to convert newSpotPrice directly into uint128 since we know newSpotPrice <= spotPrice
-        // and spotPrice <= type(uint128).max
-        newSpotPrice = uint128(uint256(spotPrice).fmul(invAlphaPowN, FixedPointMathLib.WAD));
-        if (newSpotPrice < MIN_PRICE) {
-            newSpotPrice = uint128(MIN_PRICE);
-        }
+        uint256 spotPrice_ = uint256(spotPrice);
+        (uint256 alpha,,) = _parseDelta(delta);
+        uint256 alphaPowN = uint256(alpha).powu(numItems);
 
         uint256 boostFactor;
         {
@@ -160,19 +140,28 @@ contract GDACurve is ICurve, CurveErrorCodes {
             boostFactor = ((block.timestamp - startTime) * lambda).exp();
         }
 
+        {
+            uint256 newSpotPrice_ = spotPrice_.mul(boostFactor);
+            newSpotPrice_ = newSpotPrice_.div(alphaPowN);
+            if (newSpotPrice_ > type(uint128).max) {
+                return (Error.SPOT_PRICE_OVERFLOW, 0, 0, 0, 0);
+            }
+            newSpotPrice = uint128(newSpotPrice_);
+        }
+
         // If the user sells n items, then the total revenue is equal to:
         // spotPrice + ((1 / alpha) * spotPrice) + ((1 / alpha)^2 * spotPrice) + ... ((1 / alpha)^(numItems - 1) * spotPrice)
         // This is equal to spotPrice * (1 - (1 / alpha^n)) / (1 - (1 / alpha))
         // We then multiply this by the exponential boost factor e^(lambda * timeElapsed)
-        outputValue =
-            uint256(spotPrice).fmul((FixedPointMathLib.WAD - invAlphaPowN), (FixedPointMathLib.WAD - invAlpha));
-        outputValue = outputValue.fmul(boostFactor, FixedPointMathLib.WAD);
+        outputValue = spotPrice_.mul(FixedPointMathLib.WAD - FixedPointMathLib.WAD.div(alphaPowN));
+        outputValue = outputValue.div(FixedPointMathLib.WAD - FixedPointMathLib.WAD.div(alpha));
+        outputValue = outputValue.mul(boostFactor);
 
         // Account for the protocol fee, a flat percentage of the sell amount
-        protocolFee = outputValue.fmul(protocolFeeMultiplier, FixedPointMathLib.WAD);
+        protocolFee = outputValue.mul(protocolFeeMultiplier);
 
         // Account for the trade fee, only for Trade pools
-        outputValue -= outputValue.fmul(feeMultiplier, FixedPointMathLib.WAD);
+        outputValue -= outputValue.mul(feeMultiplier);
 
         // Remove the protocol fee from the output amount
         outputValue -= protocolFee;
