@@ -147,9 +147,7 @@ contract GDACurveTest is Test {
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
 
         // Make sure there are no PRBMath issues
-        uint128 numItemsToBuy = 5;
-        (CurveErrorCodes.Error error,,,,) = curve.getBuyInfo(adjustedSpotPrice, delta, numItemsToBuy, 0, 0);
-
+        (CurveErrorCodes.Error error,,,,) = curve.getBuyInfo(adjustedSpotPrice, delta, 5, 0, 0);
         assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
     }
 
@@ -251,6 +249,24 @@ contract GDACurveTest is Test {
             numItemsAlreadySold += numItemsToSell;
             delta = newDelta;
         }
+    }
+
+    function test_getSellInfoFuzz(uint48 t1) public {
+        lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(10000000));
+
+        uint48 t0 = 0;
+        t1 = uint48(bound(t1, 1, 25920000)); // 300 days
+        vm.warp(t1);
+
+        uint128 delta = getPackedDelta(t0);
+        uint128 numItemsAlreadyPurchased = 0;
+        uint128 initialPrice = 10 ether;
+        uint256 alphaPowM = alpha.powu(numItemsAlreadyPurchased);
+        uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
+
+        // Make sure there are no PRBMath issues
+        (CurveErrorCodes.Error error,,,,) = curve.getSellInfo(adjustedSpotPrice, delta, 5, 0, 0);
+        assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
     }
 
     // Call python script for price computation
