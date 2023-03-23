@@ -153,9 +153,10 @@ contract GDACurve is ICurve, CurveErrorCodes {
         // spotPrice + ((1 / alpha) * spotPrice) + ((1 / alpha)^2 * spotPrice) + ... ((1 / alpha)^(numItems - 1) * spotPrice)
         // This is equal to spotPrice * (1 - (1 / alpha^n)) / (1 - (1 / alpha))
         // We then multiply this by the exponential boost factor e^(lambda * timeElapsed)
-        outputValue = spotPrice_.mul(FixedPointMathLib.WAD - FixedPointMathLib.WAD.div(alphaPowN));
-        outputValue = outputValue.div(FixedPointMathLib.WAD - FixedPointMathLib.WAD.div(alpha));
+        outputValue = spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD);
+        outputValue = outputValue.div(alpha - FixedPointMathLib.WAD);
         outputValue = outputValue.mul(boostFactor);
+        outputValue = outputValue.div(uint256(alpha).powu(numItems - 1));
 
         // Account for the protocol fee, a flat percentage of the sell amount
         protocolFee = outputValue.mul(protocolFeeMultiplier);

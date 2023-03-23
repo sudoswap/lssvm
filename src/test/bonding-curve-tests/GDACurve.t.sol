@@ -206,7 +206,7 @@ contract GDACurveTest is Test {
 
             uint128 numItemsToSell = 4;
             (CurveErrorCodes.Error error, uint128 newSpotPrice, uint128 newDelta, uint256 outputValue,) =
-                curve.getBuyInfo(adjustedSpotPrice, delta, numItemsToSell, 0, 0);
+                curve.getSellInfo(adjustedSpotPrice, delta, numItemsToSell, 0, 0);
 
             uint48 tDelta = t2 - t0;
             ScriptArgs memory args =
@@ -214,13 +214,42 @@ contract GDACurveTest is Test {
             uint256 expectedOutputValue = calculateValue("sell_output_value", args);
             uint256 expectedNewSpotPrice = calculateValue("sell_spot_price", args);
 
-            console.log(expectedOutputValue);
-            console.log(outputValue);
+            assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+            assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
+            assertEq(newDelta, expectedNewDelta, "Delta incorrect");
+            assertApproxEqRel(outputValue, expectedOutputValue, 1e9, "Output value incorrect");
+
+            // Update values
+            adjustedSpotPrice = newSpotPrice;
+            numItemsAlreadySold += numItemsToSell;
+            delta = newDelta;
+        }
+
+        {
+            // Move time forward
+            uint48 t3 = 200;
+            vm.warp(t3);
+            expectedNewDelta = getPackedDelta(uint48(t3));
+
+            uint128 numItemsToSell = 6;
+            (CurveErrorCodes.Error error, uint128 newSpotPrice, uint128 newDelta, uint256 outputValue,) =
+                curve.getSellInfo(adjustedSpotPrice, delta, numItemsToSell, 0, 0);
+
+            uint48 tDelta = t3 - t0;
+            ScriptArgs memory args =
+                ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadySold, tDelta, numItemsToSell);
+            uint256 expectedOutputValue = calculateValue("sell_output_value", args);
+            uint256 expectedNewSpotPrice = calculateValue("sell_spot_price", args);
 
             assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
             assertApproxEqRel(newSpotPrice, expectedNewSpotPrice, 1e9, "Spot price incorrect");
             assertEq(newDelta, expectedNewDelta, "Delta incorrect");
             assertApproxEqRel(outputValue, expectedOutputValue, 1e9, "Output value incorrect");
+
+            // Update values
+            adjustedSpotPrice = newSpotPrice;
+            numItemsAlreadySold += numItemsToSell;
+            delta = newDelta;
         }
     }
 
