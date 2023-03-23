@@ -7,13 +7,15 @@ import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import "forge-std/Test.sol";
 
-/*
-    @author 0xmons and boredGenius
-    @notice Bonding curve logic for a gradual dutch auction curve, where the price decreases exponentially over time if nobody buys NFTs
-    and increases exponentially when someone buys NFTs*/
+/**
+ * @author 0xmons, boredGenius, 0xCygaar
+ * @notice Bonding curve logic for a gradual dutch auction based on https://www.paradigm.xyz/2022/04/gda.
+ * @dev Trade pools will result in unexpected behavior due to the time factor always increasing. Buying an NFT
+ * and selling it back into the pool will result in a non-zero difference. Therefore it is recommended to only
+ * use this curve for single-sided pools.
+ */
 contract GDACurve is ICurve, CurveErrorCodes {
     using PRBMathUD60x18 for uint256;
-    using FixedPointMathLib for uint256;
 
     uint256 internal constant _SCALE_FACTOR = 1e9;
 
@@ -68,7 +70,8 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         // The new spot price is multiplied by alpha^n and divided by the time decay so future
-        // calculations do not need to track number of items sold or T_0.
+        // calculations do not need to track number of items sold or the initial time/price. This new spot price
+        // implicitly stores the the initial price, total items sold so far, and time elapsed since the start.
         {
             uint256 newSpotPrice_ = spotPrice_.mul(alphaPowN);
             newSpotPrice_ = newSpotPrice_.div(decayFactor);
@@ -79,10 +82,9 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         // If the user buys n items, then the total cost is equal to:
-        // buySpotPrice + (alpha * buySpotPrice) + (alpha^2 * buySpotPrice) + ... (alpha^(numItems - 1) * buySpotPrice)
-        // This is equal to buySpotPrice * (alpha^n - 1) / (alpha - 1)
-        // We then divide the value by e^(lambda * timeElapsed) to factor in the exponential decay
-        // inputValue = uint256(spotPrice).fmul(alpha, FixedPointMathLib.WAD);
+        // buySpotPrice + (alpha * buySpotPrice) + (alpha^2 * buySpotPrice) + ... (alpha^(numItems - 1) * buySpotPrice).
+        // This is equal to buySpotPrice * (alpha^n - 1) / (alpha - 1).
+        // We then divide the value by e^(lambda * timeElapsed) to factor in the exponential decay.
         {
             inputValue = spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD);
             inputValue = inputValue.div(alpha - FixedPointMathLib.WAD);
@@ -123,8 +125,6 @@ contract GDACurve is ICurve, CurveErrorCodes {
         override
         returns (Error error, uint128 newSpotPrice, uint128 newDelta, uint256 outputValue, uint256 protocolFee)
     {
-        // NOTE: we assume delta is > 1, as checked by validateDelta()
-
         // We only calculate changes for buying 1 or more NFTs
         if (numItems == 0) {
             return (Error.INVALID_NUMITEMS, 0, 0, 0, 0);
@@ -140,6 +140,9 @@ contract GDACurve is ICurve, CurveErrorCodes {
             boostFactor = ((block.timestamp - startTime) * lambda).exp();
         }
 
+        // The new spot price is multiplied by the time decay and divided by alpha^n so future
+        // calculations do not need to track number of items sold or the initial time/price. This new spot price
+        // implicitly stores the the initial price, total items sold so far, and time elapsed since the start.
         {
             uint256 newSpotPrice_ = spotPrice_.mul(boostFactor);
             newSpotPrice_ = newSpotPrice_.div(alphaPowN);
@@ -149,14 +152,16 @@ contract GDACurve is ICurve, CurveErrorCodes {
             newSpotPrice = uint128(newSpotPrice_);
         }
 
-        // If the user sells n items, then the total revenue is equal to:
-        // spotPrice + ((1 / alpha) * spotPrice) + ((1 / alpha)^2 * spotPrice) + ... ((1 / alpha)^(numItems - 1) * spotPrice)
-        // This is equal to spotPrice * (1 - (1 / alpha^n)) / (1 - (1 / alpha))
-        // We then multiply this by the exponential boost factor e^(lambda * timeElapsed)
-        outputValue = spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD);
+        // The expected output at for an auction at index n is defined by the formula: p(t) = k * e^(lambda * t) / alpha^n
+        // where k is the initial price, lambda is the decay constant, t is time elapsed, alpha is the scale factor, and
+        // n is the number of items sold. The amount to receive for selling into a pool can thus be written as:
+        // k * e^(lambda * t) / alpha^(m + q - 1) * (alpha^q - 1) / (alpha - 1) where m is the number of items purchased thus far
+        // and q is the number of items to sell.
+        // Our spot prices implicity embed the number of items already purchased and the previous time decay, so we just need to
+        // do some simple adjustments to get the current e^(lambda * t) and alpha^(m + q - 1) values.
+        outputValue = spotPrice_.mul(boostFactor).div(uint256(alpha).powu(numItems - 1));
+        outputValue = outputValue.mul(alphaPowN - FixedPointMathLib.WAD);
         outputValue = outputValue.div(alpha - FixedPointMathLib.WAD);
-        outputValue = outputValue.mul(boostFactor);
-        outputValue = outputValue.div(uint256(alpha).powu(numItems - 1));
 
         // Account for the protocol fee, a flat percentage of the sell amount
         protocolFee = outputValue.mul(protocolFeeMultiplier);
