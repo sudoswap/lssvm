@@ -5,7 +5,6 @@ import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import "forge-std/Test.sol";
 
 /**
  * @author 0xmons, boredGenius, 0xCygaar
@@ -109,9 +108,6 @@ contract GDACurve is ICurve, CurveErrorCodes {
 
     /**
      * @dev See {ICurve-getSellInfo}
-     *     If newSpotPrice is less than MIN_PRICE, newSpotPrice is set to MIN_PRICE instead.
-     *     This is to prevent the spot price from ever becoming 0, which would decouple the price
-     *     from the bonding curve (since 0 * delta is still 0)
      */
     function getSellInfo(
         uint128 spotPrice,
@@ -132,6 +128,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
 
         uint256 spotPrice_ = uint256(spotPrice);
         (uint256 alpha,,) = _parseDelta(delta);
+        // TODO: this value may overflow, should we cap the value?
         uint256 alphaPowN = uint256(alpha).powu(numItems);
 
         uint256 boostFactor;
@@ -140,7 +137,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
             boostFactor = ((block.timestamp - startTime) * lambda).exp();
         }
 
-        // The new spot price is multiplied by the time decay and divided by alpha^n so future
+        // The new spot price is multiplied by the time boost and divided by alpha^n so future
         // calculations do not need to track number of items sold or the initial time/price. This new spot price
         // implicitly stores the the initial price, total items sold so far, and time elapsed since the start.
         {
@@ -153,11 +150,11 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         // The expected output at for an auction at index n is defined by the formula: p(t) = k * e^(lambda * t) / alpha^n
-        // where k is the initial price, lambda is the decay constant, t is time elapsed, alpha is the scale factor, and
+        // where k is the initial price, lambda is the boost constant, t is time elapsed, alpha is the scale factor, and
         // n is the number of items sold. The amount to receive for selling into a pool can thus be written as:
         // k * e^(lambda * t) / alpha^(m + q - 1) * (alpha^q - 1) / (alpha - 1) where m is the number of items purchased thus far
         // and q is the number of items to sell.
-        // Our spot prices implicity embed the number of items already purchased and the previous time decay, so we just need to
+        // Our spot price implicity embeds the number of items already purchased and the previous time boost, so we just need to
         // do some simple adjustments to get the current e^(lambda * t) and alpha^(m + q - 1) values.
         outputValue = spotPrice_.mul(boostFactor).div(uint256(alpha).powu(numItems - 1));
         outputValue = outputValue.mul(alphaPowN - FixedPointMathLib.WAD);
@@ -180,13 +177,14 @@ contract GDACurve is ICurve, CurveErrorCodes {
     }
 
     function _parseDelta(uint128 delta) internal pure returns (uint256 alpha, uint256 lambda, uint256 prevTime) {
-        // the highest 40 bits are alpha
-        // which is the same as delta in ExponentialCurve
+        // the highest 40 bits are alpha with 9 decimals of precision.
+        // however, because our alpha value needs to be 18 decimals of precision, we multiple by a scaling factor
         alpha = uint40(delta >> 88) * _SCALE_FACTOR;
 
-        // the middle 40 bits are lambda
-        // lambda determines the exponential decay over time
+        // the middle 40 bits are lambda with 9 decimals of precision
+        // lambda determines the exponential decay (when buying) or exponential boost (when selling) over time
         // see https://www.paradigm.xyz/2022/04/gda
+        // lambda also needs to be 18 decimals of precision so we multiple by a scaling factor
         lambda = uint40(delta >> 48) * _SCALE_FACTOR;
 
         // the lowest 48 bits are the start timestamp
