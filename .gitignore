@@ -9,3 +9,9 @@ out/
 
 # Forge
 cache/
+
+# Python bytecode
+*__pycache__*
+
+# Misc files
+.DS_Store
