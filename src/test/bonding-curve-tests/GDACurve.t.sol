@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {PRBMathUD60x18, PRBMathUD60x18__ExpInputTooBig} from "prb-math/PRBMathUD60x18.sol";
+import {PRBMathUD60x18, PRBMathUD60x18__Exp2InputTooBig} from "prb-math/PRBMathUD60x18.sol";
 
 import {GDACurve} from "../../bonding-curves/GDACurve.sol";
 import {CurveErrorCodes} from "../../bonding-curves/CurveErrorCodes.sol";
@@ -147,7 +147,7 @@ contract GDACurveTest is Test {
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
 
         // PRBMath will overflow here
-        vm.expectRevert(abi.encodeWithSelector(PRBMathUD60x18__ExpInputTooBig.selector, t1 * lambda));
+        vm.expectRevert(abi.encodeWithSelector(PRBMathUD60x18__Exp2InputTooBig.selector, t1 * lambda));
         curve.getBuyInfo(adjustedSpotPrice, delta, 5, 0, 0);
     }
 
@@ -290,7 +290,7 @@ contract GDACurveTest is Test {
         lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
 
         uint48 t0 = 0;
-        uint48 t1 = uint48(1);
+        uint48 t1 = uint48(1000000000);
         vm.warp(t1);
 
         uint128 delta = getPackedDelta(t0);
@@ -300,7 +300,7 @@ contract GDACurveTest is Test {
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
 
         // PRBMath will error out
-        vm.expectRevert(abi.encodeWithSelector(PRBMathUD60x18__ExpInputTooBig.selector, t1 * lambda));
+        vm.expectRevert(abi.encodeWithSelector(PRBMathUD60x18__Exp2InputTooBig.selector, t1 * lambda));
         curve.getSellInfo(adjustedSpotPrice, delta, 5, 0, 0);
     }
 

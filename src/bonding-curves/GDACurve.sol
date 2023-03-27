@@ -17,6 +17,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
     using PRBMathUD60x18 for uint256;
 
     uint256 internal constant _SCALE_FACTOR = 1e9;
+    uint256 internal constant _TIME_SCALAR = 2 * FixedPointMathLib.WAD; // Used in place of Euler's number
 
     // minimum price to prevent numerical issues
     uint256 public constant MIN_PRICE = 1 gwei;
@@ -65,7 +66,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
         uint256 decayFactor;
         {
             (, uint256 lambda, uint256 prevTime) = _parseDelta(delta);
-            decayFactor = ((block.timestamp - prevTime) * lambda).exp();
+            decayFactor = _TIME_SCALAR.pow((block.timestamp - prevTime) * lambda);
         }
 
         // The new spot price is multiplied by alpha^n and divided by the time decay so future
@@ -134,7 +135,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
         uint256 boostFactor;
         {
             (, uint256 lambda, uint256 startTime) = _parseDelta(delta);
-            boostFactor = ((block.timestamp - startTime) * lambda).exp();
+            boostFactor = _TIME_SCALAR.pow((block.timestamp - startTime) * lambda);
         }
 
         // The new spot price is multiplied by the time boost and divided by alpha^n so future
