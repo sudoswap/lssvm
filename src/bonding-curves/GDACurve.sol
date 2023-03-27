@@ -59,15 +59,15 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         uint256 spotPrice_ = uint256(spotPrice);
-        (uint256 alpha,,) = _parseDelta(delta);
-        uint256 alphaPowN = uint256(alpha).powu(numItems);
-
         // TODO: should we cap the time elapsed or decay factor?
         uint256 decayFactor;
         {
             (, uint256 lambda, uint256 prevTime) = _parseDelta(delta);
             decayFactor = _TIME_SCALAR.pow((block.timestamp - prevTime) * lambda);
         }
+
+        (uint256 alpha,,) = _parseDelta(delta);
+        uint256 alphaPowN = uint256(alpha).powu(numItems);
 
         // The new spot price is multiplied by alpha^n and divided by the time decay so future
         // calculations do not need to track number of items sold or the initial time/price. This new spot price
@@ -128,15 +128,15 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         uint256 spotPrice_ = uint256(spotPrice);
-        (uint256 alpha,,) = _parseDelta(delta);
-        // TODO: this value may overflow, should we cap the value?
-        uint256 alphaPowN = uint256(alpha).powu(numItems);
-
         uint256 boostFactor;
         {
             (, uint256 lambda, uint256 startTime) = _parseDelta(delta);
             boostFactor = _TIME_SCALAR.pow((block.timestamp - startTime) * lambda);
         }
+
+        (uint256 alpha,,) = _parseDelta(delta);
+        // TODO: this value may overflow, should we cap the value?
+        uint256 alphaPowN = uint256(alpha).powu(numItems);
 
         // The new spot price is multiplied by the time boost and divided by alpha^n so future
         // calculations do not need to track number of items sold or the initial time/price. This new spot price
