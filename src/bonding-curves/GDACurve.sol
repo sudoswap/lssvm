@@ -84,7 +84,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
         // If the user buys n items, then the total cost is equal to:
         // buySpotPrice + (alpha * buySpotPrice) + (alpha^2 * buySpotPrice) + ... (alpha^(numItems - 1) * buySpotPrice).
         // This is equal to buySpotPrice * (alpha^n - 1) / (alpha - 1).
-        // We then divide the value by e^(lambda * timeElapsed) to factor in the exponential decay.
+        // We then divide the value by scalar^(lambda * timeElapsed) to factor in the exponential decay.
         {
             inputValue = spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD);
             inputValue = inputValue.div(alpha - FixedPointMathLib.WAD);
@@ -150,10 +150,10 @@ contract GDACurve is ICurve, CurveErrorCodes {
             newSpotPrice = uint128(newSpotPrice_);
         }
 
-        // The expected output at for an auction at index n is defined by the formula: p(t) = k * e^(lambda * t) / alpha^n
+        // The expected output at for an auction at index n is defined by the formula: p(t) = k * scalar^(lambda * t) / alpha^n
         // where k is the initial price, lambda is the boost constant, t is time elapsed, alpha is the scale factor, and
         // n is the number of items sold. The amount to receive for selling into a pool can thus be written as:
-        // k * e^(lambda * t) / alpha^(m + q - 1) * (alpha^q - 1) / (alpha - 1) where m is the number of items purchased thus far
+        // k * scalar^(lambda * t) / alpha^(m + q - 1) * (alpha^q - 1) / (alpha - 1) where m is the number of items purchased thus far
         // and q is the number of items to sell.
         // Our spot price implicity embeds the number of items already purchased and the previous time boost, so we just need to
         // do some simple adjustments to get the current e^(lambda * t) and alpha^(m + q - 1) values.
