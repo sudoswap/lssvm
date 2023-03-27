@@ -134,8 +134,6 @@ contract GDACurveTest is Test {
     }
 
     function test_getBuyInfoUnderflow() public {
-        lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
-
         uint48 t0 = 0;
         uint48 t1 = uint48(1000000);
         vm.warp(t1);
@@ -152,8 +150,6 @@ contract GDACurveTest is Test {
     }
 
     function test_getBuyInfoOverflow() public {
-        lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
-
         uint48 t0 = 0;
         uint48 t1 = uint48(1);
         vm.warp(t1);
@@ -287,8 +283,6 @@ contract GDACurveTest is Test {
     }
 
     function test_getSellInfoUnderflow() public {
-        lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
-
         uint48 t0 = 0;
         uint48 t1 = uint48(1000000000);
         vm.warp(t1);
@@ -305,8 +299,6 @@ contract GDACurveTest is Test {
     }
 
     function test_getSellInfoOverflow() public {
-        lambda = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
-
         uint48 t0 = 0;
         uint48 t1 = uint48(10000);
         vm.warp(t1);
