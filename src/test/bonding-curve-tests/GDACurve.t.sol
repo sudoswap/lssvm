@@ -133,6 +133,39 @@ contract GDACurveTest is Test {
         }
     }
 
+    function test_getBuyInfoWithFees() public {
+        uint48 t0 = 5;
+        uint48 t1 = 10;
+        vm.warp(t1);
+
+        uint128 delta = getPackedDelta(t0);
+        uint128 initialPrice = 10 ether;
+        uint128 adjustedSpotPrice;
+        {
+            uint256 alphaPowM = alpha.powu(1);
+            adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
+        }
+
+        // Check outputs against Python script
+        {
+            uint256 feeMultiplier = PRBMathUD60x18.fromUint(4).div(PRBMathUD60x18.fromUint(100));
+            uint256 protocolFeeMultiplier = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
+            uint128 numItemsToBuy = 5;
+            (CurveErrorCodes.Error error,,, uint256 inputValue, uint256 protocolFee) =
+                curve.getBuyInfo(adjustedSpotPrice, delta, numItemsToBuy, feeMultiplier, protocolFeeMultiplier);
+
+            uint48 tDelta = t1 - t0;
+            ScriptArgs memory args = ScriptArgs(initialPrice, alpha, lambda, 1, tDelta, numItemsToBuy);
+            uint256 rawInputValue = calculateValue("buy_input_value", args);
+            uint256 expectedInputValue =
+                rawInputValue.mul(PRBMathUD60x18.fromUint(105)).div(PRBMathUD60x18.fromUint(100));
+
+            assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+            assertApproxEqRel(inputValue, expectedInputValue, 1e9, "Input value incorrect");
+            assertApproxEqRel(protocolFee, rawInputValue.mul(protocolFeeMultiplier), 1e9, "Protocol fee incorrect");
+        }
+    }
+
     function test_getBuyInfoTimeDecayTooLarge() public {
         uint48 t0 = 0;
         uint48 t1 = uint48(1000000);
@@ -282,6 +315,39 @@ contract GDACurveTest is Test {
             adjustedSpotPrice = newSpotPrice;
             numItemsAlreadySold += numItemsToSell;
             delta = newDelta;
+        }
+    }
+
+    function test_getSellInfoWithFees() public {
+        uint48 t0 = 5;
+        uint48 t1 = 10;
+        vm.warp(t1);
+
+        uint128 delta = getPackedDelta(t0);
+        uint128 initialPrice = 10 ether;
+        uint128 adjustedSpotPrice;
+        {
+            uint256 alphaPowM = alpha.powu(1);
+            adjustedSpotPrice = uint128(uint256(initialPrice).div(alphaPowM));
+        }
+
+        // Check outputs against Python script
+        {
+            uint256 feeMultiplier = PRBMathUD60x18.fromUint(4).div(PRBMathUD60x18.fromUint(100));
+            uint256 protocolFeeMultiplier = PRBMathUD60x18.fromUint(1).div(PRBMathUD60x18.fromUint(100));
+            uint128 numItemsToSell = 5;
+            (CurveErrorCodes.Error error,,, uint256 inputValue, uint256 protocolFee) =
+                curve.getSellInfo(adjustedSpotPrice, delta, numItemsToSell, feeMultiplier, protocolFeeMultiplier);
+
+            uint48 tDelta = t1 - t0;
+            ScriptArgs memory args = ScriptArgs(initialPrice, alpha, lambda, 1, tDelta, numItemsToSell);
+            uint256 rawOutputValue = calculateValue("sell_output_value", args);
+            uint256 expectedOutputValue =
+                rawOutputValue.mul(PRBMathUD60x18.fromUint(95)).div(PRBMathUD60x18.fromUint(100));
+
+            assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK), "Error code not OK");
+            assertApproxEqRel(inputValue, expectedOutputValue, 1e9, "Input value incorrect");
+            assertApproxEqRel(protocolFee, rawOutputValue.mul(protocolFeeMultiplier), 1e9, "Protocol fee incorrect");
         }
     }
 
