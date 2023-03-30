@@ -3,6 +3,9 @@ from eth_abi import encode
 import argparse
 import math
 
+_TIME_SCALAR = 2
+
+
 def main(args): 
     if args.type == "buy_input_value": 
         calculate_buy_input_value(args)
@@ -27,7 +30,7 @@ def calculate_buy_input_value(args):
 def calculate_buy_spot_price(args):
     k = args.initial_price / (10**18)
     alpha_pow_m_n = math.pow(args.scale_factor / (10 ** 18), args.num_total_purchases + args.quantity)
-    decay_factor = math.pow(2, (args.decay_constant / (10 ** 18)) * args.time_since_start)
+    decay_factor = math.pow(_TIME_SCALAR, (args.decay_constant / (10 ** 18)) * args.time_since_start)
     new_spot_price = k * alpha_pow_m_n / decay_factor * (10 ** 18)
     enc = encode(['uint256'], [int(new_spot_price)])
     print("0x" + enc.hex())
@@ -46,7 +49,7 @@ def calculate_sell_output_value(args):
 def calculate_sell_spot_price(args):
     k = args.initial_price / (10**18)
     alpha_pow_m_n = math.pow(args.scale_factor / (10 ** 18), args.num_total_purchases + args.quantity)
-    boost_factor = math.pow(2, (args.decay_constant / (10 ** 18)) * args.time_since_start)
+    boost_factor = math.pow(_TIME_SCALAR, (args.decay_constant / (10 ** 18)) * args.time_since_start)
     new_spot_price = k * boost_factor / alpha_pow_m_n * (10 ** 18)
     enc = encode(['uint256'], [int(new_spot_price)])
     print("0x" + enc.hex())

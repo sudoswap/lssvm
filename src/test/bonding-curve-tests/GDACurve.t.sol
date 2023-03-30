@@ -133,7 +133,7 @@ contract GDACurveTest is Test {
         }
     }
 
-    function test_getBuyInfoUnderflow() public {
+    function test_getBuyInfoTimeDecayTooLarge() public {
         uint48 t0 = 0;
         uint48 t1 = uint48(1000000);
         vm.warp(t1);
@@ -144,9 +144,12 @@ contract GDACurveTest is Test {
         uint256 alphaPowM = alpha.powu(numItemsAlreadyPurchased);
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
 
-        // PRBMath will overflow here
-        vm.expectRevert(abi.encodeWithSelector(PRBMathUD60x18__Exp2InputTooBig.selector, t1 * lambda));
-        curve.getBuyInfo(adjustedSpotPrice, delta, 5, 0, 0);
+        ScriptArgs memory args = ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadyPurchased, 1000, 5);
+        uint256 expectedInputValue = calculateValue("buy_input_value", args);
+
+        (CurveErrorCodes.Error error,,, uint256 inputValue,) = curve.getBuyInfo(adjustedSpotPrice, delta, 5, 0, 0);
+        assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK));
+        assertApproxEqRel(inputValue, expectedInputValue, 1e9, "Input value incorrect");
     }
 
     function test_getBuyInfoOverflow() public {
@@ -282,20 +285,23 @@ contract GDACurveTest is Test {
         }
     }
 
-    function test_getSellInfoUnderflow() public {
+    function test_getSellInfoTimeBoostTooLarge() public {
         uint48 t0 = 0;
         uint48 t1 = uint48(1000000000);
         vm.warp(t1);
 
         uint128 delta = getPackedDelta(t0);
-        uint128 numItemsAlreadyPurchased = 329;
+        uint128 numItemsAlreadySold = 0;
         uint128 initialPrice = 10 ether;
-        uint256 alphaPowM = alpha.powu(numItemsAlreadyPurchased);
+        uint256 alphaPowM = alpha.powu(numItemsAlreadySold);
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
 
-        // PRBMath will error out
-        vm.expectRevert(abi.encodeWithSelector(PRBMathUD60x18__Exp2InputTooBig.selector, t1 * lambda));
-        curve.getSellInfo(adjustedSpotPrice, delta, 5, 0, 0);
+        ScriptArgs memory args = ScriptArgs(initialPrice, alpha, lambda, numItemsAlreadySold, 1000, 5);
+        uint256 expectedOutputValue = calculateValue("sell_output_value", args);
+
+        (CurveErrorCodes.Error error,,, uint256 outputValue,) = curve.getSellInfo(adjustedSpotPrice, delta, 5, 0, 0);
+        assertEq(uint256(error), uint256(CurveErrorCodes.Error.OK));
+        assertApproxEqRel(outputValue, expectedOutputValue, 1e9, "Output value incorrect");
     }
 
     function test_getSellInfoOverflow() public {
@@ -304,9 +310,9 @@ contract GDACurveTest is Test {
         vm.warp(t1);
 
         uint128 delta = getPackedDelta(t0);
-        uint128 numItemsAlreadyPurchased = 0;
-        uint128 initialPrice = 10 ether;
-        uint256 alphaPowM = alpha.powu(numItemsAlreadyPurchased);
+        uint128 numItemsAlreadySold = 0;
+        uint128 initialPrice = 10000000000000000000 ether;
+        uint256 alphaPowM = alpha.powu(numItemsAlreadySold);
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).mul(alphaPowM));
 
         (CurveErrorCodes.Error error,,,,) = curve.getSellInfo(adjustedSpotPrice, delta, 5, 0, 0);
@@ -321,9 +327,9 @@ contract GDACurveTest is Test {
         vm.warp(t1);
 
         uint128 delta = getPackedDelta(t0);
-        uint128 numItemsAlreadyPurchased = 0;
+        uint128 numItemsAlreadySold = 0;
         uint128 initialPrice = 10 ether;
-        uint256 alphaPowM = alpha.powu(numItemsAlreadyPurchased);
+        uint256 alphaPowM = alpha.powu(numItemsAlreadySold);
         uint128 adjustedSpotPrice = uint128(uint256(initialPrice).div(alphaPowM));
 
         // Make sure there are no PRBMath issues

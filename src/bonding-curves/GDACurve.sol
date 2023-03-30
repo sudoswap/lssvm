@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
+import "forge-std/Test.sol";
 import {ICurve} from "./ICurve.sol";
 import {CurveErrorCodes} from "./CurveErrorCodes.sol";
 import {PRBMathUD60x18} from "prb-math/PRBMathUD60x18.sol";
@@ -18,6 +19,7 @@ contract GDACurve is ICurve, CurveErrorCodes {
 
     uint256 internal constant _SCALE_FACTOR = 1e9;
     uint256 internal constant _TIME_SCALAR = 2 * FixedPointMathLib.WAD; // Used in place of Euler's number
+    uint256 internal constant _MAX_TIME_EXPONENT = 10;
 
     // minimum price to prevent numerical issues
     uint256 public constant MIN_PRICE = 1 gwei;
@@ -59,11 +61,14 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         uint256 spotPrice_ = uint256(spotPrice);
-        // TODO: should we cap the time elapsed or decay factor?
         uint256 decayFactor;
         {
             (, uint256 lambda, uint256 prevTime) = _parseDelta(delta);
-            decayFactor = _TIME_SCALAR.pow((block.timestamp - prevTime) * lambda);
+            uint256 exponent = ((block.timestamp - prevTime) * lambda);
+            if (exponent.toUint() > _MAX_TIME_EXPONENT) {
+                exponent = _MAX_TIME_EXPONENT.fromUint();
+            }
+            decayFactor = _TIME_SCALAR.pow(exponent);
         }
 
         (uint256 alpha,,) = _parseDelta(delta);
@@ -130,8 +135,12 @@ contract GDACurve is ICurve, CurveErrorCodes {
         uint256 spotPrice_ = uint256(spotPrice);
         uint256 boostFactor;
         {
-            (, uint256 lambda, uint256 startTime) = _parseDelta(delta);
-            boostFactor = _TIME_SCALAR.pow((block.timestamp - startTime) * lambda);
+            (, uint256 lambda, uint256 prevTime) = _parseDelta(delta);
+            uint256 exponent = ((block.timestamp - prevTime) * lambda);
+            if (exponent.toUint() > _MAX_TIME_EXPONENT) {
+                exponent = _MAX_TIME_EXPONENT.fromUint();
+            }
+            boostFactor = _TIME_SCALAR.pow(exponent);
         }
 
         (uint256 alpha,,) = _parseDelta(delta);
