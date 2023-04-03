@@ -86,6 +86,7 @@ contract LSSVMRouter {
     )
         external
         payable
+        virtual
         checkDeadline(deadline)
         returns (uint256 remainingValue)
     {
@@ -109,6 +110,7 @@ contract LSSVMRouter {
     )
         external
         payable
+        virtual
         checkDeadline(deadline)
         returns (uint256 remainingValue)
     {
@@ -137,7 +139,13 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
+    )
+        external
+        payable
+        virtual
+        checkDeadline(deadline)
+        returns (uint256 outputAmount)
+    {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         outputAmount = _swapNFTsForToken(
@@ -177,7 +185,13 @@ contract LSSVMRouter {
         address payable ethRecipient,
         address nftRecipient,
         uint256 deadline
-    ) external payable checkDeadline(deadline) returns (uint256 outputAmount) {
+    )
+        external
+        payable
+        virtual
+        checkDeadline(deadline)
+        returns (uint256 outputAmount)
+    {
         // Swap NFTs for ETH
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         outputAmount = _swapNFTsForToken(
@@ -225,7 +239,12 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 remainingValue) {
+    )
+        external
+        virtual
+        checkDeadline(deadline)
+        returns (uint256 remainingValue)
+    {
         return _swapERC20ForAnyNFTs(swapList, inputAmount, nftRecipient);
     }
 
@@ -242,7 +261,12 @@ contract LSSVMRouter {
         uint256 inputAmount,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 remainingValue) {
+    )
+        external
+        virtual
+        checkDeadline(deadline)
+        returns (uint256 remainingValue)
+    {
         return _swapERC20ForSpecificNFTs(swapList, inputAmount, nftRecipient);
     }
 
@@ -259,7 +283,7 @@ contract LSSVMRouter {
         uint256 minOutput,
         address tokenRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external virtual checkDeadline(deadline) returns (uint256 outputAmount) {
         return _swapNFTsForToken(swapList, minOutput, payable(tokenRecipient));
     }
 
@@ -279,7 +303,7 @@ contract LSSVMRouter {
         uint256 minOutput,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external virtual checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ERC20
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         // output tokens are sent to msg.sender
@@ -320,7 +344,7 @@ contract LSSVMRouter {
         uint256 minOutput,
         address nftRecipient,
         uint256 deadline
-    ) external checkDeadline(deadline) returns (uint256 outputAmount) {
+    ) external virtual checkDeadline(deadline) returns (uint256 outputAmount) {
         // Swap NFTs for ERC20
         // minOutput of swap set to 0 since we're doing an aggregate slippage check
         // output tokens are sent to msg.sender
