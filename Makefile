@@ -17,7 +17,7 @@ solc:; nix-env -f https://github.com/dapphub/dapptools/archive/master.tar.gz -iA
 
 # Build & test
 build  :; forge build --optimize 
-test   :; forge test --optimize
+test   :; forge test --optimize --ffi
 fuzz   :; forge test -v --optimize 
 clean  :; forge clean
 lint   :; yarn run lint
