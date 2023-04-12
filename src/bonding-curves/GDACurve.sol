@@ -91,18 +91,14 @@ contract GDACurve is ICurve, CurveErrorCodes {
         // This is equal to buySpotPrice * (alpha^n - 1) / (alpha - 1).
         // We then divide the value by scalar^(lambda * timeElapsed) to factor in the exponential decay.
         {
-            inputValue = spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD);
-            inputValue = inputValue.div(alpha - FixedPointMathLib.WAD);
-            inputValue = inputValue.div(decayFactor);
+            inputValue =
+                spotPrice_.mul(alphaPowN - FixedPointMathLib.WAD).div(alpha - FixedPointMathLib.WAD).div(decayFactor);
 
             // Account for the protocol fee, a flat percentage of the buy amount
             protocolFee = inputValue.mul(protocolFeeMultiplier);
 
-            // Account for the trade fee, only for Trade pools
-            inputValue += inputValue.mul(feeMultiplier);
-
-            // Add the protocol fee to the required input amount
-            inputValue += protocolFee;
+            // Account for the trade and protocol fees
+            inputValue += inputValue.mul(feeMultiplier) + protocolFee;
         }
 
         // Update delta with the current timestamp
@@ -144,7 +140,6 @@ contract GDACurve is ICurve, CurveErrorCodes {
         }
 
         (uint256 alpha,,) = _parseDelta(delta);
-        // TODO: this value may overflow, should we cap the value?
         uint256 alphaPowN = uint256(alpha).powu(numItems);
 
         // The new spot price is multiplied by the time boost and divided by alpha^n so future
@@ -166,18 +161,15 @@ contract GDACurve is ICurve, CurveErrorCodes {
         // and q is the number of items to sell.
         // Our spot price implicity embeds the number of items already purchased and the previous time boost, so we just need to
         // do some simple adjustments to get the current e^(lambda * t) and alpha^(m + q - 1) values.
-        outputValue = spotPrice_.mul(boostFactor).div(uint256(alpha).powu(numItems - 1));
-        outputValue = outputValue.mul(alphaPowN - FixedPointMathLib.WAD);
-        outputValue = outputValue.div(alpha - FixedPointMathLib.WAD);
+        outputValue = spotPrice_.mul(boostFactor).div(alphaPowN.div(alpha)).mul(alphaPowN - FixedPointMathLib.WAD).div(
+            alpha - FixedPointMathLib.WAD
+        );
 
         // Account for the protocol fee, a flat percentage of the sell amount
         protocolFee = outputValue.mul(protocolFeeMultiplier);
 
-        // Account for the trade fee, only for Trade pools
-        outputValue -= outputValue.mul(feeMultiplier);
-
-        // Remove the protocol fee from the output amount
-        outputValue -= protocolFee;
+        // Account for the trade and protocol fees
+        outputValue -= (outputValue.mul(feeMultiplier) + protocolFee);
 
         // Update delta with the current timestamp
         newDelta = _getNewDelta(delta);
