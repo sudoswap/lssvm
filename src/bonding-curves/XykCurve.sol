@@ -22,7 +22,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
     /**
         @dev See {ICurve-validateDelta}
      */
-    function validateDelta(uint128 delta)
+    function validateDelta(uint128 /* delta */)
         external
         pure
         override
@@ -35,7 +35,7 @@ contract XykCurve is ICurve, CurveErrorCodes {
     /**
         @dev See {ICurve-validateSpotPrice}
      */
-    function validateSpotPrice(uint128 newSpotPrice)
+    function validateSpotPrice(uint128 /* newSpotPrice */)
         external
         pure
         override
