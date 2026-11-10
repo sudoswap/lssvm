@@ -133,3 +133,5 @@ curl https://dapp.tools/install | sh
     * [Seth Docs](https://github.com/dapphub/dapptools/tree/master/src/seth/README.md)
 * [DappTools Overview](https://www.youtube.com/watch?v=lPinWgaNceM)
 * [Awesome-DappTools](https://github.com/rajivpo/awesome-dapptools)
+
+<!-- note: readme touch for CI check -->
